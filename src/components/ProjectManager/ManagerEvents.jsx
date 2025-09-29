@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
-import fileIcon from "../../assets/file-type-Icon.png";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Swal from "sweetalert2";
 import {
