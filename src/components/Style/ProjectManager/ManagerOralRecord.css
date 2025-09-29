@@ -1,0 +1,129 @@
+.page-wrapper {
+  width: 100%;
+  padding: 40px 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #3B0304;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-image {
+  width: 24px;
+  height: 24px;
+}
+
+.divider {
+  border: none;
+  border-top: 2px solid #3B0304;
+  margin-bottom: 20px;
+}
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #3B0304;
+  border-radius: 12px;
+  padding: 6px 12px;
+  width: 280px;
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #3B0304;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 34px;
+  transition: background-color 0.2s ease;
+}
+
+.primary-button:hover {
+  background-color: #580404;
+}
+
+.primary-button.cancel {
+  background-color: #6c757d;
+}
+
+.primary-button.cancel:hover {
+  background-color: #5a6268;
+}
+
+.tasks-container {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  border: 1px solid #B2B2B2;
+  overflow-x: auto;
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tasks-table th,
+.tasks-table td {
+  padding: 12px 10px;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tasks-table th {
+  background-color: #fafafa;
+  font-weight: bold;
+  color: #000;
+}
+
+.tasks-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.tasks-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.inline-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: middle;
+}

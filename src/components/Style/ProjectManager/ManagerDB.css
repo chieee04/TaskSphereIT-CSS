@@ -1,0 +1,334 @@
+/* ManagerDB.css */
+
+/* ====== Layout & Typography (Finalized) ====== */
+.dashboard-content {
+  padding: 1rem;
+  flex-grow: 1;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h4 {
+  color: #2c3e50;
+  margin-bottom: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ====== Upcoming Activity (Smaller Cards & Darker Shadows) ====== */
+.upcoming-activity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: flex-start;
+}
+.activity-card {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  padding: 0;
+  overflow: hidden;
+}
+.activity-header {
+  background: #809D3C; /* HEADER_GREEN */
+  color: #fff;
+  padding: 0.5rem 0.8rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.activity-body {
+  padding: 0.6rem 0.8rem;
+  color: #333;
+}
+.activity-body h5 {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.activity-body p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.activity-body p i,
+.activity-body h5 i {
+  color: #5B0A0A; /* TASKSPHERE_DARK_RED */
+  font-size: 0.8rem;
+}
+
+/* ====== Summary & Progress ====== */
+.summary-progress-container {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+.weekly-summary,
+.team-progress {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 6px 20px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+.weekly-summary h4,
+.team-progress h4 {
+  text-align: left;
+  color: #2c3e50;
+}
+
+/* ====== Bar Chart ====== */
+.bar-chart-container {
+  position: relative;
+  height: 200px;
+  margin-top: 2rem;
+  display: flex;
+  align-items: flex-end;
+  padding-left: 30px;
+}
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 10px;
+}
+.background-bars {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+}
+.background-bar {
+  width: 30px;
+  height: 100%;
+  background: #f0f0f0;
+  border-radius: 4px 4px 0 0;
+}
+.bar-chart {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 1;
+}
+.chart-axis-y {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  top: 0;
+  width: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #555;
+  padding-bottom: 25px;
+  padding-right: 5px;
+  text-align: right;
+  border-left: 1px solid #ccc;
+  border-top-left-radius: 10px;
+}
+.chart-axis-x {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #ccc;
+}
+.bar {
+  width: 30px;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+}
+.bar.todo { background: #f0a500; height: calc(4 / 20 * 100%); }
+.bar.inprogress { background: #4a772f; height: calc(9 / 20 * 100%); }
+.bar.toreview { background: #2f6fb1; height: calc(14 / 20 * 100%); }
+.bar.completed { background: #7c9b32; height: calc(16.5 / 20 * 100%); }
+.bar.missed { background: #e74c3c; height: calc(0.5 / 20 * 100%); }
+
+/* ====== Donut Chart ====== */
+.donut-chart {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #2f6fb1 0 20%,
+    #f0a500 20% 40%,
+    #4a772f 40% 60%,
+    #7c9b32 60% 90%,
+    #e74c3c 90% 100%
+  );
+  margin: 1rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.donut-chart span {
+  background: #fff;
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  line-height: 100px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+/* ====== Calendar Layout ====== */
+.recent-calendar-layout {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding-bottom: 2rem;
+}
+.recent-activity {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  padding: 1.5rem;
+  height: fit-content;
+}
+.calendar-container {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  padding: 0.8rem 1.5rem 1.5rem 1.5rem;
+  height: fit-content;
+  width: 100%;
+}
+
+/* ====== Table ====== */
+.recent-activity table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+.recent-activity th,
+.recent-activity td {
+  padding: 0.6rem 0.4rem;
+  text-align: left;
+  font-size: .8rem;
+  border-bottom: 1px solid #ccc;
+}
+.recent-activity th {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border-bottom: 2px solid #aaa;
+}
+.recent-activity tr:last-child td {
+  border-bottom: none;
+}
+
+/* ====== Status Badges ====== */
+.status-badge {
+  padding: .2rem .6rem;
+  border-radius: 15px;
+  font-size: .7rem;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+  white-space: nowrap;
+}
+.status-pending {
+  color: #795548;
+  border: 2px solid #5B0A0A;
+  background-color: transparent;
+}
+.status-to-review {
+  color: #fff;
+  background-color: #2f6fb1;
+  border: 2px solid #2f6fb1;
+}
+
+/* ====== Calendar Controls ====== */
+.calendar-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.calendar-month-select {
+  background-color: #5B0A0A;
+  color: #fff;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.calendar-nav-buttons button {
+  background: none;
+  border: 2px solid #5B0A0A;
+  font-size: 0.7rem;
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+  color: #5B0A0A;
+  cursor: pointer;
+  margin-left: -1px;
+}
+.calendar-table {
+  width: 100%;
+  text-align: center;
+  border-collapse: collapse;
+}
+.calendar-table th {
+  color: #333;
+  padding: .4rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.calendar-table td {
+  padding: 0.4rem 0.3rem;
+  font-size: 0.9rem;
+  cursor: default;
+  position: relative;
+  line-height: 1;
+  color: #333;
+}
+.calendar-table td span {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  font-weight: bold;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.calendar-table td .primary-active-day {
+  background: #5B0A0A;
+  color: #fff;
+}
+.calendar-table td .secondary-active-day {
+  background: #fff;
+  color: #5B0A0A;
+  border: 2px solid #5B0A0A;
+}

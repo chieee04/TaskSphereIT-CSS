@@ -1,0 +1,45 @@
+/* TitleDefense.css */
+
+/* SweetAlert2 Custom Styles */
+.remove-panelist-btn {
+  border: 1px solid #3B0304;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+  color: #3B0304;
+  font-weight: bold;
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+/* Modal form elements */
+.swal2-container .form-select,
+.swal2-container .form-control {
+  border-radius: 8px;
+  height: 42px;
+}
+
+/* Disabled Team Name Input */
+.disabled-input {
+  border-radius: 8px;
+  height: 42px;
+  background-color: #f0f0f0;
+}
+
+/* Panelist Tag Style */
+.panelist-tag {
+  background-color: #e5e7eb; /* gray-200 */
+  color: #1f2937; /* gray-800 */
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}

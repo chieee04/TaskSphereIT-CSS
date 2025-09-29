@@ -1,0 +1,123 @@
+.events-wrapper {
+  width: 100%;
+  padding: 40px 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #3B0304;
+  margin-bottom: 10px;
+}
+
+.divider {
+  border: none;
+  border-top: 2px solid #3B0304;
+  margin-bottom: 20px;
+}
+
+.results-header,
+.defense-header {
+  font-weight: bold;
+  color: #3B0304;
+  margin-bottom: 10px;
+}
+
+.results-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+}
+
+.results-table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 10px;
+  font-size: 14px;
+}
+
+.row {
+  display: contents;
+}
+
+.header {
+  background-color: #fafafa;
+  border-radius: 12px;
+  padding: 2px;
+  grid-column: span 9;
+  display: flex;
+  justify-content: space-between;
+}
+
+.header-cell {
+  text-align: center;
+  font-weight: bold;
+  padding: 12px;
+  flex: 1;
+}
+
+.cell {
+  text-align: center;
+  padding: 10px;
+}
+
+.status-passed {
+  color: #ffffff;
+  background-color: #809D3C;
+  padding: 5px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+/* ORAL DEFENSE STYLES */
+.oral-defense-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid #ccc;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+}
+
+.team-name {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #3B0304;
+  text-align: left;
+}
+
+.defense-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2px 0;
+}
+
+.left-label,
+.right-label {
+  font-weight: bold;
+  color: #000;
+}
+
+.left-value,
+.right-value {
+  color: #000;
+}
+
+.status-pending {
+  display: inline-block;
+  padding: 3px 10px;
+  color: #3B0304;
+  border: 2px solid #3B0304;
+  border-radius: 4px;
+  font-weight: bold;
+  background-color: #fff;
+  font-size: 12px;
+}

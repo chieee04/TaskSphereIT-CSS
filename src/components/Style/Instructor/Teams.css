@@ -1,0 +1,114 @@
+.teams-container {
+  padding: 1rem 1.5rem;
+}
+
+.teams-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  color: #3B0304;
+}
+
+.teams-divider {
+  border-top: 2px solid #3B0304;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.teams-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-create, .btn-assign {
+  border: 1px solid #3B0304;
+  color: #3B0304;
+}
+
+.teams-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.team-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  height: 130px;
+  background-color: white;
+  border-radius: 12px;
+  border-left: 12px solid #3B0304;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.team-card-menu {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
+.team-card-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  padding-top: 20px;
+}
+
+.team-card-label {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3B0304;
+  padding: 0 0.5rem 0.5rem;
+}
+
+/* Swal2 custom styles */
+.swal-title {
+  color: #3B0304;
+}
+
+.swal-content {
+  text-align: left;
+  padding-top: 10px;
+}
+
+.swal-section {
+  margin-bottom: 8px;
+}
+
+.adviser-team-list {
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.team-folder-btn {
+  background-color: white;
+  border-left: 10px solid #3B0304;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.folder-icon {
+  color: #3B0304;
+  font-size: 20px;
+}
+
+.folder-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3B0304;
+}

@@ -1,0 +1,84 @@
+.member-task-page {
+  padding: 20px;
+}
+
+.member-task-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #3b0304;
+}
+
+.table-wrapper {
+  border: 1px solid #b2b2b2;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.member-task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.member-task-table th,
+.member-task-table td {
+  padding: 12px 10px;
+  white-space: nowrap;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+.member-task-table th {
+  background-color: #f5f5f5;
+  color: #3b0304;
+}
+
+.even-row {
+  background-color: #fafafa;
+}
+
+.odd-row {
+  background-color: white;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.status-progress {
+  background-color: #f59e0b; /* orange */
+}
+
+.status-pending {
+  background-color: #ef4444; /* red */
+}
+
+.status-completed {
+  background-color: #10b981; /* green */
+}
+
+/* Action buttons */
+.btn-edit,
+.btn-delete {
+  border: none;
+  padding: 6px 10px;
+  margin: 0 3px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-edit {
+  background: #3b82f6; /* blue */
+}
+
+.btn-delete {
+  background: #ef4444; /* red */
+}

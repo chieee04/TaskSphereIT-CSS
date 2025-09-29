@@ -1,0 +1,224 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.modal-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 16px;
+  padding: 48px 80px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  width: 880px;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: auto;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  color: #3b0304;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.exit-icon {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-divider {
+  border: none;
+  border-bottom: 2px solid #3b0304;
+  margin: 0 0 24px 0;
+  width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto auto auto;
+  gap: 24px 32px;
+}
+
+.form-field.time-field {
+  grid-column: 1 / 2;
+  grid-row: 3 / 4;
+}
+
+.assigned-field-wrapper {
+  grid-column: 2 / 3;
+  grid-row: 3 / 4;
+}
+
+.assigned-box-wrapper {
+  grid-column: 3 / 4;
+  grid-row: 3 / 4;
+  margin-top: 8px;
+  height: 96px;
+  border: 1px solid #3b0304;
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.assigned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assigned-item {
+  display: flex;
+  align-items: center;
+  background-color: #f9eded;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #3b0304;
+}
+
+.remove-assigned {
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+.form-comment-wrapper {
+  grid-column: 1 / 4;
+  grid-row: 4 / 5;
+  display: flex;
+  flex-direction: column;
+  height: 136px;
+}
+
+.attachment-placeholder {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.attachment-icon {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-submit {
+  background-color: #3b0304;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.btn-submit:hover {
+  background-color: #571212;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"],
+textarea {
+  border: 1px solid #3b0304;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: #3b0304;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"] {
+  height: 32px;
+}
+
+textarea {
+  height: 96px;
+  resize: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #8b0000;
+  box-shadow: 0 0 6px #8b0000;
+  outline: none;
+}
+
+.with-icon {
+  position: relative;
+}
+
+.dropdown-icon {
+  position: absolute;
+  top: 34px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+
+.dropdown-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #3b0304;
+  border-radius: 8px;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1;
+}

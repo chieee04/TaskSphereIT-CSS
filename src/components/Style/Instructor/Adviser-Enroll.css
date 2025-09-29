@@ -1,0 +1,49 @@
+/* Header title */
+.adviser-header {
+  color: #3B0304;
+}
+
+/* Buttons */
+.adviser-btn {
+  color: #3B0304;
+  border: 1px solid #ddd;
+}
+
+.adviser-btn-save {
+  background-color: #3B0304;
+  color: white;
+}
+
+.adviser-btn-cancel {
+  background-color: #a5a5a5;
+  color: white;
+}
+
+/* Search input */
+.adviser-search {
+  max-width: 400px;
+}
+
+/* Table */
+.adviser-table {
+  background-color: white;
+  border-radius: 1rem; /* rounded-4 */
+  border: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+.adviser-table thead {
+  background-color: #f8f9fa;
+  text-align: center;
+}
+
+/* Action button */
+.adviser-action-btn {
+  color: #3B0304;
+}
+
+/* Dropdown fix */
+.adviser-dropdown {
+  position: absolute;
+  z-index: 1000;
+}

@@ -1,0 +1,13 @@
+.red-text {
+  background-color: #3B0304;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+}
+.main-bg-color{
+    background-color: #3B0304;
+    color: #3B0304;
+}
+.b-rd {
+  border-radius: 8px;
+}

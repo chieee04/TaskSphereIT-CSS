@@ -1,0 +1,74 @@
+/* Header */
+.enroll-header {
+  color: #3B0304;
+}
+
+/* Buttons */
+.enroll-btn {
+  color: #3B0304;
+  border: 1px solid #ddd;
+}
+
+.enroll-btn-save {
+  background-color: #3B0304;
+  color: white;
+}
+
+.enroll-btn-cancel {
+  background-color: #a5a5a5;
+  color: white;
+}
+
+/* Search */
+.enroll-search {
+  max-width: 400px;
+}
+
+/* Table */
+.enroll-table {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+.enroll-table thead {
+  background: #f8f9fa;
+  text-align: center;
+}
+
+/* Action button */
+.enroll-action-btn {
+  color: #3B0304;
+}
+
+/* Dropdown menu */
+.enroll-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.25rem 0;
+  z-index: 999;
+  min-width: 140px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.enroll-dropdown li {
+  list-style: none;
+}
+
+.enroll-dropdown .dropdown-item {
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.enroll-dropdown .dropdown-item:hover {
+  background: #f5f5f5;
+}

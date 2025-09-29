@@ -1,0 +1,52 @@
+/* src/components/pm-tasks-board/pm-attachment.css */
+
+.attachment-wrapper {
+  background: #ffffff;
+  border: 1px solid #b2b2b2;
+  border-radius: 8px;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #3b0304;
+  width: 100%;
+  max-width: 700px;
+  margin-top: 30px; /* Ensures it's aligned below the comment */
+}
+
+.attachment-row {
+  display: flex;
+  padding: 12px 16px;
+  font-size: 14px;
+  align-items: center;
+}
+
+.attachment-row.zebra {
+  background-color: #fafafa;
+}
+
+.attachment-row.header-row {
+  font-weight: bold;
+  background-color: #fafafa; /* Zebra color for header */
+}
+
+.attachment-cell {
+  flex: 1;
+  padding-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.attachment-cell.date-cell {
+  text-align: right;
+}
+
+.header-cell {
+  color: #3b0304;
+  padding-left: 0;
+}
+
+.file-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  margin-right: 8px;
+}
