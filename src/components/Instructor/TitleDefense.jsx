@@ -522,7 +522,8 @@ const TitleDefense = () => {
         }
     };
  
-    const filteredSchedules = schedules.filter((sched) => {
+    const filteredSchedules = schedules
+    .filter((sched) => {
         const teamName = accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
         const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
             .filter(Boolean)
@@ -661,7 +662,9 @@ const TitleDefense = () => {
                                 .join("; ");
  
                             return (
-                                <tr key={sched.id}>
+                                <tr key={sched.id}
+                                className={sched.verdict === 2 ? "bg-red-100" : ""}
+                                >
                                     {isDeleteMode && (
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <input
@@ -698,32 +701,36 @@ const TitleDefense = () => {
                                             onChange={async (e) => {
                                                 const newVerdict = parseInt(e.target.value, 10);
                                                 if (newVerdict === 2) {
-                                                    const confirm = await MySwal.fire({
-                                                        title: "Move to Re-Defense?",
-                                                        text: "This team will be removed from the scheduled teams list.",
-                                                        icon: "warning",
-                                                        showCancelButton: true,
-                                                        confirmButtonColor: "#3B0304",
-                                                        cancelButtonColor: "#999",
-                                                        confirmButtonText: "Yes, move them!",
-                                                    });
- 
-                                                    if (confirm.isConfirmed) {
-                                                        const { error } = await supabase
-                                                            .from("user_titledef")
-                                                            .delete()
-                                                            .eq("id", sched.id);
- 
-                                                        if (!error) {
-                                                            setSchedules((prev) => prev.filter((s) => s.id !== sched.id));
-                                                            MySwal.fire("Success!", "Team moved to Re-Defense.", "success");
-                                                        } else {
-                                                            MySwal.fire("Error", "Failed to move team to re-defense.", "error");
-                                                        }
-                                                    } else {
-                                                        e.target.value = sched.verdict;
-                                                    }
-                                                } else {
+    const confirm = await MySwal.fire({
+        title: "Move to Re-Defense?",
+        text: "This team will stay in the list but marked as Re-Defense.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3B0304",
+        cancelButtonColor: "#999",
+        confirmButtonText: "Yes, continue!",
+    });
+
+    if (confirm.isConfirmed) {
+        const { error } = await supabase
+            .from("user_titledef")
+            .update({ verdict: 2 })
+            .eq("id", sched.id);
+
+        if (!error) {
+            setSchedules((prev) =>
+                prev.map((s) =>
+                    s.id === sched.id ? { ...s, verdict: 2 } : s
+                )
+            );
+            MySwal.fire("Success!", "Team marked as Re-Defense.", "success");
+        } else {
+            MySwal.fire("Error", "Failed to update verdict.", "error");
+        }
+    } else {
+        e.target.value = sched.verdict;
+    }
+} else {
                                                     const { error } = await supabase
                                                         .from("user_titledef")
                                                         .update({ verdict: newVerdict })

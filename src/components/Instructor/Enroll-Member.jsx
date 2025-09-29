@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 // Assuming this file contains generic Bootstrap/CSS overrides, keeping import for now
 import "../Style/Instructor/Enroll-Member.css"; 
+import { openAddStudent } from "../../services/instructor/addStudent";
  
 const Enroll = () => {
   const MySwal = withReactContent(Swal);
@@ -94,6 +95,19 @@ const Enroll = () => {
     });
   };
  
+const handleAddStudent = async () => {
+  const result = await openAddStudent();
+  if (result.isConfirmed && result.value) {
+    const newStudent = {
+      id: uuidv4(),
+      ...result.value,
+    };
+    setImportedData((prev) => [...prev, newStudent]);
+    MySwal.fire("Added!", "New student added successfully.", "success");
+  }
+};
+
+  
   // --- Core Functionality (No change to import/upload logic) ---
  
   const handleDownload = () => {
@@ -557,11 +571,15 @@ preConfirm: () => {
                   whiteSpace: "nowrap",
                   transition: "background-color 0.2s",
                 }}
+
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                onClick={handleAddStudent}
+
               >
                 + Add Student
               </button>
+              
             </div>
           </div>
  

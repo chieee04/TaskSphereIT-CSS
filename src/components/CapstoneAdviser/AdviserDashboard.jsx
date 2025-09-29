@@ -56,8 +56,6 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         return <Profile/>;
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
-        
-        
     }
   };
 
