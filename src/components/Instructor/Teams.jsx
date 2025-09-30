@@ -5,13 +5,14 @@ import { IoIosMore } from 'react-icons/io';
 import { supabase } from '../../supabaseClient';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
- 
+import CreateTeam from '../../services/instructor/CreateTeam';
+
 const MySwal = withReactContent(Swal);
- 
+
 const Teams = () => {
   const [allAccounts, setAllAccounts] = useState([]);
   const allAccountsRef = useRef([]);
-  const [Manager, setManager] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [students, setStudents] = useState([]);
   const [advisers, setAdvisers] = useState([]);
   const [teamCards, setTeamCards] = useState(() => {
@@ -21,24 +22,24 @@ const Teams = () => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [activeMemberMenu, setActiveMemberMenu] = useState(null);
- 
+
   useEffect(() => {
     fetchAccounts();
     window.addEventListener("team-click", handleTeamClick);
     return () => window.removeEventListener("team-click", handleTeamClick);
   }, []);
- 
+
   useEffect(() => {
     localStorage.setItem("teamCards", JSON.stringify(teamCards));
   }, [teamCards]);
- 
+
   const fetchAccounts = async () => {
     const { data, error } = await supabase.from('user_credentials').select('*');
     if (!error) {
       const adviserGroupedTeamNumbers = new Set(
         data.filter(member => member.adviser_group !== null && member.group_number !== null).map(member => member.group_number)
       );
- 
+
       const groupedTeams = data.reduce((acc, member) => {
         if (member.group_number !== null && !adviserGroupedTeamNumbers.has(member.group_number)) {
           if (!acc[member.group_number]) {
@@ -51,7 +52,7 @@ const Teams = () => {
         }
         return acc;
       }, {});
- 
+
       const adviserGroups = data.reduce((acc, member) => {
         if (member.adviser_group !== null) {
           if (!acc[member.adviser_group]) {
@@ -68,7 +69,7 @@ const Teams = () => {
         }
         return acc;
       }, {});
- 
+
       const teamCardsFromGroups = Object.values(groupedTeams).map(group => {
         const manager = group.members.find(m => m.user_roles === 1);
         const label = `${manager?.last_name || 'Team'}, Et Al`;
@@ -78,7 +79,7 @@ const Teams = () => {
           adviser_group: null,
         };
       });
- 
+
       const adviserCards = Object.values(adviserGroups).map(group => {
         const adviser = group.adviser;
         const adviserLabel = adviser
@@ -93,17 +94,17 @@ const Teams = () => {
             group_name: teamLabel,
           };
         });
- 
+
         return {
           adviser_group: adviser?.adviser_group,
           label: adviserLabel,
           teams,
         };
       });
- 
+
       setTeamCards([...teamCardsFromGroups, ...adviserCards]);
- 
-      setManager(data.filter((a) => a.user_roles === 1 && a.group_number === null && a.adviser_group === null));
+
+      setManagers(data.filter((a) => a.user_roles === 1 && a.group_number === null && a.adviser_group === null));
       setStudents(data.filter((s) => s.user_roles === 2 && s.group_number === null && s.adviser_group === null));
       setAdvisers(data.filter((s) => s.user_roles === 3));
       setAllAccounts(data);
@@ -114,7 +115,7 @@ const Teams = () => {
   const handleUpdateRole = async (memberId, newRole) => {
     try {
       const newRoleId = newRole === 'Project Manager' ? 1 : 2;
- 
+
       setSelectedTeam(prevTeam => {
         if (!prevTeam) return prevTeam;
         const updatedMembers = prevTeam.members.map(m => {
@@ -125,40 +126,40 @@ const Teams = () => {
           }
           return m;
         });
- 
+
         const manager = updatedMembers.find(m => m.user_roles === 1);
         const otherMembers = updatedMembers.filter(m => m.user_roles !== 1);
         const sortedMembers = manager ? [manager, ...otherMembers] : otherMembers;
- 
+
         return {
           ...prevTeam,
           members: sortedMembers
         };
       });
- 
+
       await supabase
         .from('user_credentials')
         .update({ user_roles: 2 })
         .eq('group_number', selectedTeam.group_number)
         .eq('user_roles', 1);
- 
+
       const { error } = await supabase
         .from('user_credentials')
         .update({ user_roles: newRoleId })
         .eq('id', memberId);
- 
+
       if (error) {
         throw error;
       }
       setTimeout(fetchAccounts, 500);
- 
+
     } catch (err) {
       console.error("Error updating role:", err);
       MySwal.fire("Error", "Failed to update role", "error");
-      fetchAccounts(); // Fallback to re-sync state
+      fetchAccounts();
     }
   };
- 
+
   const handleDeleteFolder = async (team) => {
     MySwal.fire({
       title: `Delete "${team.label}"?`,
@@ -181,15 +182,15 @@ const Teams = () => {
               .from("user_credentials")
               .update({ adviser_group: null })
               .eq("adviser_group", team.adviser_group);
- 
+
             await supabase
               .from("user_credentials")
               .update({ group_number: null, group_name: null })
               .in("group_number", team.teams.map(t => parseInt(t.group_number)));
           }
- 
+
           await fetchAccounts();
- 
+
           MySwal.fire({
             icon: "success",
             title: "Deleted successfully",
@@ -203,24 +204,24 @@ const Teams = () => {
       }
     });
   };
- 
+
   const handleTeamClick = (e) => {
     const clickedLabel = e.detail;
     const foundTeam = teamCards.find(t => t.label === clickedLabel);
     if (!foundTeam) return;
- 
+
     if (foundTeam.teams && foundTeam.teams.length > 0) {
       const teamButtons = foundTeam.teams.map((team) => {
         const teamMembers = allAccountsRef.current.filter(m => m.group_number === team.group_number);
         const teamManager = teamMembers.find(m => m.user_roles === 1);
         const teamLabel = teamManager ? `${teamManager.last_name}, Et Al` : team.group_name;
- 
+
         return `
           <div class="team-folder-btn group-card" data-team-number="${team.group_number}" data-team-label="${teamLabel}" style="
             position: relative;
             width: 100%;
-            height: 14rem; /* 56px */
-            border-radius: 0.75rem; /* 12px */
+            height: 14rem;
+            border-radius: 0.75rem;
             border: 1px solid #e5e7eb;
             background-color: white;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -232,21 +233,21 @@ const Teams = () => {
           ">
             <div style="
               position: absolute;
-              top: 0.5rem; /* 8px */
-              right: 0.5rem; /* 8px */
+              top: 0.5rem;
+              right: 0.5rem;
               z-index: 10;
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 0.25rem; /* 4px */
+              gap: 0.25rem;
             ">
               <button class="more-btn" style="
                 color: #3B0304;
-                font-size: 1.5rem; /* 24px */
+                font-size: 1.5rem;
                 font-weight: 700;
                 background-color: transparent;
                 border: none;
-                padding: 0.25rem; /* 4px */
+                padding: 0.25rem;
                 border-radius: 9999px;
                 cursor: pointer;
                 transition: background-color 0.2s;
@@ -259,40 +260,40 @@ const Teams = () => {
               width: 100%;
               flex-grow: 1;
               background-color: white;
-              padding: 1rem; /* 16px */
+              padding: 1rem;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: center;
               text-align: center;
-              border-top-left-radius: 0.75rem; /* 12px */
-              border-top-right-radius: 0.75rem; /* 12px */
+              border-top-left-radius: 0.75rem;
+              border-top-right-radius: 0.75rem;
             ">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users" style="color: #000; margin-bottom: 1rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <span style="font-weight: 700; color: #3B0304; font-size: 0.875rem; /* 14px */">${teamLabel}</span>
+              <span style="font-weight: 700; color: #3B0304; font-size: 0.875rem;">${teamLabel}</span>
             </div>
             <div style="width: 100%; height: 20%; background-color: #830C18; border-bottom-left-radius: 0.75rem; border-bottom-right-radius: 0.75rem;"></div>
- 
+
             <div class="card-menu hidden" style="
               display: none;
               position: absolute;
-              top: 2rem; /* 32px */
-              right: 0.5rem; /* 8px */
+              top: 2rem;
+              right: 0.5rem;
               z-index: 20;
               background-color: white;
               border: 1px solid #e5e7eb;
-              border-radius: 0.5rem; /* 8px */
+              border-radius: 0.5rem;
               box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-              width: 10rem; /* 160px */
+              width: 10rem;
               flex-direction: column;
-              font-size: 0.875rem; /* 14px */
+              font-size: 0.875rem;
             ">
               <button class="menu-delete-btn" data-team-number="${team.group_number}" style="
                 width: 100%;
                 display: flex;
                 align-items: center;
-                gap: 0.5rem; /* 8px */
-                padding: 0.5rem 1rem; /* 8px 16px */
+                gap: 0.5rem;
+                padding: 0.5rem 1rem;
                 text-align: left;
                 color: #000;
                 background-color: white;
@@ -307,8 +308,8 @@ const Teams = () => {
                 width: 100%;
                 display: flex;
                 align-items: center;
-                gap: 0.5rem; /* 8px */
-                padding: 0.5rem 1rem; /* 8px 16px */
+                gap: 0.5rem;
+                padding: 0.5rem 1rem;
                 text-align: left;
                 color: #000;
                 background-color: white;
@@ -323,7 +324,7 @@ const Teams = () => {
           </div>
         `;
       }).join('');
- 
+
       MySwal.fire({
         title: `<div style='color:#3B0304;'>📁 ${foundTeam.label}</div>`,
         html: `<div id="adviserTeamList" style="text-align:left; max-height: 300px; overflow-y:auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1rem;">${teamButtons}</div>`,
@@ -331,35 +332,35 @@ const Teams = () => {
         width: 800,
         didOpen: () => {
           const container = Swal.getPopup().querySelector('#adviserTeamList');
- 
+
           container.querySelectorAll('.group-card').forEach(card => {
             const moreBtn = card.querySelector('.more-btn');
             const menu = card.querySelector('.card-menu');
- 
+
             moreBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               document.querySelectorAll('.card-menu').forEach(m => m.style.display = 'none');
               menu.style.display = 'flex';
             });
- 
+
             card.addEventListener('click', (e) => {
               if (e.target.closest('.more-btn') || e.target.closest('.card-menu')) return;
               const innerTeamNumber = card.getAttribute('data-team-number');
               const groupMembers = allAccountsRef.current.filter(s => s.group_number === parseInt(innerTeamNumber));
               const manager = groupMembers.find(m => m.user_roles === 1);
               const members = groupMembers.filter(m => m.user_roles === 2);
- 
+
               const sortedMembers = manager ? [manager, ...members] : members;
- 
+
               setSelectedTeam({
                 group_number: parseInt(innerTeamNumber),
                 label: card.getAttribute('data-team-label'),
                 members: sortedMembers
               });
- 
+
               MySwal.close();
             });
- 
+
             card.querySelector('.menu-delete-btn').addEventListener('click', (e) => {
               e.stopPropagation();
               const teamNumber = e.currentTarget.getAttribute('data-team-number');
@@ -368,7 +369,7 @@ const Teams = () => {
               MySwal.close();
               handleDeleteFolder(targetTeam);
             });
- 
+
             card.querySelector('.menu-transfer-btn').addEventListener('click', (e) => {
               e.stopPropagation();
               const teamNumber = e.currentTarget.getAttribute('data-team-number');
@@ -378,7 +379,7 @@ const Teams = () => {
               handleTransferTeam(targetTeam);
             });
           });
- 
+
           document.addEventListener('click', (e) => {
             if (!e.target.closest('.card-menu') && !e.target.closest('.more-btn')) {
               document.querySelectorAll('.card-menu').forEach(m => m.style.display = 'none');
@@ -391,21 +392,21 @@ const Teams = () => {
       const manager = groupMembers.find(m => m.user_roles === 1);
       const otherMembers = groupMembers.filter(m => m.user_roles !== 1);
       const sortedMembers = manager ? [manager, ...otherMembers] : otherMembers;
- 
+
       setSelectedTeam({ ...foundTeam, members: sortedMembers });
     }
   };
- 
+
   const handleAddMember = async () => {
     const unassignedStudents = allAccountsRef.current.filter(
       s => s.user_roles === 2 && s.group_number === null && s.adviser_group === null
     );
- 
+
     if (unassignedStudents.length === 0) {
       MySwal.fire("No available students", "All students are already assigned to groups.", "info");
       return;
     }
- 
+
     const options = {};
     unassignedStudents.forEach(student => {
       options[student.id] = `${student.last_name}, ${student.first_name} ${student.middle_name || ''}`;
@@ -417,7 +418,7 @@ const Teams = () => {
       inputPlaceholder: 'Select a student to add',
       showCancelButton: true,
       confirmButtonText: 'Add Member',
-      width: '600px', // Set width here
+      width: '600px',
       inputValidator: (value) => {
         if (!value) {
           return 'You need to select a student!';
@@ -431,17 +432,17 @@ const Teams = () => {
             .from("user_credentials")
             .update({ group_number: selectedTeam.group_number, group_name: selectedTeam.label })
             .eq("id", studentId);
- 
+
           if (error) throw error;
- 
+
           const newMember = unassignedStudents.find(s => s.id === studentId);
           setSelectedTeam(prevTeam => ({
             ...prevTeam,
             members: [...prevTeam.members, newMember]
           }));
- 
+
           setTimeout(fetchAccounts, 500);
- 
+
         } catch (error) {
           MySwal.fire(
             'Error',
@@ -454,131 +455,11 @@ const Teams = () => {
       }
     });
   };
-  const handleCreateTeam = () => {
-    if (Manager.length === 0) {
-      MySwal.fire("No available Manager", "All Manager are already assigned to groups.", "info");
-      return;
-    }
-    if (students.length === 0) {
-      MySwal.fire("No available students", "All students are already assigned to groups.", "info");
-      return;
-    }
-    let selectedMembers = [];
-    MySwal.fire({
-      title: `<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-plus-circle"></i> Create Team</div>`,
-      html: `
-        <div style="display: flex; gap: 20px; margin-bottom: 15px;">
-          <div style="flex: 1;">
-            <label style="font-weight: 600;">Project Manager</label>
-            <select id="pmSelect" class="form-select">
-              <option disabled selected value="">Select</option>
-              ${Manager.map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name} ${a.middle_name || ''}</option>`).join('')}
-            </select>
-          </div>
-          <div style="flex: 1;">
-            <label style="font-weight: 600;">Team Name</label>
-            <input id="teamName" class="form-control" placeholder="Enter team name" style="border-radius: 12px; height: 42px;" disabled />
-          </div>
-        </div>
- 
-        <div style="margin-bottom: 12px;">
-          <label style="font-weight: 600;">Members</label>
-          <select id="memberSelect" class="form-select">
-            <option disabled selected>Select</option>
-            ${students.map((s) => `<option value="${s.id}">${s.last_name}, ${s.first_name} ${s.middle_name || ''}</option>`).join('')}
-          </select>
-        </div>
- 
-        <div style="border: 1px solid #ccc; border-radius: 12px; padding: 12px; margin-top: 10px; max-height: 180px; overflow-y: auto;">
-          <strong style="display: block; margin-bottom: 8px;">Members List</strong>
-          <div id="memberListItems" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;"></div>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: 'Save',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#3B0304',
-      cancelButtonColor: '#999',
-      width: '600px',
-      didOpen: () => {
-        const pmSelect = Swal.getPopup().querySelector('#pmSelect');
-        const teamNameInput = Swal.getPopup().querySelector('#teamName');
-        const memberSelect = Swal.getPopup().querySelector('#memberSelect');
-        const memberList = Swal.getPopup().querySelector('#memberListItems');
- 
-        pmSelect.addEventListener('change', () => {
-          const selectedOption = pmSelect.options[pmSelect.selectedIndex];
-          const lastName = selectedOption.textContent.split(',')[0].trim();
-          teamNameInput.value = `${lastName}, Et Al.`;
-        });
- 
-        memberSelect.addEventListener('change', () => {
-          const selectedId = memberSelect.value;
-          const selectedText = memberSelect.options[memberSelect.selectedIndex].text;
- 
-          if (!selectedMembers.includes(selectedId)) {
-            selectedMembers.push(selectedId);
- 
-            const div = document.createElement('div');
-            div.style.cssText =
-              'background: #f8f8f8; border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #ddd;';
-            div.innerHTML = `<span style="font-size: 14px;">${selectedText}</span><button class="btn" style="border: none; background: none; color: #3B0304; font-weight: bold; font-size: 18px; cursor: pointer;">⨉</button>`;
- 
-            div.querySelector('button').addEventListener('click', () => {
-              div.remove();
-              selectedMembers = selectedMembers.filter(id => id !== selectedId);
-            });
- 
-            memberList.appendChild(div);
-          }
-        });
-      },
-      preConfirm: () => {
-        const managerId = Swal.getPopup().querySelector('#pmSelect').value;
-        const teamName = Swal.getPopup().querySelector('#teamName').value.trim();
- 
-        if (!teamName) {
-          Swal.showValidationMessage('Team name is required');
-          return false;
-        }
- 
-        if (selectedMembers.length === 0) {
-          Swal.showValidationMessage('At least one member must be selected');
-          return false;
-        }
- 
-        return { managerId, teamName, selectedMembers };
-      }
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const { managerId, teamName, selectedMembers } = result.value;
- 
-        const { data: groupData } = await supabase.from("user_credentials").select("group_number");
-        const allGroups = groupData.map((s) => s.group_number).filter((g) => g !== null);
-        const nextGroup = allGroups.length > 0 ? Math.max(...allGroups) + 1 : 1;
- 
-        await supabase.from("user_credentials").update({ group_number: nextGroup, group_name: teamName }).eq("id", managerId);
- 
-        for (const studentId of selectedMembers) {
-          await supabase.from("user_credentials").update({ group_number: nextGroup, group_name: teamName }).eq("id", studentId);
-        }
- 
-        await fetchAccounts();
- 
-        MySwal.fire({
-          icon: 'success',
-          title: '✓ Team folder created',
-          showConfirmButton: false,
-          timer: 1500,
-        });
-      }
-    });
-  };
- 
+  
   const handleAssignAdviser = () => {
     let selectedTeams = [];
     const eligibleTeams = teamCards.filter(tc => !tc.adviser_group);
- 
+
     MySwal.fire({
       title: '<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="bi bi-person-lines-fill"></i> Assign Adviser</div>',
       html: `
@@ -616,7 +497,7 @@ const Teams = () => {
       didOpen: () => {
         const teamSelect = Swal.getPopup().querySelector('#teamSelect');
         const listDiv = Swal.getPopup().querySelector('#selectedTeamList');
- 
+
         teamSelect.addEventListener('change', () => {
           const value = teamSelect.value;
           const label = teamSelect.options[teamSelect.selectedIndex].text;
@@ -648,33 +529,33 @@ const Teams = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const { adviserId, selectedTeams } = result.value;
- 
+
         const { data: adviserData } = await supabase
           .from("user_credentials")
           .select("adviser_group")
           .eq("id", adviserId)
           .single();
- 
+
         let adviserGroupId = adviserData?.adviser_group;
- 
+
         if (!adviserGroupId) {
           const { data: existing } = await supabase.from("user_credentials").select("adviser_group");
           const currentGroups = existing.map(e => e.adviser_group).filter(e => e !== null);
           adviserGroupId = currentGroups.length > 0 ? Math.max(...currentGroups) + 1 : 1;
- 
+
           await supabase.from("user_credentials")
             .update({ adviser_group: adviserGroupId })
             .eq("id", adviserId);
         }
- 
+
         for (const groupId of selectedTeams) {
           await supabase.from("user_credentials")
             .update({ adviser_group: adviserGroupId })
             .eq("group_number", parseInt(groupId));
         }
- 
+
         await fetchAccounts();
- 
+
         MySwal.fire({
           icon: 'success',
           title: '✓ Adviser assigned',
@@ -687,11 +568,11 @@ const Teams = () => {
   const handleCardMenuToggle = (index) => {
     setActiveMenu((prev) => (prev === index ? null : index));
   };
- 
+
   const handleMemberMenuToggle = (index) => {
     setActiveMemberMenu((prev) => (prev === index ? null : index));
   };
- 
+
   const handleDeleteMember = async (memberId) => {
     MySwal.fire({
       title: 'Are you sure?',
@@ -708,18 +589,18 @@ const Teams = () => {
             ...prevTeam,
             members: prevTeam.members.filter(m => m.id !== memberId)
           }));
- 
+
           const { error } = await supabase
             .from("user_credentials")
             .update({ group_number: null, group_name: null })
             .eq("id", memberId);
- 
+
           if (error) {
             throw error;
           }
- 
+
           setTimeout(fetchAccounts, 500);
- 
+
         } catch (error) {
           MySwal.fire(
             'Error',
@@ -740,13 +621,13 @@ const Teams = () => {
       .not('group_number', 'is', null)
       .not('group_name', 'is', null)
       .neq('group_number', selectedTeam.group_number);
- 
+
     if (error) {
       console.error('Error fetching teams:', error);
       MySwal.fire('Error', 'Failed to fetch teams for transfer.', 'error');
       return;
     }
- 
+
     const uniqueTeams = Array.from(new Set(teams.map(t => t.group_number)))
       .map(group_number => {
         const team = teams.find(t => t.group_number === group_number);
@@ -755,12 +636,12 @@ const Teams = () => {
           group_name: team.group_name
         };
       });
- 
+
     const options = {};
     uniqueTeams.forEach(team => {
       options[team.group_number] = team.group_name;
     });
- 
+
     MySwal.fire({
       title: 'Transfer Member',
       input: 'select',
@@ -778,13 +659,13 @@ const Teams = () => {
       if (result.isConfirmed) {
         const newGroupNumber = result.value;
         const newTeam = uniqueTeams.find(t => t.group_number.toString() === newGroupNumber);
- 
+
         try {
           const { error } = await supabase
             .from("user_credentials")
             .update({ group_number: newGroupNumber, group_name: newTeam.group_name })
             .eq("id", memberId);
- 
+
           if (error) {
             throw error;
           }
@@ -794,9 +675,9 @@ const Teams = () => {
             ...prevTeam,
             members: prevTeam.members.filter(m => m.id !== memberId)
           }));
- 
+
           setTimeout(fetchAccounts, 500);
- 
+
         } catch (error) {
           MySwal.fire(
             'Error',
@@ -809,7 +690,7 @@ const Teams = () => {
       }
     });
   };
- 
+
   const handleTransferTeam = async (team) => {
     MySwal.fire({
       title: `Transfer "${team.label}"?`,
@@ -846,26 +727,26 @@ const Teams = () => {
             .select("adviser_group")
             .eq("id", newAdviserId)
             .single();
- 
+
           let newAdviserGroupId = newAdviserData?.adviser_group;
- 
+
           if (!newAdviserGroupId) {
             const { data: existing } = await supabase.from("user_credentials").select("adviser_group");
             const currentGroups = existing.map(e => e.adviser_group).filter(e => e !== null);
             newAdviserGroupId = currentGroups.length > 0 ? Math.max(...currentGroups) + 1 : 1;
- 
+
             await supabase.from("user_credentials")
               .update({ adviser_group: newAdviserGroupId })
               .eq("id", newAdviserId);
           }
- 
+
           await supabase
             .from("user_credentials")
             .update({ adviser_group: newAdviserGroupId })
             .eq("group_number", team.group_number);
- 
+
           await fetchAccounts();
- 
+
           MySwal.fire({
             icon: 'success',
             title: 'Team transferred successfully!',
@@ -879,22 +760,17 @@ const Teams = () => {
       }
     });
   };
- 
+
   return (
     <div className="p-6 relative">
       <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
         <FaUsers /> Teams
       </h1>
- 
+
       <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
- 
+
       <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => handleCreateTeam()}
-          className="px-4 py-2 bg-[#3B0304] text-white rounded-lg shadow hover:bg-[#5c1b1c] transition"
-        >
-          + Create Team
-        </button>
+        <CreateTeam managerList={students} studentList={students} onTeamCreated={fetchAccounts} />
         <button
           onClick={() => handleAssignAdviser()}
           className="px-4 py-2 bg-[#3B0304] text-white rounded-lg shadow hover:bg-[#5c1b1c] transition"

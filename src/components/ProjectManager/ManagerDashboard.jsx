@@ -124,6 +124,7 @@ const TeamProgressChart = () => {
 };
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
+  const [sidebarWidth, setSidebarWidth] = useState(70);
   const location = useLocation();
   const [activePage, setActivePage] = useState(location.state?.activePage || activePageFromHeader || "Dashboard");
   const [upcomingTasks, setUpcomingTasks] = useState([]);
@@ -410,8 +411,21 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
 
   return (
     <div className="d-flex">
-      <Sidebar activeItem={activePage} onSelect={setActivePage}/>
-      <div className="flex-grow-1 p-3">{renderContent()}</div>
+      <Sidebar 
+        activeItem={activePage} 
+        onSelect={setActivePage} 
+        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
+      />
+      <div 
+        className="flex-grow-1 p-3" 
+        style={{ 
+          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
+          transition: 'margin-left 0.3s'
+        }}
+        id="main-content"
+      >
+        {renderContent()}
+      </div>
     </div>
   );
 };

@@ -15,6 +15,7 @@ import AdviserCapsDefenses from "./AdviserEvents/AdviserCapsDefenses";
 import Profile from "../Profile";
 
 const AdviserDashboard = ({ activePageFromHeader }) => {
+  const [sidebarWidth, setSidebarWidth] = useState(70);
   const location = useLocation();
 
   // ✅ kunin yung galing sa navigate state
@@ -61,8 +62,21 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
 
   return (
     <div className="d-flex">
-      <Sidebar activeItem={activePage} onSelect={setActivePage} />
-      <div className="flex-grow-1 p-3">{renderContent()}</div>
+      <Sidebar 
+        activeItem={activePage} 
+        onSelect={setActivePage} 
+        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
+      />
+      <div 
+        className="flex-grow-1 p-3" 
+        style={{ 
+          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
+          transition: 'margin-left 0.3s'
+        }}
+        id="main-content"
+      >
+        {renderContent()}
+      </div>
     </div>
   );
 };

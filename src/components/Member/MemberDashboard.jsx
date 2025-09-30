@@ -79,6 +79,7 @@ const TeamProgressChart = ({ statusCounts }) => {
 };
 
 const MemberDashboard = () => {
+  const [sidebarWidth, setSidebarWidth] = useState(70);
   const location = useLocation();
   const initialPage = location.state?.activePage || localStorage.getItem("activePage") || "Dashboard";
   const [activePage, setActivePage] = useState(initialPage);
@@ -306,8 +307,21 @@ const MemberDashboard = () => {
 
   return (
     <div className="d-flex">
-      <Sidebar activeItem={activePage} onSelect={setActivePage}/>
-      <div className="flex-grow-1 p-3">{renderContent()}</div>
+      <Sidebar 
+        activeItem={activePage} 
+        onSelect={setActivePage} 
+        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
+      />
+      <div 
+        className="flex-grow-1 p-3" 
+        style={{ 
+          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
+          transition: 'margin-left 0.3s'
+        }}
+        id="main-content"
+      >
+        {renderContent()}
+      </div>
     </div>
   );
 };

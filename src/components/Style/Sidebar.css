@@ -1,11 +1,17 @@
-/* Sidebar container */
 .sidebar {
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa; /* bg-light */
   padding: 0.5rem;
-  height: 100vh;
   transition: width 0.3s;
+  
+  /* FIXED POSITION - HINDE GALAW KAHIT MAG-SCROLL */
+  position: fixed;
+  top: 64px; /* Set to the actual height of your header */
+  bottom: 56px; /* Set to the actual height of your footer */
+  left: 0;
+  overflow-y: auto; /* Para scrollable ang sidebar kung masyadong mahaba */
+  z-index: 1000; /* Para nasa ibabaw ng ibang content */
 }
 
 .sidebar-collapsed {
@@ -15,6 +21,8 @@
 .sidebar-expanded {
   width: 250px;
 }
+
+/* Rest of the CSS remains the same */
 
 /* Collapse button */
 .sidebar-toggle {
