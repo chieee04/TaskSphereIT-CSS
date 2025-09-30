@@ -28,6 +28,9 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import Footer from "../Footer";
+import Header from "../Header";
+import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler, ArcElement);
 
@@ -79,11 +82,11 @@ const TeamProgressChart = ({ statusCounts }) => {
 };
 
 const MemberDashboard = () => {
-  const [sidebarWidth, setSidebarWidth] = useState(70);
   const location = useLocation();
   const initialPage = location.state?.activePage || localStorage.getItem("activePage") || "Dashboard";
   const [activePage, setActivePage] = useState(initialPage);
-
+ const [isSoloMode, setIsSoloMode] = useState(false); //
+const [sidebarWidth, setSidebarWidth] = useState(70);
   const [allTasks, setAllTasks] = useState([]);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
@@ -213,9 +216,21 @@ const MemberDashboard = () => {
           : task.status === "To Review" ? "#578FCA"
           : "#FABC3F"
   }));
-
+  //////////////////////
+  useEffect(() => {
+    if (isSoloMode) {
+      setActivePage("SoloModeDashboard");
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [isSoloMode]);
+////////////////////
   const renderContent = ()=>{
     switch(activePage){
+            //////////
+      case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+//////////
       case "Tasks Allocation": return <MemberAllocation />;
       case "Tasks": return <MemberTask />;
       case "Adviser Tasks": return <MemberAdviserTasks />;
@@ -305,22 +320,33 @@ const MemberDashboard = () => {
     }
   };
 
-  return (
-    <div className="d-flex">
-      <Sidebar 
-        activeItem={activePage} 
-        onSelect={setActivePage} 
-        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
-      />
-      <div 
-        className="flex-grow-1 p-3" 
-        style={{ 
-          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
-          transition: 'margin-left 0.3s'
-        }}
-        id="main-content"
+    return (
+    <div>
+      <Header
+        isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+      />
+      <div className="d-flex">
+        <Sidebar
+          activeItem={activePage}
+          onSelect={setActivePage}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+        <div
+          className="flex-grow-1 p-3"
+          style={{
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
+          }}
+       id="main-content-wrapper" // New wrapper for content and footer
       >
-        {renderContent()}
+        <main className="flex-grow-1 p-3">
+          {renderContent()}
+        </main>
+        {/* ✨ ADD THE FOOTER COMPONENT HERE */}
+        <Footer /> 
+      </div>
       </div>
     </div>
   );

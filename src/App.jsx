@@ -17,13 +17,11 @@ function App() {
 
   return (
   <>
-    <Header isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
     <div className="d-flex"> {/* Sidebar is missing here */}
       <main className="flex-grow-1 p-3">
         <Outlet context={{ setIsLoggedIn }} />
       </main>
     </div>
-    {!isLoggedIn && <Footer />}
   </>
 );
 }

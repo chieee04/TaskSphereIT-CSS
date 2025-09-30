@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo,useEffect } from "react";
 import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
@@ -9,13 +9,18 @@ import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
+
+
 import Footer from "../Footer";
+import Header from "../Header";
+import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 
 
 // Define the primary color constants for consistency
 const TASKSPHERE_DARK_RED = "#5B0A0A";
 const PENDING_TEXT_BROWN = "#795548";
 const TASKSPHERE_PURPLE = "#805ad5";
+
 
 // --- Calendar Helper Functions ---
 const MONTH_NAMES = [
@@ -106,6 +111,7 @@ const TeamCard = ({ adviser, teams }) => {
 const InstructorDashboard = () => {
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarWidth, setSidebarWidth] = useState(70); // ✨ ADD THIS NEW STATE
+  const [isSoloMode, setIsSoloMode] = useState(false); //
 
   // State for the calendar
   const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1));
@@ -120,6 +126,10 @@ const InstructorDashboard = () => {
     filled: [8, 11, 15],
     bordered: [5, 17]
   };
+
+
+
+
 
   const handleMonthChange = (e) => {
     const [newMonthIndex, newYear] = e.target.value.split('-').map(Number);
@@ -186,8 +196,22 @@ const InstructorDashboard = () => {
     );
   };
 
+  //////////////////////
+  useEffect(() => {
+    if (isSoloMode) {
+      setActivePage("SoloModeDashboard");
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [isSoloMode]);
+////////////////////
+
   const renderContent = () => {
     switch (activePage) {
+      //////////
+      case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+      //////////
       case "Students":
         return <Enroll />;
       case "Advisers":
@@ -633,19 +657,24 @@ const InstructorDashboard = () => {
   };
 
   return (
-    <div className="d-flex">
-      <Sidebar 
-        activeItem={activePage} 
-        onSelect={setActivePage} 
-        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
-      />
-      <div 
-        className="flex-grow-1 p-3" 
-        style={{ 
-           paddingLeft: `${sidebarWidth}px`,
-          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
-          transition: 'margin-left 0.3s'
-        }}
+    <div>
+      <Header
+        isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+      />
+      <div className="d-flex">
+        <Sidebar
+          activeItem={activePage}
+          onSelect={setActivePage}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+        <div
+          className="flex-grow-1 p-3"
+          style={{
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
+          }}
        id="main-content-wrapper" // New wrapper for content and footer
       >
         <main className="flex-grow-1 p-3">
@@ -653,6 +682,7 @@ const InstructorDashboard = () => {
         </main>
         {/* ✨ ADD THE FOOTER COMPONENT HERE */}
         <Footer /> 
+      </div>
       </div>
     </div>
   );

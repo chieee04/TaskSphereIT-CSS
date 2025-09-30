@@ -4,23 +4,22 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../Contex/AuthContext';
-import './Style/Sidebar.css'; 
+import './Style/Sidebar.css';
 
-const Sidebar = ({ activeItem, onSelect, onWidthChange }) => { // onWidthChange is now a required prop
+// ✅ Add isSoloMode to the props
+const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => { 
   const [collapsed, setCollapsed] = useState(false);
   const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
   const [user_roles, setuser_roles] = useState(null);
 
-  // Use the UserAuth hook safely
   const auth = UserAuth();
   const user = auth?.user || null;
   const logout = auth?.logout || (() => {});
   const navigate = useNavigate();
 
-  // Determine user role and handle navigation
   useEffect(() => {
     if (user?.email) {
-      setuser_roles(0); // Assuming Firebase users are admins
+      setuser_roles(0);
     } else {
       const customUser = JSON.parse(localStorage.getItem("customUser"));
       if (customUser?.user_roles) {
@@ -29,10 +28,9 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange }) => { // onWidthChange 
     }
   }, [user]);
 
-  // Pass the sidebar width back to the parent component
   useEffect(() => {
     const newWidth = collapsed ? 70 : 250;
-    if (onWidthChange) { // Ensure the function exists before calling
+    if (onWidthChange) {
       onWidthChange(newWidth);
     }
   }, [collapsed, onWidthChange]);
@@ -65,66 +63,80 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange }) => { // onWidthChange 
   );
 
   let sidebarItems;
-  switch (user_roles) {
-    case 0: // Admin
-      sidebarItems = (
-        <>
-          {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-          {renderMenuItem('bi-person-plus', 'Enroll', () => setShowEnrollSubmenu(!showEnrollSubmenu), activeItem === 'Enroll')}
-          {!collapsed && showEnrollSubmenu && (
-            <div className="ps-4">
-              {renderMenuItem('bi-mortarboard', 'Students', () => onSelect('Students'), activeItem === 'Students')}
-              {renderMenuItem('bi-person', 'Advisers', () => onSelect('Advisers'), activeItem === 'Advisers')}
-            </div>
-          )}
-          {renderMenuItem('bi-key', 'Students Credentials', () => onSelect('StudentCredentials'), activeItem === 'StudentCredentials')}
-          {renderMenuItem('bi-lock', 'Advisers Credentials', () => onSelect('AdviserCredentials'), activeItem === 'AdviserCredentials')}
-          {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
-          {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
-          {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
-        </>
-      );
-      break;
-    case 1: // Manager
-      sidebarItems = (
-        <>
-          {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-          {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-          {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-          {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-          {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-          {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-        </>
-      );
-      break;
-    case 2: // Member
-      sidebarItems = (
-        <>
-          {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-          {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
-          {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-          {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-          {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-          {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-          {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-        </>
-      );
-      break;
-    case 3: // Adviser
-      sidebarItems = (
-        <>
-          {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-          {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('Teams Summary'), activeItem === 'Teams Summary')}
-          {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-          {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('Teams Board'), activeItem === 'Teams Board')}
-          {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-          {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-          {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
-        </>
-      );
-      break;
-    default:
-      sidebarItems = null;
+
+  // ✅ Add conditional logic to check for solo mode
+  if (isSoloMode) {
+    sidebarItems = (
+      <>
+        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('SoloModeDashboard'), activeItem === 'SoloModeDashboard')}
+        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'SolomodeTasks')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'SolomodeTasks Board')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'SolomodeTasks Record')}
+      </>
+    );
+  } else {
+    // Original switch statement for team mode
+    switch (user_roles) {
+      case 0: // Admin
+        sidebarItems = (
+          <>
+            {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+            {renderMenuItem('bi-person-plus', 'Enroll', () => setShowEnrollSubmenu(!showEnrollSubmenu), activeItem === 'Enroll')}
+            {!collapsed && showEnrollSubmenu && (
+              <div className="ps-4">
+                {renderMenuItem('bi-mortarboard', 'Students', () => onSelect('Students'), activeItem === 'Students')}
+                {renderMenuItem('bi-person', 'Advisers', () => onSelect('Advisers'), activeItem === 'Advisers')}
+              </div>
+            )}
+            {renderMenuItem('bi-key', 'Students Credentials', () => onSelect('StudentCredentials'), activeItem === 'StudentCredentials')}
+            {renderMenuItem('bi-lock', 'Advisers Credentials', () => onSelect('AdviserCredentials'), activeItem === 'AdviserCredentials')}
+            {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
+            {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
+            {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
+          </>
+        );
+        break;
+      case 1: // Manager
+        sidebarItems = (
+          <>
+            {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+            {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
+            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+          </>
+        );
+        break;
+      case 2: // Member
+        sidebarItems = (
+          <>
+            {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+            {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
+            {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
+            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+          </>
+        );
+        break;
+      case 3: // Adviser
+        sidebarItems = (
+          <>
+            {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+            {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('Teams Summary'), activeItem === 'Teams Summary')}
+            {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+            {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('Teams Board'), activeItem === 'Teams Board')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+            {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
+          </>
+        );
+        break;
+      default:
+        sidebarItems = null;
+    }
   }
 
   if (sidebarItems === null) {

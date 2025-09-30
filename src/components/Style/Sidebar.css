@@ -1,71 +1,71 @@
 .sidebar {
-  display: flex;
-  flex-direction: column;
-  background-color: #f8f9fa; /* bg-light */
-  padding: 0.5rem;
-  transition: width 0.3s;
-  
-  /* FIXED POSITION - HINDE GALAW KAHIT MAG-SCROLL */
-  position: fixed;
-  top: 64px; /* Set to the actual height of your header */
-  bottom: 56px; /* Set to the actual height of your footer */
-  left: 0;
-  overflow-y: auto; /* Para scrollable ang sidebar kung masyadong mahaba */
-  z-index: 1000; /* Para nasa ibabaw ng ibang content */
+ display: flex;
+ flex-direction: column;
+ background-color: #f8f9fa; /* bg-light */
+ padding: 0.5rem;
+ transition: width 0.3s;
+ 
+ /* FIXED POSITION - HINDE GALAW KAHIT MAG-SCROLL */
+ position: fixed;
+ top: 0; /* Aligns the top of the sidebar with the bottom of the header */
+ bottom: 0; /* Extends the sidebar to the bottom of the viewport */
+ left: 0;
+ overflow-y: auto;
+ z-index: 1000;
 }
 
 .sidebar-collapsed {
-  width: 70px;
+ width: 70px;
 }
 
 .sidebar-expanded {
-  width: 250px;
+ width: 250px;
 }
 
 /* Rest of the CSS remains the same */
 
 /* Collapse button */
 .sidebar-toggle {
-  margin-bottom: 1rem;
-  align-self: end;
+ margin-bottom: 1rem;
+ align-self: end;
 }
 
 /* Menu items */
 .sidebar .nav-link {
-  display: flex;
-  align-items: center;
-  border-radius: 0.25rem;
-  transition: all 0.2s;
-  color: #3B0304;
-  background-color: transparent;
+ display: flex;
+ align-items: center;
+ border-radius: 0.25rem;
+ transition: all 0.2s;
+ color: #3B0304;
+ background-color: transparent;
 }
 
 .sidebar .nav-link:hover {
-  background-color: #e9ecef;
+ background-color: #e9ecef;
 }
 
 .sidebar .nav-link.active {
-  background-color: #0d6efd;
-  color: #fff;
+ background-color: #0d6efd;
+ color: #fff;
 }
 
 .sidebar .nav-link i {
-  font-size: 1.2rem;
-  margin-right: 0.5rem;
-  color: #3B0304;
+ font-size: 1.2rem;
+ margin-right: 0.5rem;
+ color: #3B0304;
 }
 
 .sidebar .nav-link.active i {
-  color: #fff;
+ color: #fff;
 }
 
 /* Submenu */
 .sidebar-submenu {
-  padding-left: 1rem;
+ padding-left: 1rem;
 }
 
 /* Sign out button */
 .sidebar-signout {
-  margin-top: auto;
-  width: 100%;
+ margin-top: auto;
+ width: 100%;
 }

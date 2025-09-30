@@ -36,10 +36,12 @@ import ManagerEvents from "./ManagerEvents";
 import Profile from "../Profile";
 import ManagerAllocation from "./ManagerTask/ManagerAllocation";
 import ManagerFinalRecord from "./ManagerTaskRecord/ManagerFinalRecord";
-
+import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
+import Header from "../Header";
 // Import CSS
 import "../Style/ProjectManager/ManagerDB.css";
 import { supabase } from "../../supabaseClient";
+import Footer from "../Footer";
 
 // Constants
 const WEEK_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -124,13 +126,14 @@ const TeamProgressChart = () => {
 };
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
-  const [sidebarWidth, setSidebarWidth] = useState(70);
+  
   const location = useLocation();
   const [activePage, setActivePage] = useState(location.state?.activePage || activePageFromHeader || "Dashboard");
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [allWeeklyTasks, setAllWeeklyTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
-
+  const [isSoloMode, setIsSoloMode] = useState(false); //
+const [sidebarWidth, setSidebarWidth] = useState(70);
   // Fetch all weekly tasks
   useEffect(() => {
     const fetchAllWeeklyTasks = async () => {
@@ -304,9 +307,22 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
           : task.status === "To Review" ? "#578FCA"
           : "#FABC3F"
   }));
+  //////////////////////
+  useEffect(() => {
+    if (isSoloMode) {
+      setActivePage("SoloModeDashboard");
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [isSoloMode]);
+////////////////////
 
   const renderContent = ()=>{
     switch(activePage){
+      //////////
+      case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+//////////
       case "Tasks": return <Tasks setActivePage={setActivePage}/>;
       case "Adviser Tasks": return <AdviserTasks/>;
       case "Tasks Board": return <ManagerTaskBoard/>;
@@ -409,22 +425,33 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
     }
   };
 
-  return (
-    <div className="d-flex">
-      <Sidebar 
-        activeItem={activePage} 
-        onSelect={setActivePage} 
-        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
-      />
-      <div 
-        className="flex-grow-1 p-3" 
-        style={{ 
-          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
-          transition: 'margin-left 0.3s'
-        }}
-        id="main-content"
+   return (
+    <div>
+      <Header
+        isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+      />
+      <div className="d-flex">
+        <Sidebar
+          activeItem={activePage}
+          onSelect={setActivePage}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+        <div
+          className="flex-grow-1 p-3"
+          style={{
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
+          }}
+       id="main-content-wrapper" // New wrapper for content and footer
       >
-        {renderContent()}
+        <main className="flex-grow-1 p-3">
+          {renderContent()}
+        </main>
+        {/* ✨ ADD THE FOOTER COMPONENT HERE */}
+        <Footer /> 
+      </div>
       </div>
     </div>
   );

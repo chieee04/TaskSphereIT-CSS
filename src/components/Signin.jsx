@@ -7,6 +7,8 @@ import Logo1 from "../assets/img/Dct-Logo.png";
 import Logo2 from "../assets/img/Costum.png";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../Contex/AuthContext"; // ✅ Global Auth Context
+import SigninHead from "./heade-foot/SigninHead";
+import SigninFoot from "./heade-foot/SigninFoot";
 
 const Signin = () => {
   const [userID, setUserID] = useState("");
@@ -140,9 +142,13 @@ const Signin = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-100">
-      <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color">
-        {/* 🔹 LEFT SIDE: Sign In Form */}
+    <div className="w-full min-h-screen bg-gray-100 flex flex-col">
+      {/* 🔹 HEADER */}
+      <SigninHead />
+
+      {/* 🔹 MAIN CONTENT */}
+      <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color flex-grow">
+        {/* LEFT: Sign In Form */}
         <div className="w-full md:w-1/2 p-6 flex items-center justify-center b-rd bg-white">
           <form onSubmit={handleSignIn} className="w-full max-w-md text-center">
             <h2 className="text-2xl font-bold mb-4">Welcome to TaskSphere IT</h2>
@@ -186,7 +192,7 @@ const Signin = () => {
             </button>
           </form>
         </div>
-        {/* 🔹 RIGHT SIDE: Info Panel */}
+        {/* RIGHT: Info Panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center main-bg-color text-white rounded-lg p-8 space-y-6">
           <h1 className="text-3xl font-semibold text-center">
             Empowering Collaboration,
@@ -200,6 +206,9 @@ const Signin = () => {
           />
         </div>
       </div>
+
+      {/* 🔹 FOOTER */}
+      <SigninFoot />
     </div>
   );
 };

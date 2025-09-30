@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FaBell, FaUserCircle } from "react-icons/fa"; 
+import { FaBell, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/img/Logo.png";
 import { UserAuth } from "../Contex/AuthContext";
@@ -37,15 +37,15 @@ const textStyle = {
 };
 // ----------------------------------------------------
 
-const Header = () => {
-  const auth = UserAuth(); // ✅ i-check muna buong object
+// ✅ Accept isSoloMode and setIsSoloMode as props
+const Header = ({ isSoloMode, setIsSoloMode }) => {
+  const auth = UserAuth();
   const user = auth?.user || null;
-  const logout = auth?.logout || (() => {}); // fallback para hindi mag-crash
+  const logout = auth?.logout || (() => {});
 
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null);
   const [showProfileCard, setShowProfileCard] = useState(false);
-  const [isSoloMode, setIsSoloMode] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -98,11 +98,8 @@ const Header = () => {
 
   return (
     <div
-      className="mb-3 px-4 py-2"
+      className="px-4 py-2"
       style={{
-        backgroundColor: "rgba(240, 240, 240, 0.4)",
-        borderBottomLeftRadius: "14px",
-        borderBottomRightRadius: "14px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -123,14 +120,13 @@ const Header = () => {
             gap: "10px",
           }}
         >
-          {/* TEMPORARY INLINE SWITCH IMPLEMENTATION */}
           <div
             style={{
               ...switchContainerStyle,
               backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
               justifyContent: isSoloMode ? "flex-end" : "flex-start",
             }}
-            onClick={() => setIsSoloMode(!isSoloMode)}
+            onClick={() => setIsSoloMode(!isSoloMode)} // ✅ Use the setter from props
           >
             <div
               style={{
@@ -143,7 +139,6 @@ const Header = () => {
             <div style={{ ...sliderStyle }} />
           </div>
 
-          {/* Bell Icon */}
           <button
             style={{
               background: "none",
@@ -155,7 +150,6 @@ const Header = () => {
             <FaBell size={20} />
           </button>
 
-          {/* Profile Logo */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setShowProfileCard(true)}
@@ -258,5 +252,4 @@ const Header = () => {
     </div>
   );
 };
-
 export default Header;

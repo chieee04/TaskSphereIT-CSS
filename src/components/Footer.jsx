@@ -3,9 +3,7 @@ import React from 'react';
 const Footer = () => {
     return (
         <div
-            className="w-100" // ✨ Ensure footer takes full width
             style={{
-                paddingLeft: '70px', // ✨ Initial padding to clear the collapsed sidebar
                 transition: 'padding-left 0.3s'
             }}
         >

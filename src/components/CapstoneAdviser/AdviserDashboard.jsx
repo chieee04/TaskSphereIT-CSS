@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom"; // ✅ idagdag ito
+import { useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar";
+
 import AdviserTeamSummary from "./AdviserTeamsSummary";
 import AdviserTask from "./AdviserTask/AdviserTask";
 import AdviserOralDef from "./AdviserTask/AdviserOralDef";
@@ -13,12 +14,16 @@ import AdviserEvents from "./AdviserEvents/AdviserEvents";
 import AdviserManuResult from "./AdviserEvents/AdviserManuResult";
 import AdviserCapsDefenses from "./AdviserEvents/AdviserCapsDefenses";
 import Profile from "../Profile";
-
+import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
+import Header from "../Header";
+import Footer from "../Footer";
 const AdviserDashboard = ({ activePageFromHeader }) => {
   const [sidebarWidth, setSidebarWidth] = useState(70);
+  ///
+  const [isSoloMode, setIsSoloMode] = useState(false);
+  ///
   const location = useLocation();
 
-  // ✅ kunin yung galing sa navigate state
   const [activePage, setActivePage] = useState(
     location.state?.activePage || activePageFromHeader || "Dashboard"
   );
@@ -29,8 +34,22 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     }
   }, [location.key]);
 
+  //////////////////////
+  useEffect(() => {
+    if (isSoloMode) {
+      setActivePage("SoloModeDashboard");
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [isSoloMode]);
+  ////////////////////
+
   const renderContent = () => {
     switch (activePage) {
+      //////////
+      case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+      //////////
       case "Teams Summary":
         return <AdviserTeamSummary />;
       case "Tasks":
@@ -54,28 +73,39 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
       case "Capstone Defenses":
         return <AdviserCapsDefenses />;
       case "Profile":
-        return <Profile/>;
+        return <Profile />;
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
     }
   };
 
   return (
-    <div className="d-flex">
-      <Sidebar 
-        activeItem={activePage} 
-        onSelect={setActivePage} 
-        onWidthChange={setSidebarWidth} // ✨ PASS THE STATE SETTER FUNCTION
-      />
-      <div 
-        className="flex-grow-1 p-3" 
-        style={{ 
-          marginLeft: `${sidebarWidth}px`, // ✨ USE THE DYNAMIC STATE HERE
-          transition: 'margin-left 0.3s'
-        }}
-        id="main-content"
+    <div>
+      <Header
+        isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+      />
+      <div className="d-flex">
+        <Sidebar
+          activeItem={activePage}
+          onSelect={setActivePage}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+        <div
+          className="flex-grow-1 p-3"
+          style={{
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
+          }}
+       id="main-content-wrapper" // New wrapper for content and footer
       >
-        {renderContent()}
+        <main className="flex-grow-1 p-3">
+          {renderContent()}
+        </main>
+        {/* ✨ ADD THE FOOTER COMPONENT HERE */}
+        <Footer /> 
+      </div>
       </div>
     </div>
   );
