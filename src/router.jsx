@@ -25,6 +25,7 @@ import InstructorDashboard from "./components/Instructor/InstructorDashboard";
 import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
 import MemberDashboard from "./components/Member/MemberDashboard";
 import AdviserDashboard from "./components/CapstoneAdviser/AdviserDashboard";
+import AdviserFinalRedefTask from "./components/CapstoneAdviser/AdviserTask/AdviserFinalRedefTask";
 
 export const router = createBrowserRouter([
 
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
   { path: "/MemberAdviserTasks", element: <MemberAdviserTasks /> },
   { path: "/MemberAllocation", element: <MemberAllocation /> },
   { path: "/MemberTask", element: <MemberTask /> },
+{ path: "Final Re Defense", element: <AdviserFinalRedefTask /> },
+  
   //
   
 

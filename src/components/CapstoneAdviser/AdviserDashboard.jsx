@@ -17,6 +17,7 @@ import Profile from "../Profile";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 import Header from "../Header";
 import Footer from "../Footer";
+import AdviserFinalRedefTask from "./AdviserTask/AdviserFinalRedefTask";
 const AdviserDashboard = ({ activePageFromHeader }) => {
   const [sidebarWidth, setSidebarWidth] = useState(70);
   ///
@@ -74,6 +75,11 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         return <AdviserCapsDefenses />;
       case "Profile":
         return <Profile />;
+case "Final Re Defense":
+        return <AdviserFinalRedefTask />;
+        
+        
+
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
     }
