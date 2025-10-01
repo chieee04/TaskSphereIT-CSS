@@ -3,15 +3,11 @@ import React, { useState, useEffect } from "react";
 import taskIcon from "../../../assets/tasks-icon.png";
 import createTasksIcon from "../../../assets/create-tasks-icon.png";
 import searchIcon from "../../../assets/search-icon.png";
-
 import "../../Style/Adviser/Task/AdviserOralDef.css";
 
 // Import logic functions
-import {
-  handleCreateTask,
-  fetchTasksFromDB,
-  handleUpdateStatus,
-} from "../../../services/Adviser/AdviserFinalRedef";
+import { fetchTasksFromDB, handleCreateTask, handleUpdateStatus } from "../../../services/Adviser/AdviserFinalRedef";
+
 
 const AdviserFinalRedefTask = () => {
   const [tasks, setTasks] = useState([]);
@@ -33,7 +29,7 @@ const AdviserFinalRedefTask = () => {
     <div className="page-wrapper container">
       <h2 className="section-title d-flex align-items-center gap-2">
         <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
-        Final Defense Tasks
+        Oral Defense Tasks
       </h2>
       <hr className="divider" />
 
@@ -94,19 +90,16 @@ const AdviserFinalRedefTask = () => {
                 <td>{t.subtask}</td>
                 <td>{t.elements}</td>
                 <td>
-                  <select
-                    value={t.status || "To Do"}
-                    onChange={(e) =>
-                      handleUpdateStatus(t.id, e.target.value, setTasks)
-                    }
-                    className="form-select"
-                  >
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="To Review">To Review</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </td>
+ <select
+  value={t.status || "To Do"}
+  onChange={(e) => handleUpdateStatus(t.id, e.target.value, setTasks)}
+  className="form-select">
+  <option value="To Do">To Do</option>
+  <option value="In Progress">In Progress</option>
+  <option value="To Review">To Review</option>
+  <option value="Completed">Completed</option>
+</select>
+</td>
                 <td>
                   {t.date_created
                     ? new Date(t.date_created).toLocaleDateString("en-US")
