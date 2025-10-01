@@ -10,7 +10,7 @@ import {
   FaClock,
   FaTrash,
 } from "react-icons/fa";
-import { openCreateFinalTask } from "../../../services/Manager/ManagerFinalTask";
+import { openCreateFinalRedefTask } from "../../../services/Manager/ManagerFinalRedefTask";
 
 const MySwal = withReactContent(Swal);
 
@@ -195,7 +195,7 @@ export default function ManagerFinalRedefTask() {
       {/* Create Task Button */}
       <div className="mb-3">
         <button
-          onClick={openCreateFinalTask}
+          onClick={openCreateFinalRedefTask}
           className="px-3 py-2 border border-[#3B0304] rounded bg-white text-[#3B0304] flex items-center gap-2 hover:bg-gray-100"
         >
           <FaPlus /> Create Task
