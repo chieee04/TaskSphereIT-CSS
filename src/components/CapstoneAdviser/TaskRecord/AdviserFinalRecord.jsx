@@ -79,11 +79,78 @@ const AdviserFinalRecord = () => {
     setActiveSubFilter(null);
   };
 
+  // Sample data array for demonstration
+  const tasks = [
+    {
+      id: 1,
+      assigned: "John Doe",
+      task: "Final Defense Task Example",
+      subtask: "Prepare Slides",
+      elements: "Conclusion, Demo",
+      dateCreated: "Sep 10, 2025",
+      dueDate: "Sep 15, 2025",
+      time: "3:00 PM",
+      dateCompleted: "Sep 16, 2025",
+      revision: "1st Revision",
+      status: "Completed",
+      methodology: "Quantitative",
+      projectPhase: "Deployment",
+    },
+    {
+      id: 2,
+      assigned: "Jane Smith",
+      task: "Literature Review",
+      subtask: "Find 10 sources",
+      elements: "Sources, Notes",
+      dateCreated: "Sep 1, 2025",
+      dueDate: "Sep 5, 2025",
+      time: "10:00 AM",
+      dateCompleted: null,
+      revision: "1st Revision",
+      status: "To Do",
+      methodology: "Qualitative",
+      projectPhase: "Planning",
+    },
+    {
+      id: 3,
+      assigned: "John Doe",
+      task: "Data Analysis",
+      subtask: "Run statistical tests",
+      elements: "Charts, Tables",
+      dateCreated: "Sep 12, 2025",
+      dueDate: "Sep 20, 2025",
+      time: "2:00 PM",
+      dateCompleted: "Sep 22, 2025",
+      revision: "2nd Revision",
+      status: "Completed",
+      methodology: "Quantitative",
+      projectPhase: "Development",
+    },
+    {
+      id: 4,
+      assigned: "Jane Smith",
+      task: "Prototype Development",
+      subtask: "Build frontend UI",
+      elements: "UI Components, APIs",
+      dateCreated: "Oct 1, 2025",
+      dueDate: "Oct 15, 2025",
+      time: "9:00 AM",
+      dateCompleted: null,
+      revision: "1st Revision",
+      status: "In Progress",
+      methodology: "Agile",
+      projectPhase: "Development",
+    },
+  ];
+
+  // Filter the tasks to only show those with a status of "Completed"
+  const completedTasks = tasks.filter(task => task.status === "Completed");
+
   return (
     <div className="page-wrapper">
       <h2 className="section-title">
         <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
-        Final Defense 
+        Final Defense
       </h2>
       <hr className="divider" />
 
@@ -170,88 +237,90 @@ const AdviserFinalRecord = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="center-text">1.</td>
-                <td className="center-text">John Doe</td>
-                <td className="center-text">Final Defense Task Example</td>
-                <td className="center-text">Prepare Slides</td>
-                <td className="center-text">Conclusion, Demo</td>
-                <td className="center-text">Sep 10, 2025</td>
-                <td className="center-text">
-                  <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
-                  Sep 15, 2025
-                </td>
-                <td className="center-text">
-                  <img src={timeIcon} alt="Time" className="inline-icon" />
-                  3:00 PM
-                </td>
-                <td className="center-text">Sep 16, 2025</td>
-                <td className="center-text revision-cell" ref={revisionRef}>
-                  <div
-                    className="dropdown-wrapper"
-                    onClick={() => setShowRevisionDropdown(!showRevisionDropdown)}
-                  >
-                    <div className="revision-badge">
-                      {revision}
-                      <img
-                        src={redDropdownIcon}
-                        alt="▼"
-                        className="revision-dropdown-icon"
-                      />
-                    </div>
-                    {showRevisionDropdown && (
-                      <div className="dropdown-menu">
-                        {REVISION_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setRevision(opt);
-                              setShowRevisionDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text status-cell" ref={statusRef}>
-                  <div className="dropdown-wrapper">
+              {completedTasks.map((task, index) => (
+                <tr key={task.id}>
+                  <td className="center-text">{index + 1}.</td>
+                  <td className="center-text">{task.assigned}</td>
+                  <td className="center-text">{task.task}</td>
+                  <td className="center-text">{task.subtask}</td>
+                  <td className="center-text">{task.elements}</td>
+                  <td className="center-text">{task.dateCreated}</td>
+                  <td className="center-text">
+                    <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
+                    {task.dueDate}
+                  </td>
+                  <td className="center-text">
+                    <img src={timeIcon} alt="Time" className="inline-icon" />
+                    {task.time}
+                  </td>
+                  <td className="center-text">{task.dateCompleted}</td>
+                  <td className="center-text revision-cell" ref={revisionRef}>
                     <div
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                      className="dropdown-wrapper"
+                      onClick={() => setShowRevisionDropdown(!showRevisionDropdown)}
                     >
-                      {status}
-                      <img
-                        src={dropdownIconWhite}
-                        alt="▼"
-                        className="status-dropdown-icon"
-                      />
-                    </div>
-                    {showStatusDropdown && (
-                      <div className="dropdown-menu">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setStatus(opt);
-                              setShowStatusDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
-                        ))}
+                      <div className="revision-badge">
+                        {task.revision}
+                        <img
+                          src={redDropdownIcon}
+                          alt="▼"
+                          className="revision-dropdown-icon"
+                        />
                       </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text">Quantitative</td>
-                <td className="center-text">Deployment</td>
-              </tr>
+                      {showRevisionDropdown && (
+                        <div className="dropdown-menu">
+                          {REVISION_OPTIONS.map((opt) => (
+                            <div
+                              key={opt}
+                              className="dropdown-item"
+                              onClick={() => {
+                                setRevision(opt);
+                                setShowRevisionDropdown(false);
+                              }}
+                            >
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="center-text status-cell" ref={statusRef}>
+                    <div className="dropdown-wrapper">
+                      <div
+                        className="status-badge"
+                        style={{ backgroundColor: getStatusColor(task.status) }}
+                        onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                      >
+                        {task.status}
+                        <img
+                          src={dropdownIconWhite}
+                          alt="▼"
+                          className="status-dropdown-icon"
+                        />
+                      </div>
+                      {showStatusDropdown && (
+                        <div className="dropdown-menu">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <div
+                              key={opt}
+                              className="dropdown-item"
+                              onClick={() => {
+                                setStatus(opt);
+                                setShowStatusDropdown(false);
+                              }}
+                            >
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="center-text">{task.methodology}</td>
+                  <td className="center-text">{task.projectPhase}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

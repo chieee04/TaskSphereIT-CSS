@@ -31,6 +31,9 @@ import interactionPlugin from "@fullcalendar/interaction";
 import Footer from "../Footer";
 import Header from "../Header";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
+import SoloModeTasks from "../SoloMode/SoloModeTasks";
+import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
+import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler, ArcElement);
 
@@ -228,10 +231,6 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
 ////////////////////
   const renderContent = ()=>{
     switch(activePage){
-            //////////
-      case "SoloModeDashboard":
-        return <SoloModeDashboard />;
-//////////
       case "Tasks Allocation": return <MemberAllocation />;
       case "Tasks": return <MemberTask />;
       case "Adviser Tasks": return <MemberAdviserTasks />;
@@ -239,6 +238,14 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
       case "Tasks Record": return <MemberTasksRecord />;
       case "Events": return <MemberEvents />;
       case "Profile": return <Profile />;
+              case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+        case "SolomodeTasks":
+        return <SoloModeTasks />;
+        case "SolomodeTasks Board":
+        return <SoloModeTasksBoard />;
+        case "SolomodeTasks Record":
+        return <SoloModeTasksRecord />;
       default:
         return (
           <div className="dashboard-content">

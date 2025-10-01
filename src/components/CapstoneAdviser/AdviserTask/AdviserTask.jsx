@@ -15,11 +15,11 @@ export default function AdviserTask({ setActivePage }) {
       icon: recordIcon,
       onClick: () => setActivePage("Final Defense"),
     },
-    {
+    /*{
       title: "Final Re Defense",
       icon: recordIcon,
       onClick: () => setActivePage("Final Re Defense"),
-    },
+    },*/
   ];
 
   return (

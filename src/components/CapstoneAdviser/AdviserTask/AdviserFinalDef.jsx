@@ -22,9 +22,10 @@ const AdviserFinalDef = () => {
     fetchTasksFromDB(setTasks);
   }, []);
 
-  // ✅ filtered tasks
+  // ✅ filtered tasks (hide Completed)
   const filteredTasks = (tasks || [])
     .filter((t) => t.group_name && t.group_name.trim() !== "")
+    .filter((t) => t.status !== "Completed") // 🔴 hide completed tasks
     .filter((t) =>
       (t.task_type || "").toLowerCase().includes(searchTerm.toLowerCase())
     );

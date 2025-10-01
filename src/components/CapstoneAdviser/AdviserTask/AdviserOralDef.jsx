@@ -8,7 +8,6 @@ import "../../Style/Adviser/Task/AdviserOralDef.css";
 // Import logic functions
 import { fetchTasksFromDB, handleCreateTask, handleUpdateStatus } from "../../../services/Adviser/AdCapsTask";
 
-
 const AdviserOralDef = () => {
   const [tasks, setTasks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,9 +17,10 @@ const AdviserOralDef = () => {
     fetchTasksFromDB(setTasks);
   }, []);
 
-  // ✅ filtered tasks
+  // ✅ filtered tasks (hide Completed)
   const filteredTasks = (tasks || [])
     .filter((t) => t.group_name && t.group_name.trim() !== "")
+    .filter((t) => t.status !== "Completed") // 🔴 hide Completed
     .filter((t) =>
       (t.task_type || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -90,16 +90,19 @@ const AdviserOralDef = () => {
                 <td>{t.subtask}</td>
                 <td>{t.elements}</td>
                 <td>
- <select
-  value={t.status || "To Do"}
-  onChange={(e) => handleUpdateStatus(t.id, e.target.value, setTasks)}
-  className="form-select">
-  <option value="To Do">To Do</option>
-  <option value="In Progress">In Progress</option>
-  <option value="To Review">To Review</option>
-  <option value="Completed">Completed</option>
-</select>
-</td>
+                  <select
+                    value={t.status || "To Do"}
+                    onChange={(e) =>
+                      handleUpdateStatus(t.id, e.target.value, setTasks)
+                    }
+                    className="form-select"
+                  >
+                    <option value="To Do">To Do</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="To Review">To Review</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </td>
                 <td>
                   {t.date_created
                     ? new Date(t.date_created).toLocaleDateString("en-US")

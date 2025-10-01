@@ -14,6 +14,9 @@ import OralDefense from "./OralDefense";
 import Footer from "../Footer";
 import Header from "../Header";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
+import SoloModeTasks from "../SoloMode/SoloModeTasks";
+import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
+import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
 
 // Define the primary color constants for consistency
@@ -208,10 +211,6 @@ const InstructorDashboard = () => {
 
   const renderContent = () => {
     switch (activePage) {
-      //////////
-      case "SoloModeDashboard":
-        return <SoloModeDashboard />;
-      //////////
       case "Students":
         return <Enroll />;
       case "Advisers":
@@ -230,6 +229,14 @@ const InstructorDashboard = () => {
         return <StudentCredentials />;
       case "AdviserCredentials":
         return <AdviserCredentials />;
+                case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+        case "SolomodeTasks":
+        return <SoloModeTasks />;
+        case "SolomodeTasks Board":
+        return <SoloModeTasksBoard />;
+        case "SolomodeTasks Record":
+        return <SoloModeTasksRecord />;
       default:
         return (
           <div className="dashboard-content">

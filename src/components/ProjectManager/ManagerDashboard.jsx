@@ -43,6 +43,9 @@ import "../Style/ProjectManager/ManagerDB.css";
 import { supabase } from "../../supabaseClient";
 import Footer from "../Footer";
 import ManagerFinalRedefTask from "./ManagerTask/ManagerFinalRedefTask";
+import SoloModeTasks from "../SoloMode/SoloModeTasks";
+import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
+import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
 // Constants
 const WEEK_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -334,10 +337,6 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
 
   const renderContent = ()=>{
     switch(activePage){
-      //////////
-      case "SoloModeDashboard":
-        return <SoloModeDashboard />;
-//////////
       case "Tasks": return <Tasks setActivePage={setActivePage}/>;
       case "Adviser Tasks": return <AdviserTasks/>;
       case "Tasks Board": return <ManagerTaskBoard/>;
@@ -352,6 +351,14 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
       case "Final Defense Record": return <ManagerFinalRecord/>;
       case "Events": return <ManagerEvents/>;
       case "Profile": return <Profile/>;
+              case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+        case "SolomodeTasks":
+        return <SoloModeTasks />;
+        case "SolomodeTasks Board":
+        return <SoloModeTasksBoard />;
+        case "SolomodeTasks Record":
+        return <SoloModeTasksRecord />;
       default:
         return (
           <div className="dashboard-content">
