@@ -124,7 +124,8 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
       const tables = [
         { name:"manager_title_task", mapTask: t=>t.task_name, mapCreated: t=>t.created_date, mapTime: t=>t.due_time?.slice(0,5) },
         { name:"manager_oral_task", mapTask: t=>t.task, mapCreated: t=>t.created_at, mapTime: t=>t.time?.slice(0,5) },
-        { name:"manager_final_task", mapTask: t=>t.task, mapCreated: t=>t.created_at, mapTime: t=>t.time?.slice(0,5) }
+        { name:"manager_final_task", mapTask: t=>t.task, mapCreated: t=>t.created_at, mapTime: t=>t.time?.slice(0,5) },
+        { name:"manager_final_redef", mapTask: t=>t.task, mapCreated: t=>t.created_at, mapTime: t=>t.time?.slice(0,5) }
       ];
 
       for(const table of tables){

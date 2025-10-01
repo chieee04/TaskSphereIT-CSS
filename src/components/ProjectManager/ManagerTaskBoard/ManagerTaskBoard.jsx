@@ -59,6 +59,7 @@ const ManagerTaskBoard = () => {
         "manager_title_task",
         "manager_oral_task",
         "manager_final_task",
+        "manager_final_redef"
       ];
 
       for (const table of tables) {

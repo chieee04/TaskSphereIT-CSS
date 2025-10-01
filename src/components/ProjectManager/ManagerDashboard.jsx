@@ -87,7 +87,7 @@ const TeamProgressChart = () => {
       if (!managerUUID) return;
 
       let allData = [];
-      const tables = ["manager_title_task","manager_oral_task","manager_final_task"];
+      const tables = ["manager_title_task","manager_oral_task","manager_final_task","manager_final_redef"];
       for(const table of tables){
         const { data } = await supabase.from(table).select("status").eq("manager_id", managerUUID);
         if(data) allData = [...allData, ...data];
@@ -166,6 +166,13 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
           mapTask: t => t.task,
           mapCreated: t => t.created_at,
           mapTime: t => t.time?.slice(0,5)
+        },
+        {
+          name:"manager_final_redef",
+  select:"id, task, due_date, time, status, created_at, member_id, project_phase",
+  mapTask: t => t.task,
+  mapCreated: t => t.created_at,
+  mapTime: t => t.time?.slice(0,5)
         }
       ];
 
@@ -223,7 +230,14 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
           select:"id, task, due_date, time, member_id, status",
           mapTask:t=>t.task,
           mapTime:t=>t.time?.slice(0,5)
-        }
+        },
+        {
+  name:"manager_final_redef",
+  select:"id, task, due_date, time, status, created_at, member_id, project_phase",
+  mapTask: t => t.task,
+  mapCreated: t => t.created_at,
+  mapTime: t => t.time?.slice(0,5)
+}
       ];
 
       for(const table of tables){

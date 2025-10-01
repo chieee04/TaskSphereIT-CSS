@@ -3,7 +3,7 @@ import React from 'react'
 const SoloModeDashboard = () => {
   return (
     <div>
-      seveneleven
+      solomode Dashboard
     </div>
   )
 }

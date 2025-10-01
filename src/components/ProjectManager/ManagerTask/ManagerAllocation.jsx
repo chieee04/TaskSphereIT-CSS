@@ -43,58 +43,72 @@ return;
         let completedCount = 0;
 
         if (m.user_roles === 1) {
-          // Project Manager → use id as manager_id
-          const { data: titleTasks } = await supabase
-            .from("manager_title_task")
-            .select("*")
-            .eq("manager_id", m.id);
+  // Project Manager → use id as manager_id
+  const { data: titleTasks } = await supabase
+    .from("manager_title_task")
+    .select("*")
+    .eq("manager_id", m.id);
 
-          const { data: oralTasks } = await supabase
-            .from("manager_oral_task")
-            .select("*")
-            .eq("manager_id", m.id);
+  const { data: oralTasks } = await supabase
+    .from("manager_oral_task")
+    .select("*")
+    .eq("manager_id", m.id);
 
-          const { data: finalTasks } = await supabase
-            .from("manager_final_task")
-            .select("*")
-            .eq("manager_id", m.id);
+  const { data: finalTasks } = await supabase
+    .from("manager_final_task")
+    .select("*")
+    .eq("manager_id", m.id);
 
-          const allTasks = [
-            ...(titleTasks || []),
-            ...(oralTasks || []),
-            ...(finalTasks || []),
-          ];
-          assignedCount = allTasks.length;
-          completedCount = allTasks.filter(
-            (t) => t.status === "Completed"
-          ).length;
-        } else if (m.user_roles === 2) {
-          // Member → use id as member_id
-          const { data: titleTasks } = await supabase
-            .from("manager_title_task")
-            .select("*")
-            .eq("member_id", m.id);
+  const { data: redefTasks } = await supabase   // ➕ ADD THIS
+    .from("manager_final_redef")
+    .select("*")
+    .eq("manager_id", m.id);
 
-          const { data: oralTasks } = await supabase
-            .from("manager_oral_task")
-            .select("*")
-            .eq("member_id", m.id);
+  const allTasks = [
+    ...(titleTasks || []),
+    ...(oralTasks || []),
+    ...(finalTasks || []),
+    ...(redefTasks || []),   // ➕ ADD THIS
+  ];
+  assignedCount = allTasks.length;
+  completedCount = allTasks.filter(
+    (t) => t.status === "Completed"
+  ).length;
 
-          const { data: finalTasks } = await supabase
-            .from("manager_final_task")
-            .select("*")
-            .eq("member_id", m.id);
+} else if (m.user_roles === 2) {
+  // Member → use id as member_id
+  const { data: titleTasks } = await supabase
+    .from("manager_title_task")
+    .select("*")
+    .eq("member_id", m.id);
 
-          const allTasks = [
-            ...(titleTasks || []),
-            ...(oralTasks || []),
-            ...(finalTasks || []),
-          ];
-          assignedCount = allTasks.length;
-          completedCount = allTasks.filter(
-            (t) => t.status === "Completed"
-          ).length;
-        }
+  const { data: oralTasks } = await supabase
+    .from("manager_oral_task")
+    .select("*")
+    .eq("member_id", m.id);
+
+  const { data: finalTasks } = await supabase
+    .from("manager_final_task")
+    .select("*")
+    .eq("member_id", m.id);
+
+  const { data: redefTasks } = await supabase   // ➕ ADD THIS
+    .from("manager_final_redef")
+    .select("*")
+    .eq("member_id", m.id);
+
+  const allTasks = [
+    ...(titleTasks || []),
+    ...(oralTasks || []),
+    ...(finalTasks || []),
+    ...(redefTasks || []),   // ➕ ADD THIS
+  ];
+  assignedCount = allTasks.length;
+  completedCount = allTasks.filter(
+    (t) => t.status === "Completed"
+  ).length;
+}
+
 
         return {
           ...m,

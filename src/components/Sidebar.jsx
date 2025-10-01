@@ -69,9 +69,9 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
     sidebarItems = (
       <>
         {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('SoloModeDashboard'), activeItem === 'SoloModeDashboard')}
-        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'SolomodeTasks')}
-        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'SolomodeTasks Board')}
-        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'SolomodeTasks Record')}
+        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('SolomodeTasks'), activeItem === 'SolomodeTasks')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('SolomodeTasks Board'), activeItem === 'SolomodeTasks Board')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('SolomodeTasks Record'), activeItem === 'SolomodeTasks Record')}
       </>
     );
   } else {

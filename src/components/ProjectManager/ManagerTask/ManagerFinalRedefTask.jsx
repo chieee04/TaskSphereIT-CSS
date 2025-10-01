@@ -43,10 +43,8 @@ export default function ManagerFinalRedefTask() {
   const fetchTasks = async () => {
   try {
     const { data, error } = await supabase
-      .from("manager_final_task")
-      .select(
-        `*, member:user_credentials!manager_final_task_member_id_fkey(first_name, last_name)`
-      )
+      .from("manager_final_redef")
+      .select(`*, member:user_credentials!manager_final_redef_member_id_fkey(first_name, last_name)`)
       .neq("status", "Completed") // 🚫 exclude Completed
       .order("due_date", { ascending: true });
 
@@ -121,7 +119,7 @@ export default function ManagerFinalRedefTask() {
 
     try {
       const { error } = await supabase
-        .from("manager_final_task")
+        .from("manager_final_redef")
         .delete()
         .in("id", selected);
 
@@ -136,7 +134,7 @@ export default function ManagerFinalRedefTask() {
   const handleRevisionChange = async (id, value) => {
     try {
       const { error } = await supabase
-        .from("manager_final_task")
+        .from("manager_final_redef")
         .update({ revision: value })
         .eq("id", id);
       if (error) throw error;
@@ -152,7 +150,7 @@ export default function ManagerFinalRedefTask() {
   const handleStatusChange = async (id, value) => {
   try {
     const { error } = await supabase
-      .from("manager_final_task")
+      .from("manager_final_redef")
       .update({ status: value })
       .eq("id", id);
     if (error) throw error;

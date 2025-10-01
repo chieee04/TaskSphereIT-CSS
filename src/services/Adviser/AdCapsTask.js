@@ -1,11 +1,10 @@
-
 import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { adCapsTaskData } from "./adcapsdata";
- 
+
 const MySwal = withReactContent(Swal);
- 
+
 // Helper: build <option>
 const buildOptions = (items) => {
   if (!items || items.length === 0)
@@ -15,35 +14,35 @@ const buildOptions = (items) => {
     items.map((i) => `<option value="${i}">${i}</option>`).join("")
   );
 };
- 
+
 // 🔹 Fetch Tasks
 export const fetchTasksFromDB = async (setTasks) => {
   const storedUser = localStorage.getItem("customUser");
   if (!storedUser) return;
- 
+
   const adviser = JSON.parse(storedUser);
- 
+
   const { data, error } = await supabase
     .from("adviser_oral_def")
     .select("*")
     .eq("adviser_id", adviser.id)
     .order("date_created", { ascending: false });
- 
+
   if (error) {
     console.error("Error fetching tasks:", error);
     return;
   }
- 
+
   setTasks(data || []);
 };
- 
+
 // 🔹 Update Task Status
 export const handleUpdateStatus = async (taskId, newStatus, setTasks) => {
   const { error } = await supabase
     .from("adviser_oral_def")
     .update({ status: newStatus })
     .eq("id", taskId);
- 
+
   if (error) {
     console.error("Error updating status:", error);
     Swal.fire({
@@ -53,13 +52,13 @@ export const handleUpdateStatus = async (taskId, newStatus, setTasks) => {
     });
     return;
   }
- 
+
   setTasks((prev) =>
     prev.map((task) =>
       task.id === taskId ? { ...task, status: newStatus } : task
     )
   );
- 
+
   Swal.fire({
     toast: true,
     icon: "success",
@@ -69,9 +68,49 @@ export const handleUpdateStatus = async (taskId, newStatus, setTasks) => {
     timer: 1500,
   });
 };
- 
+
+// 🔹 Fetch Managers dynamically
+export const fetchManagersForAdviser = async () => {
+  const storedUser = localStorage.getItem("customUser");
+  if (!storedUser) return [];
+
+  const adviser = JSON.parse(storedUser);
+
+  // Step 1: hanapin adviser info
+  const { data: adviserData, error: adviserError } = await supabase
+    .from("user_credentials")
+    .select("adviser_group")
+    .eq("id", adviser.id)
+    .single();
+
+  if (adviserError || !adviserData) {
+    console.error("❌ Adviser not found:", adviserError);
+    return [];
+  }
+
+  // Step 2: hanapin lahat ng nasa adviser_group na ito
+  const { data: managers, error: managersError } = await supabase
+    .from("user_credentials")
+    .select("group_name, user_roles")
+    .eq("adviser_group", adviserData.adviser_group);
+
+  if (managersError) {
+    console.error("❌ Error fetching managers:", managersError);
+    return [];
+  }
+
+  // Step 3: kunin lang yung may role = 1 (manager/leader)
+  const filtered = managers
+    .filter((m) => m.user_roles === 1 && m.group_name)
+    .map((m) => m.group_name);
+
+  return filtered;
+};
+
 // 🔹 Create Task
 export const handleCreateTask = async (setTasks) => {
+  const allManagers = await fetchManagersForAdviser();
+
   const { value: formData } = await MySwal.fire({
     title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
       <i class="bi bi-list-check"></i> Create Capstone Task</div>`,
@@ -89,42 +128,54 @@ export const handleCreateTask = async (setTasks) => {
               .join("")}
           </select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Project Phase</label>
           <select id="projectPhase" class="form-select" disabled></select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Task Type</label>
           <select id="taskType" class="form-select" disabled></select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Task</label>
           <select id="task" class="form-select" disabled></select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Subtask</label>
           <select id="subtask" class="form-select" disabled></select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Element</label>
           <select id="element" class="form-select" disabled></select>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Due Date</label>
           <input id="dueDate" type="date" class="form-control"/>
         </div>
- 
+
         <div>
           <label style="font-weight:600;">Time</label>
           <input id="time" type="time" class="form-control"/>
         </div>
- 
+
+        <div style="grid-column: 1 / span 3;">
+          <label style="font-weight:600;">Assign Managers *</label>
+          <select id="assignManagers" class="form-select">
+            ${buildOptions(allManagers)}
+          </select>
+        </div>
+        <div style="grid-column: 1 / span 3;">
+          <label style="font-weight:600;">Manager Lists</label>
+          <div id="managerList" class="form-control" style="min-height: 40px; padding: 6px 12px; border: 1px solid #ced4da; border-radius: 4px; display:flex; flex-wrap:wrap; gap:8px;">
+            </div>
+        </div>
+
         <div style="grid-column: 1 / span 3;">
           <label style="font-weight:600;">Leave Comment</label>
           <textarea id="comment" rows="2" class="form-control"></textarea>
@@ -138,55 +189,85 @@ export const handleCreateTask = async (setTasks) => {
       const task = document.getElementById("task");
       const subtask = document.getElementById("subtask");
       const element = document.getElementById("element");
- 
+      const assignManagers = document.getElementById("assignManagers");
+      const managerList = document.getElementById("managerList");
+
+      // Set initial state for the manager dropdown
+      const availableManagers = [...allManagers];
+
+      // Helper function to render the manager list
+      const renderManagerList = () => {
+        managerList.innerHTML = "";
+        const assignedManagers = allManagers.filter(
+          (m) => !availableManagers.includes(m)
+        );
+        assignedManagers.forEach((manager) => {
+          const managerSpan = document.createElement("span");
+          managerSpan.className = "badge bg-secondary text-white p-2 rounded-pill";
+          managerSpan.style.cssText = "display: flex; align-items: center; gap: 5px; cursor: pointer;";
+          managerSpan.innerHTML = `${manager} <i class="bi bi-x-circle-fill"></i>`;
+          managerSpan.addEventListener("click", () => {
+            // Add manager back to available list
+            availableManagers.push(manager);
+            availableManagers.sort();
+            assignManagers.innerHTML = buildOptions(availableManagers);
+            managerSpan.remove();
+          });
+          managerList.appendChild(managerSpan);
+        });
+      };
+
       // 🔹 Methodology Change
       methodology.addEventListener("change", () => {
         const selected = adCapsTaskData[methodology.value];
- 
         projectPhase.innerHTML = buildOptions(selected?.phases || []);
         projectPhase.disabled = (selected?.phases?.length || 0) === 0;
- 
         taskType.innerHTML = buildOptions(Object.keys(selected?.tasks || {}));
         taskType.disabled = Object.keys(selected?.tasks || {}).length === 0;
- 
         task.innerHTML = buildOptions([]);
         subtask.innerHTML = buildOptions([]);
         element.innerHTML = buildOptions([]);
       });
- 
+
       // 🔹 TaskType Change
       taskType.addEventListener("change", () => {
         const selected = adCapsTaskData[methodology.value];
         const data = selected?.tasks?.[taskType.value] || [];
- 
         task.innerHTML = buildOptions(data);
         task.disabled = data.length === 0;
- 
         subtask.innerHTML = buildOptions([]);
         element.innerHTML = buildOptions([]);
       });
- 
+
       // 🔹 Task Change
       task.addEventListener("change", () => {
         const subtasks =
           adCapsTaskData[methodology.value]?.subtasks?.[task.value] || [];
- 
         subtask.innerHTML = buildOptions(subtasks);
         subtask.disabled = subtasks.length === 0;
- 
         element.innerHTML = buildOptions([]);
       });
- 
+
       // 🔹 Subtask Change
       subtask.addEventListener("change", () => {
         const elements =
           adCapsTaskData[methodology.value]?.elements?.[subtask.value] || [];
- 
         element.innerHTML = buildOptions(elements);
         element.disabled = elements.length === 0;
       });
+
+      // 🔹 Assign Managers Change
+      assignManagers.addEventListener("change", (event) => {
+        const selectedManager = event.target.value;
+        const index = availableManagers.indexOf(selectedManager);
+        if (index > -1) {
+          availableManagers.splice(index, 1);
+          assignManagers.innerHTML = buildOptions(availableManagers);
+          renderManagerList();
+        }
+      });
     },
-    preConfirm: () => {
+    preConfirm: async () => {
       const methodology = document.getElementById("methodology").value;
       const projectPhase = document.getElementById("projectPhase").value;
       const taskType = document.getElementById("taskType").value;
@@ -196,12 +277,32 @@ export const handleCreateTask = async (setTasks) => {
       const dueDate = document.getElementById("dueDate").value;
       const time = document.getElementById("time").value;
       const comment = document.getElementById("comment").value;
- 
-      if (!methodology || !projectPhase || !taskType || !task || !dueDate) {
+
+      const assignedManagers = Array.from(document.getElementById("managerList").children).map(child =>
+        child.textContent.replace(" ✖", "").trim()
+      );
+
+      if (!methodology || !projectPhase || !taskType || !task || !dueDate || assignedManagers.length === 0) {
         Swal.showValidationMessage("⚠ Please complete all required fields!");
         return false;
       }
- 
+
+      // ✅ Fix: Use eq() if only 1 manager, in() if multiple
+      let query = supabase.from("user_credentials").select("id, group_name"); // We need the group_name for the bulk insert
+      if (assignedManagers.length === 1) {
+        query = query.eq("group_name", assignedManagers[0]);
+      } else {
+        query = query.in("group_name", assignedManagers);
+      }
+
+      const { data: managerData, error: managerError } = await query;
+
+      if (managerError) {
+        console.error(managerError);
+        Swal.showValidationMessage("Error fetching manager UUIDs.");
+        return false;
+      }
+
       return {
         methodology,
         project_phase: projectPhase,
@@ -212,27 +313,58 @@ export const handleCreateTask = async (setTasks) => {
         due_date: dueDate,
         time,
         comment,
+        manager_data: managerData // Return the entire manager data array
       };
     },
   });
- 
+
   if (formData) {
-    const storedUser = JSON.parse(localStorage.getItem("customUser"));
-    const adviserId = storedUser?.id;
- 
-    const { data, error } = await supabase
-      .from("adviser_oral_def")
-      .insert([{ ...formData, adviser_id: adviserId, status: "To Do" }])
-      .select("*");
- 
-    if (error) {
-      console.error(error);
-      Swal.fire("Error", "Failed to create task.", "error");
-      return;
-    }
- 
-    Swal.fire("Success", "Task Created!", "success");
- 
-    setTasks((prev) => [...prev, ...data]);
+  const storedUser = JSON.parse(localStorage.getItem("customUser"));
+  const adviserId = storedUser?.id;
+
+  // ✅ Instead of inserting multiple rows, get the representative only
+  const { data: managerRow, error: managerRowError } = await supabase
+    .from("user_credentials")
+    .select("id, group_name")
+    .eq("group_name", formData.manager_data[0]?.group_name) // chosen group
+    .eq("user_roles", 1) // only the manager/leader
+    .single();
+
+  if (managerRowError || !managerRow) {
+    console.error(managerRowError);
+    Swal.fire("Error", "No manager found for the selected group.", "error");
+    return;
   }
+
+  // ✅ Insert only ONE row (for the representative/manager)
+  const { data, error } = await supabase
+    .from("adviser_oral_def")
+    .insert([
+      {
+        adviser_id: adviserId,
+        manager_id: managerRow.id, // Representative (uuid)
+        group_name: managerRow.group_name,
+        methodology: formData.methodology,
+        project_phase: formData.project_phase,
+        task_type: formData.task_type,
+        task: formData.task,
+        subtask: formData.subtask,
+        elements: formData.elements,
+        due_date: formData.due_date,
+        time: formData.time,
+        comment: formData.comment,
+        status: "To Do",
+      },
+    ])
+    .select("*");
+
+  if (error) {
+    console.error(error);
+    Swal.fire("Error", "Failed to create task.", "error");
+    return;
+  }
+
+  Swal.fire("Success", "Task Created!", "success");
+  setTasks((prev) => [...prev, ...data]);
+}
 };

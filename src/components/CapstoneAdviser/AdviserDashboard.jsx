@@ -18,6 +18,9 @@ import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 import Header from "../Header";
 import Footer from "../Footer";
 import AdviserFinalRedefTask from "./AdviserTask/AdviserFinalRedefTask";
+import SoloModeTasks from "../SoloMode/SoloModeTasks";
+import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
+import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 const AdviserDashboard = ({ activePageFromHeader }) => {
   const [sidebarWidth, setSidebarWidth] = useState(70);
   ///
@@ -47,10 +50,6 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
 
   const renderContent = () => {
     switch (activePage) {
-      //////////
-      case "SoloModeDashboard":
-        return <SoloModeDashboard />;
-      //////////
       case "Teams Summary":
         return <AdviserTeamSummary />;
       case "Tasks":
@@ -77,6 +76,16 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         return <Profile />;
 case "Final Re Defense":
         return <AdviserFinalRedefTask />;
+
+        case "SoloModeDashboard":
+        return <SoloModeDashboard />;
+        case "SolomodeTasks":
+        return <SoloModeTasks />;
+        case "SolomodeTasks Board":
+        return <SoloModeTasksBoard />;
+        case "SolomodeTasks Record":
+        return <SoloModeTasksRecord />;
+
         
         
 

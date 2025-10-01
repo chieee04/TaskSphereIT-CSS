@@ -1,24 +1,19 @@
+import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
- 
-// 1. IMPORT ANG DATA MULA SA KATABING FILE
-import { finalDefenseTasks } from "./AdviserFinalData"; // Gumamit ng relative path
- 
+import { finalDefenseTasks } from "./AdviserFinalData"; 
+
 const MySwal = withReactContent(Swal);
- 
-// --- UTILITY FUNCTIONS PARA MAG-PROCESS NG DATA ---
- 
-// Function para kumuha ng unique, non-null/non-empty values para sa isang key
+
+// --- UTILS ---
 const getUniqueValues = (data, key) => {
   const values = data
     .map((item) => item[key])
     .filter((value) => value !== null && value !== undefined && value !== "");
   return Array.from(new Set(values));
 };
- 
-// Function para mag-generate ng <option> HTML string
+
 const generateOptionsHtml = (values) => {
-  // Pinanatili ang original hidden/disabled option ng user
   let html = `<option value="" disabled selected hidden></option>`;
   values.forEach((value) => {
     const stringValue = String(value);
@@ -26,311 +21,362 @@ const generateOptionsHtml = (values) => {
   });
   return html;
 };
- 
-// --- DYNAMICALLY GENERATED INITIAL OPTIONS ---
+
 const initialMethodologies = getUniqueValues(finalDefenseTasks, "methodology");
 const methodologyOptionsHtml = generateOptionsHtml(initialMethodologies);
- 
-// Ang iba ay walang laman (empty) sa una
-const emptySelectHtml = `
-  <option value="" disabled selected hidden></option>
-`;
- 
-// Pinanatili ang Team Options
-const teamOptions = `
-  <option value="Team A">Team A</option>
-  <option value="Team B">Team B</option>
-`;
- 
- 
-const updateSelectOptions = (selectId, dataToPopulate, propertyToPopulate) => {
-  const selectElement = document.getElementById(selectId);
-  if (!selectElement) return;
- 
-  const uniqueValues = getUniqueValues(dataToPopulate, propertyToPopulate);
- 
-  selectElement.innerHTML = generateOptionsHtml(uniqueValues);
- 
-  // I-disable ang select kung walang unique values
-  if (uniqueValues.length > 0) {
-    selectElement.removeAttribute('disabled');
-  } else {
-    selectElement.setAttribute('disabled', 'true');
-  }
- 
-  // I-reset ang value para sa bagong filtering
-  selectElement.value = "";
-};
- 
- 
-// --- EVENT HANDLERS PARA SA CASCADING LOGIC ---
- 
-// Helper function para mag-filter ng data base sa kasalukuyang pinili
+
+const emptySelectHtml = `<option value="" disabled selected hidden></option>`;
+
+// --- FILTER FUNCTION ---
 const getFilteredData = (methodology, phase, type, task, subtask) => {
   let filtered = finalDefenseTasks;
- 
-  if (methodology) {
-      filtered = filtered.filter(item => item.methodology === methodology);
-  }
-  if (phase) {
-      filtered = filtered.filter(item => item.project_phase === phase);
-  }
-  if (type) {
-      filtered = filtered.filter(item => item.task_type === type);
-  }
-  if (task) {
-      filtered = filtered.filter(item => item.task === task);
-  }
-  if (subtask) {
-      filtered = filtered.filter(item => item.subtask === subtask);
-  }
+  if (methodology) filtered = filtered.filter((i) => i.methodology === methodology);
+  if (phase) filtered = filtered.filter((i) => i.project_phase === phase);
+  if (type) filtered = filtered.filter((i) => i.task_type === type);
+  if (task) filtered = filtered.filter((i) => i.task === task);
+  if (subtask) filtered = filtered.filter((i) => i.subtask === subtask);
   return filtered;
 };
- 
-// Step 1: Handle Methodology Change
-const handleMethodologyChange = () => {
-    const methodology = document.getElementById('methodology').value;
- 
-    // Update Project Phase (Filtered only by Methodology)
-    const filteredByMethodology = getFilteredData(methodology, null, null, null, null);
-    updateSelectOptions('projectPhase', filteredByMethodology, 'project_phase');
- 
-    // I-reset at i-disable ang mga kasunod
-    updateSelectOptions('task_type', [], 'task_type');
-    updateSelectOptions('task', [], 'task');
-    updateSelectOptions('subtask', [], 'subtask');
-    updateSelectOptions('elements', [], 'elements');
+
+const updateSelectOptions = (selectId, dataToPopulate, property) => {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  const unique = getUniqueValues(dataToPopulate, property);
+  el.innerHTML = generateOptionsHtml(unique);
+  if (unique.length > 0) el.removeAttribute("disabled");
+  else el.setAttribute("disabled", "true");
+  el.value = "";
 };
- 
-// Step 2: Handle Project Phase Change
-const handleProjectPhaseChange = () => {
-    const methodology = document.getElementById('methodology').value;
-    const projectPhase = document.getElementById('projectPhase').value;
- 
-    // Update Task Type (Filtered by Methodology and Project Phase)
-    const filteredByPhase = getFilteredData(methodology, projectPhase, null, null, null);
-    updateSelectOptions('task_type', filteredByPhase, 'task_type');
- 
-    // I-reset at i-disable ang mga kasunod
-    updateSelectOptions('task', [], 'task');
-    updateSelectOptions('subtask', [], 'subtask');
-    updateSelectOptions('elements', [], 'elements');
+
+// --- DB FETCH: tasks ---
+export const fetchTasksFromDB = async (setTasks) => {
+  const storedUser = localStorage.getItem("customUser");
+  if (!storedUser) return;
+
+  const adviser = JSON.parse(storedUser);
+  const { data, error } = await supabase
+    .from("adviser_final_def")
+    .select("*")
+    .eq("adviser_id", adviser.id)
+    .order("date_created", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching tasks:", error);
+    return;
+  }
+  setTasks(data || []);
 };
- 
-// Step 3: Handle Task Type Change
-const handleTaskTypeChange = () => {
-    const methodology = document.getElementById('methodology').value;
-    const projectPhase = document.getElementById('projectPhase').value;
-    const taskType = document.getElementById('task_type').value;
- 
-    // Update Task (Filtered by Phase and Type)
-    const filteredByType = getFilteredData(methodology, projectPhase, taskType, null, null);
-    updateSelectOptions('task', filteredByType, 'task');
- 
-    // I-reset at i-disable ang mga kasunod
-    updateSelectOptions('subtask', [], 'subtask');
-    updateSelectOptions('elements', [], 'elements');
+
+// --- DB UPDATE: status ---
+export const handleUpdateStatus = async (taskId, newStatus, setTasks) => {
+  const { error } = await supabase
+    .from("adviser_final_def")
+    .update({ status: newStatus })
+    .eq("id", taskId);
+
+  if (error) {
+    console.error(error);
+    Swal.fire("Error", "Update failed!", "error");
+    return;
+  }
+
+  setTasks((prev) =>
+    prev.map((task) =>
+      task.id === taskId ? { ...task, status: newStatus } : task
+    )
+  );
+
+  Swal.fire({
+    toast: true,
+    icon: "success",
+    title: "Task status updated!",
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1500,
+  });
 };
- 
-// Step 4: Handle Task Change
-const handleTaskChange = () => {
-    const methodology = document.getElementById('methodology').value;
-    const projectPhase = document.getElementById('projectPhase').value;
-    const taskType = document.getElementById('task_type').value;
-    const task = document.getElementById('task').value;
- 
-    // Update Subtask (Filtered by Task)
-    const filteredByTask = getFilteredData(methodology, projectPhase, taskType, task, null);
-    updateSelectOptions('subtask', filteredByTask, 'subtask');
- 
-    // I-reset at i-disable ang Elements
-    updateSelectOptions('elements', [], 'elements');
+
+// --- DB FETCH: managers for adviser ---
+export const fetchManagersForAdviser = async () => {
+  const storedUser = localStorage.getItem("customUser");
+  if (!storedUser) return [];
+
+  const adviser = JSON.parse(storedUser);
+
+  const { data: adviserData, error: adviserError } = await supabase
+    .from("user_credentials")
+    .select("adviser_group")
+    .eq("id", adviser.id)
+    .single();
+
+  if (adviserError || !adviserData) {
+    console.error("❌ Adviser not found:", adviserError);
+    return [];
+  }
+
+  const { data: managers, error: managersError } = await supabase
+    .from("user_credentials")
+    .select("group_name, user_roles")
+    .eq("adviser_group", adviserData.adviser_group);
+
+  if (managersError) {
+    console.error("❌ Error fetching managers:", managersError);
+    return [];
+  }
+
+  const filtered = managers
+    .filter((m) => m.user_roles === 1 && m.group_name)
+    .map((m) => m.group_name);
+
+  return filtered;
 };
- 
-// Step 5: Handle Subtask Change
-const handleSubtaskChange = () => {
-    const methodology = document.getElementById('methodology').value;
-    const projectPhase = document.getElementById('projectPhase').value;
-    const taskType = document.getElementById('task_type').value;
-    const task = document.getElementById('task').value;
-    const subtask = document.getElementById('subtask').value;
- 
-    // Update Elements (Filtered by Subtask)
-    const filteredBySubtask = getFilteredData(methodology, projectPhase, taskType, task, subtask);
-    updateSelectOptions('elements', filteredBySubtask, 'elements');
-};
- 
- 
-// --- EXPORTED FUNCTIONS ---
- 
-/**
- * Nagpapakita ng SweetAlert form para mag-create ng bagong task.
- * Ginawa ang function name na handleCreateTask para ayusin ang import error.
- */
+
+// --- CREATE TASK ---
 export const handleCreateTask = async (setTasks) => {
-  let formValues = null;
- 
-  const { value: resultValues } = await MySwal.fire({
+  const allManagers = await fetchManagersForAdviser();
+  const { value: formData } = await MySwal.fire({
     title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
-      <i class="bi bi-list-check"></i> Create Task</div>`,
-    // Ang HTML structure ay pinanatili ayon sa iyong gusto
+      <i class="bi bi-list-check"></i> Create Final Defense Task</div>`,
+    width: "900px",
+    confirmButtonText: "Create Task",
+    showCancelButton: true,
+    cancelButtonText: "Cancel",
     html: `
-      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px; width:100%;">
+      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px;">
         <div>
           <label style="font-weight:600;">Methodology</label>
           <select id="methodology" class="form-select">
             ${methodologyOptionsHtml}
           </select>
         </div>
- 
         <div>
           <label style="font-weight:600;">Project Phase</label>
-          <select id="projectPhase" class="form-select" disabled>
-            ${emptySelectHtml}
-          </select>
+          <select id="projectPhase" class="form-select" disabled>${emptySelectHtml}</select>
         </div>
- 
         <div>
           <label style="font-weight:600;">Task Type</label>
-          <select id="task_type" class="form-select" disabled>
-            ${emptySelectHtml}
-          </select>
+          <select id="task_type" class="form-select" disabled>${emptySelectHtml}</select>
         </div>
- 
         <div>
-          <label style="font-weight:600;">Tasks</label>
-          <select id="task" class="form-select" disabled>
-            ${emptySelectHtml}
-          </select>
+          <label style="font-weight:600;">Task</label>
+          <select id="task" class="form-select" disabled>${emptySelectHtml}</select>
         </div>
- 
         <div>
-          <label style="font-weight:600;">Subtasks</label>
-          <select id="subtask" class="form-select" disabled>
-            ${emptySelectHtml}
-          </select>
+          <label style="font-weight:600;">Subtask</label>
+          <select id="subtask" class="form-select" disabled>${emptySelectHtml}</select>
         </div>
- 
         <div>
-          <label style="font-weight:600;">Elements</label>
-          <select id="elements" class="form-select" disabled>
-            ${emptySelectHtml}
-          </select>
+          <label style="font-weight:600;">Element</label>
+          <select id="elements" class="form-select" disabled>${emptySelectHtml}</select>
         </div>
- 
         <div>
-          <label style="font-weight:600;">Due Date *</label>
+          <label style="font-weight:600;">Due Date</label>
           <input id="dueDate" type="date" class="form-control"/>
         </div>
- 
         <div>
           <label style="font-weight:600;">Time</label>
           <input id="time" type="time" class="form-control"/>
         </div>
- 
         <div style="grid-column: 1 / span 3;">
-          <label style="font-weight:600;">Assign Team/s *</label>
-          <select id="assigned" class="form-select">
+          <label style="font-weight:600;">Assign Managers *</label>
+          <select id="assignManagers" class="form-select">
             <option value="" disabled selected hidden></option>
-            ${teamOptions}
+            ${allManagers.map((m) => `<option value="${m}">${m}</option>`).join("")}
           </select>
- 
-          <div id="teamsList" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+        <div style="grid-column: 1 / span 3;">
+          <label style="font-weight:600;">Manager Lists</label>
+          <div id="managerList" class="form-control" style="min-height:40px; padding:6px 12px; border:1px solid #ced4da; border-radius:4px; display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+        <div style="grid-column: 1 / span 3;">
+          <label style="font-weight:600;">Leave Comment</label>
+          <textarea id="comment" rows="2" class="form-control"></textarea>
         </div>
       </div>
- 
-      <div style="margin-top:10px;">
-        <label style="font-weight:600;">Leave Comment</label>
-        <textarea id="comment" rows="3" class="form-control"></textarea>
-      </div>
     `,
-    showCancelButton: true,
-    confirmButtonText: "Save Task",
-    focusConfirm: false,
- 
-    // DIDOPEN: Dito tinawag ang mga event listeners
     didOpen: () => {
-        document.getElementById('methodology').addEventListener('change', handleMethodologyChange);
-        document.getElementById('projectPhase').addEventListener('change', handleProjectPhaseChange);
-        document.getElementById('task_type').addEventListener('change', handleTaskTypeChange);
-        document.getElementById('task').addEventListener('change', handleTaskChange);
-        document.getElementById('subtask').addEventListener('change', handleSubtaskChange);
-        // Walang listener sa Elements
-    },
- 
-    preConfirm: () => {
-        const methodology = document.getElementById("methodology").value;
-        const projectPhase = document.getElementById("projectPhase").value;
+      // cascading dropdown events
+      document.getElementById("methodology").addEventListener("change", () => {
+        const m = document.getElementById("methodology").value;
+        const filtered = getFilteredData(m, null, null, null, null);
+        updateSelectOptions("projectPhase", filtered, "project_phase");
+        updateSelectOptions("task_type", [], "task_type");
+        updateSelectOptions("task", [], "task");
+        updateSelectOptions("subtask", [], "subtask");
+        updateSelectOptions("elements", [], "elements");
+      });
+
+      document.getElementById("projectPhase").addEventListener("change", () => {
+        const m = document.getElementById("methodology").value;
+        const p = document.getElementById("projectPhase").value;
+        const filtered = getFilteredData(m, p, null, null, null);
+        updateSelectOptions("task_type", filtered, "task_type");
+        updateSelectOptions("task", [], "task");
+        updateSelectOptions("subtask", [], "subtask");
+        updateSelectOptions("elements", [], "elements");
+      });
+
+      document.getElementById("task_type").addEventListener("change", () => {
+        const m = document.getElementById("methodology").value;
+        const p = document.getElementById("projectPhase").value;
+        const t = document.getElementById("task_type").value;
+        const filtered = getFilteredData(m, p, t, null, null);
+        updateSelectOptions("task", filtered, "task");
+        updateSelectOptions("subtask", [], "subtask");
+        updateSelectOptions("elements", [], "elements");
+      });
+
+      document.getElementById("task").addEventListener("change", () => {
+        const m = document.getElementById("methodology").value;
+        const p = document.getElementById("projectPhase").value;
+        const t = document.getElementById("task_type").value;
         const task = document.getElementById("task").value;
-        const assigned = document.getElementById("assigned").value;
- 
-        if (!methodology || !projectPhase || !task || !assigned) {
-            Swal.showValidationMessage('Please select Methodology, Project Phase, Task, and Assign Team/s.');
-            return false;
+        const filtered = getFilteredData(m, p, t, task, null);
+        updateSelectOptions("subtask", filtered, "subtask");
+        updateSelectOptions("elements", [], "elements");
+      });
+
+      document.getElementById("subtask").addEventListener("change", () => {
+        const m = document.getElementById("methodology").value;
+        const p = document.getElementById("projectPhase").value;
+        const t = document.getElementById("task_type").value;
+        const task = document.getElementById("task").value;
+        const s = document.getElementById("subtask").value;
+        const filtered = getFilteredData(m, p, t, task, s);
+        updateSelectOptions("elements", filtered, "elements");
+      });
+
+      // --- manager selection with list
+      const assignManagers = document.getElementById("assignManagers");
+      const managerList = document.getElementById("managerList");
+      let availableManagers = [...allManagers];
+
+      const renderManagerList = () => {
+        managerList.innerHTML = "";
+        const assignedManagers = allManagers.filter(
+          (m) => !availableManagers.includes(m)
+        );
+        assignedManagers.forEach((manager) => {
+          const span = document.createElement("span");
+          span.className = "badge bg-secondary text-white p-2 rounded-pill";
+          span.style.cssText =
+            "display:flex; align-items:center; gap:5px; cursor:pointer;";
+          span.innerHTML = `${manager} <i class="bi bi-x-circle-fill"></i>`;
+          span.addEventListener("click", () => {
+            availableManagers.push(manager);
+            availableManagers.sort();
+            assignManagers.innerHTML = `<option value="" disabled selected hidden></option>` +
+              availableManagers.map((m) => `<option value="${m}">${m}</option>`).join("");
+            span.remove();
+          });
+          managerList.appendChild(span);
+        });
+      };
+
+      assignManagers.addEventListener("change", (e) => {
+        const selected = e.target.value;
+        const idx = availableManagers.indexOf(selected);
+        if (idx > -1) {
+          availableManagers.splice(idx, 1);
+          assignManagers.innerHTML = `<option value="" disabled selected hidden></option>` +
+            availableManagers.map((m) => `<option value="${m}">${m}</option>`).join("");
+          renderManagerList();
         }
- 
-        formValues = {
-            id: Date.now(), // Generate unique ID
-            group_name: "N/A", // Assume group name is not mandatory or is the same as the assigned team
-            methodology: methodology,
-            project_phase: projectPhase,
-            task_type: document.getElementById("task_type").value || null,
-            task: task,
-            subtask: document.getElementById("subtask").value || null,
-            elements: document.getElementById("elements").value || null,
-            dueDate: document.getElementById("dueDate").value,
-            time: document.getElementById("time").value,
-            assigned: assigned,
-            comment: document.getElementById("comment").value,
-            status: "To Do", // Set initial status
-            date_created: new Date().toISOString(),
-        };
-        return formValues;
+      });
+    },
+    preConfirm: async () => {
+      const methodology = document.getElementById("methodology").value;
+      const projectPhase = document.getElementById("projectPhase").value;
+      const taskType = document.getElementById("task_type").value;
+      const task = document.getElementById("task").value;
+      const subtask = document.getElementById("subtask").value;
+      const element = document.getElementById("elements").value;
+      const dueDate = document.getElementById("dueDate").value;
+      const time = document.getElementById("time").value;
+      const comment = document.getElementById("comment").value;
+
+      const assignedManagers = Array.from(
+        document.getElementById("managerList").children
+      ).map((child) => child.textContent.replace(" ✖", "").trim());
+
+      if (!methodology || !projectPhase || !task || assignedManagers.length === 0) {
+        Swal.showValidationMessage("⚠ Please complete all required fields!");
+        return false;
+      }
+
+      let query = supabase.from("user_credentials").select("id, group_name");
+      if (assignedManagers.length === 1) {
+        query = query.eq("group_name", assignedManagers[0]);
+      } else {
+        query = query.in("group_name", assignedManagers);
+      }
+      const { data: managerData, error: managerError } = await query;
+      if (managerError) {
+        console.error(managerError);
+        Swal.showValidationMessage("Error fetching manager UUIDs.");
+        return false;
+      }
+
+      return {
+        methodology,
+        project_phase: projectPhase,
+        task_type: taskType,
+        task,
+        subtask,
+        elements: element,
+        due_date: dueDate,
+        time,
+        comment,
+        manager_data: managerData,
+      };
     },
   });
- 
-  if (resultValues && resultValues.isConfirmed && formValues) {
-      setTasks((prev) => [...prev, formValues]);
-      MySwal.fire("Task Created!", "Your task has been saved.", "success");
+
+  if (formData) {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    const adviserId = storedUser?.id;
+
+    const { data: managerRow, error: managerRowError } = await supabase
+      .from("user_credentials")
+      .select("id, group_name")
+      .eq("group_name", formData.manager_data[0]?.group_name)
+      .eq("user_roles", 1)
+      .single();
+
+    if (managerRowError || !managerRow) {
+      console.error(managerRowError);
+      Swal.fire("Error", "No manager found for the selected group.", "error");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("adviser_final_def") // <-- FINAL DEFENSE TABLE
+      .insert([
+        {
+          adviser_id: adviserId,
+          manager_id: managerRow.id,
+          group_name: managerRow.group_name,
+          methodology: formData.methodology,
+          project_phase: formData.project_phase,
+          task_type: formData.task_type,
+          task: formData.task,
+          subtask: formData.subtask,
+          elements: formData.elements,
+          due_date: formData.due_date,
+          time: formData.time,
+          comment: formData.comment,
+          status: "To Do",
+        },
+      ])
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      Swal.fire("Error", "Failed to create task.", "error");
+      return;
+    }
+
+    Swal.fire("Success", "Task Created!", "success");
+    setTasks((prev) => [...prev, ...data]);
   }
-};
- 
- 
-/**
- * Placeholder function for fetching tasks. I-export ito para ayusin ang import error.
- */
-export const fetchTasksFromDB = async (setTasks) => {
-  // Mock data/logic to match the expected export structure
-  const mockTasks = [
-    {
-      id: 1,
-      group_name: "Team A",
-      methodology: "Agile",
-      project_phase: "Develop",
-      task: "Polish: Chapter 1",
-      task_type: "Documentation",
-      subtask: "Introduction",
-      elements: "Project Context",
-      status: "To Do",
-      date_created: new Date().toISOString(),
-      due_date: new Date(Date.now() + 86400000).toISOString().split('T')[0], 
-      time: "09:30",
-      assigned: "Documentation Head",
-      comment: "Initial draft",
-    },
-    // ... Dagdagan mo pa ng iba pang tasks dito
-  ];
-  setTasks(mockTasks);
-};
- 
-/**
- * Placeholder function for updating task status. I-export ito para ayusin ang import error.
- */
-export const handleUpdateStatus = (taskId, newStatus, setTasks) => {
-  setTasks(prevTasks => 
-    prevTasks.map(task => 
-      task.id === taskId ? { ...task, status: newStatus } : task
-    )
-  );
-  MySwal.fire("Status Updated!", `Task ${taskId} is now ${newStatus}.`, "info");
 };
