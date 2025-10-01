@@ -23,6 +23,11 @@ const ManagerTask = ({ setActivePage }) => {
       page: "Final Defense",
     },
     {
+      title: "Final Re-Defense",
+      icon: <BsCalendar2Check size={36} color="#3B0304" />,
+      page: "Final Re-Defense",
+    },
+    {
       title: "Tasks Allocation",
       icon: <GiArchiveRegister size={36} color="#3B0304" />,
       page: "Tasks Allocation",

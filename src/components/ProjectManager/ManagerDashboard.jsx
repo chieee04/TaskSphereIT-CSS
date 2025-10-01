@@ -42,6 +42,7 @@ import Header from "../Header";
 import "../Style/ProjectManager/ManagerDB.css";
 import { supabase } from "../../supabaseClient";
 import Footer from "../Footer";
+import ManagerFinalRedefTask from "./ManagerTask/ManagerFinalRedefTask";
 
 // Constants
 const WEEK_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -329,6 +330,7 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
       case "Title Defense": return <ManagerTitleDefense/>;
       case "Oral Defense": return <ManagerOralDefense/>;
       case "Final Defense": return <ManagerFinalDefense/>;
+      case "Final Re-Defense": return <ManagerFinalRedefTask/>;
       case "Tasks Allocation": return <ManagerAllocation/>;
       case "Tasks Record": return <ManagerTaskRecord setActivePage={setActivePage}/>;
       case "Title Defense Record": return <ManagerTitleRecord/>;
