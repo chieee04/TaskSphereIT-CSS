@@ -229,6 +229,11 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
     }
   }, [isSoloMode]);
 ////////////////////
+ useEffect(() => {
+    if (location.state?.activePage) {
+      setActivePage(location.state.activePage);
+    }
+  }, [location.key]);
   const renderContent = ()=>{
     switch(activePage){
       case "Tasks Allocation": return <MemberAllocation />;
@@ -328,26 +333,27 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
     }
   };
 
-    return (
-    <div>
-      <Header
-        isSoloMode={isSoloMode}
-        setIsSoloMode={setIsSoloMode}
-      />
-      <div className="d-flex">
-        <Sidebar
-          activeItem={activePage}
-          onSelect={setActivePage}
-          onWidthChange={setSidebarWidth}
-          isSoloMode={isSoloMode}
-        />
-        <div
-          className="flex-grow-1 p-3"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 0.3s",
-          }}
-       id="main-content-wrapper" // New wrapper for content and footer
+return (
+  <div>
+    <Header
+      isSoloMode={isSoloMode}
+      setIsSoloMode={setIsSoloMode}
+      
+    />
+    <div className="d-flex">
+      <Sidebar
+        activeItem={activePage}
+        onSelect={setActivePage}
+        onWidthChange={setSidebarWidth}
+        isSoloMode={isSoloMode}
+      />
+      <div
+        className="flex-grow-1 p-3"
+        style={{
+          marginLeft: `${sidebarWidth}px`,
+          transition: "margin-left 0.3s",
+        }}
+        id="main-content-wrapper" // New wrapper for content and footer
       >
         <main className="flex-grow-1 p-3">
           {renderContent()}
@@ -355,9 +361,9 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
         {/* ✨ ADD THE FOOTER COMPONENT HERE */}
         <Footer /> 
       </div>
-      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default MemberDashboard;

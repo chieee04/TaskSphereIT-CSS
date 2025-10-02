@@ -5,7 +5,6 @@ import { oralDefenseData } from "../Manager/OralDefenseData";
 
 const MySwal = withReactContent(Swal);
 
-// Helper
 const buildOptions = (arr) =>
   [`<option value="" disabled selected hidden></option>`, ...arr.map((m) => `<option value="${m}">${m}</option>`)].join("");
 
@@ -18,7 +17,7 @@ export const openCreateSoloTask = async () => {
     return;
   }
 
-  // Query the database to get the user's selected methodology.
+  // Query the database to get the user's selected methodology
   const { data: rows, error: methErr } = await supabase
     .from("solo_methodology")
     .select("title_def")
@@ -106,23 +105,20 @@ export const openCreateSoloTask = async () => {
       const taskSelect = document.getElementById("task");
       const subtaskSelect = document.getElementById("subtask");
       const elementSelect = document.getElementById("element");
-      const commentInput = document.getElementById("comment");
-      const dueDateInput = document.getElementById("dueDate");
-      const timeInput = document.getElementById("time");
 
-      // Set initial values
+      // Initial values
       const initialMethodology = methodologySelect.value;
       if (initialMethodology) {
         projectPhaseInput.value = oralDefenseData[initialMethodology]?.projectPhase || "";
         taskTypeSelect.removeAttribute("disabled");
       }
-      
-      // Add event listener for methodology change
+
+      // Cascade changes
       methodologySelect.addEventListener("change", () => {
         const selectedMethodology = methodologySelect.value;
         projectPhaseInput.value = oralDefenseData[selectedMethodology]?.projectPhase || "";
         taskTypeSelect.removeAttribute("disabled");
-        taskTypeSelect.selectedIndex = 0; // Reset other fields
+        taskTypeSelect.selectedIndex = 0;
         taskSelect.innerHTML = buildOptions([]);
         taskSelect.setAttribute("disabled", true);
         subtaskSelect.innerHTML = buildOptions([]);
@@ -131,7 +127,6 @@ export const openCreateSoloTask = async () => {
         elementSelect.setAttribute("disabled", true);
       });
 
-      // Event listeners for cascading dropdowns
       taskTypeSelect.addEventListener("change", () => {
         const taskTypes = oralDefenseData[methodologySelect.value];
         const selectedTaskType = taskTypes[taskTypeSelect.value];
@@ -188,7 +183,7 @@ export const openCreateSoloTask = async () => {
 
   if (formData) {
     const taskToInsert = {
-      solo_id: soloUUID,
+      user_id: soloUUID, // ✅ correct FK
       methodology: formData.methodology,
       project_phase: formData.projectPhase,
       task_type: formData.taskType,
@@ -201,7 +196,7 @@ export const openCreateSoloTask = async () => {
     };
 
     const { data, error } = await supabase
-      .from("solo_task")
+      .from("solo_mode_task") // ✅ correct table
       .insert([taskToInsert])
       .select();
 

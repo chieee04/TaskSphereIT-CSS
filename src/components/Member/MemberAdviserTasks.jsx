@@ -1,11 +1,14 @@
 // src/components/MemberAdviserTasks.jsx
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "../../supabaseClient";
+
 import adviserTasksIcon from "../../assets/adviser-tasks-icon.png"; 
 import searchIcon from "../../assets/search-icon.png";
 import filterIcon from "../../assets/filter-icon.png";
 import exitIcon from "../../assets/exit-icon.png";
 import dropdownIconWhite from "../../assets/dropdown-icon-white.png";
-import "../Style/Member/MemberAdviserTasks.css"; // ⬅️ hiwalay na CSS
+
+import "../Style/Member/MemberAdviserTasks.css"; // hiwalay na CSS
 
 const MemberAdviserTasks = () => {
   const [status, setStatus] = useState("To Review");
@@ -14,6 +17,9 @@ const MemberAdviserTasks = () => {
   const [selectedFilterValue, setSelectedFilterValue] = useState("");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [activeFilterCategory, setActiveFilterCategory] = useState(null);
+
+  const [tasks, setTasks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const statusDropdownRef = useRef(null);
   const filterDropdownRef = useRef(null);
@@ -32,6 +38,65 @@ const MemberAdviserTasks = () => {
     }
   };
 
+  // ✅ Load tasks for manager of the signed-in member
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("customUser"));
+        console.log("👤 Logged-in Member:", storedUser);
+
+        if (!storedUser?.group_name) {
+          console.warn("⚠️ No group_name found for member.");
+          return;
+        }
+
+        // Step 1: find all users with same group_name
+        const { data: groupUsers, error: groupErr } = await supabase
+          .from("user_credentials")
+          .select("*")
+          .eq("group_name", storedUser.group_name);
+
+        if (groupErr) throw groupErr;
+
+        console.log("📌 Group users:", groupUsers);
+
+        // Step 2: identify manager (user_roles = 1)
+        const manager = groupUsers.find((u) => u.user_roles === 1);
+        if (!manager) {
+          console.warn("⚠️ No manager found for group:", storedUser.group_name);
+          return;
+        }
+
+        console.log("✅ Found Manager:", manager);
+
+        // Step 3: fetch tasks for that manager
+        const { data: finalDef, error: finalErr } = await supabase
+          .from("adviser_final_def")
+          .select("*")
+          .eq("manager_id", manager.id);
+
+        if (finalErr) throw finalErr;
+
+        const { data: oralDef, error: oralErr } = await supabase
+          .from("adviser_oral_def")
+          .select("*")
+          .eq("manager_id", manager.id);
+
+        if (oralErr) throw oralErr;
+
+        console.log("📌 adviser_final_def:", finalDef);
+        console.log("📌 adviser_oral_def:", oralDef);
+
+        setTasks([...(finalDef || []), ...(oralDef || [])]);
+      } catch (err) {
+        console.error("❌ Error fetching tasks:", err.message);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  // ✅ Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
@@ -54,6 +119,17 @@ const MemberAdviserTasks = () => {
     setActiveFilterCategory(null);
   };
 
+  // ✅ Apply search and filter
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
+      task.group_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.task?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = selectedFilterValue
+      ? task.status === selectedFilterValue || task.project_phase === selectedFilterValue
+      : true;
+    return matchesSearch && matchesFilter;
+  });
+
   return (
     <div className="page-wrapper">
       <h2 className="section-title">
@@ -66,7 +142,13 @@ const MemberAdviserTasks = () => {
         <div className="search-filter-wrapper">
           <div className="search-bar">
             <img src={searchIcon} alt="Search Icon" className="search-icon" />
-            <input type="text" placeholder="Search" className="search-input" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <div className="filter-wrapper" ref={filterDropdownRef}>
@@ -142,54 +224,60 @@ const MemberAdviserTasks = () => {
                 <th>Date Created</th>
                 <th>Due Date</th>
                 <th>Time</th>
-                <th>Revision No.</th>
                 <th>Status</th>
                 <th>Methodology</th>
                 <th>Project Phase</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>1.</td>
-                <td>Team Phoenix</td>
-                <td>Prototype Implementation</td>
-                <td>API Integration</td>
-                <td>Backend Services</td>
-                <td>Aug 1, 2025</td>
-                <td>Aug 15, 2025</td>
-                <td>10:00 AM</td>
-                <td className="revision">1st Revision</td>
-                <td className="status-cell">
-                  <div className="dropdown-wrapper" ref={statusDropdownRef}>
-                    <div
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    >
-                      <span className="status-text">{status}</span>
-                      <img src={dropdownIconWhite} alt="Dropdown Icon" className="status-dropdown-icon" />
-                    </div>
-                    {showStatusDropdown && (
-                      <div className="dropdown-menu">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setStatus(opt);
-                              setShowStatusDropdown(false);
-                            }}
-                          >
-                            {opt}
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map((task, index) => (
+                  <tr key={task.id}>
+                    <td>{index + 1}.</td>
+                    <td>{task.group_name}</td>
+                    <td>{task.task}</td>
+                    <td>{task.subtask || "EMPTY"}</td>
+                    <td>{task.elements || "EMPTY"}</td>
+                    <td>{task.date_created}</td>
+                    <td>{task.due_date}</td>
+                    <td>{task.time}</td>
+                    <td className="status-cell">
+                      <div className="dropdown-wrapper" ref={statusDropdownRef}>
+                        <div
+                          className="status-badge"
+                          style={{ backgroundColor: getStatusColor(task.status) }}
+                          onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                        >
+                          <span className="status-text">{task.status}</span>
+                          <img src={dropdownIconWhite} alt="Dropdown Icon" className="status-dropdown-icon" />
+                        </div>
+                        {showStatusDropdown && (
+                          <div className="dropdown-menu">
+                            {STATUS_OPTIONS.map((opt) => (
+                              <div
+                                key={opt}
+                                className="dropdown-item"
+                                onClick={() => {
+                                  setStatus(opt);
+                                  setShowStatusDropdown(false);
+                                }}
+                              >
+                                {opt}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
-                </td>
-                <td>Agile</td>
-                <td>Development</td>
-              </tr>
+                    </td>
+                    <td>{task.methodology}</td>
+                    <td>{task.project_phase}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="11">No tasks found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

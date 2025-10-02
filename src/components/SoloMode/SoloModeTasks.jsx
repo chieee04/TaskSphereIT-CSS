@@ -50,16 +50,16 @@ const SolomodeTasks = () => {
 
     const fetchTasks = async () => {
         const customUser = JSON.parse(localStorage.getItem("customUser"));
-        const soloId = customUser?.id;
+        const soloUUID = customUser?.uuid || customUser?.id;
 
-        if (!soloId) {
+        if (!soloUUID) {
             console.warn("⚠️ No solo user ID found.");
             return;
         }
 
         try {
             const { data, error } = await supabase
-                .from("solo_task")
+                .from("solo_mode_task")
                 .select(`
                     id,
                     task,
@@ -74,24 +74,20 @@ const SolomodeTasks = () => {
                     status,
                     task_type,
                     comment,
-                    solo_id
+                    user_id
                 `)
-                .eq("solo_id", soloId)
+                .eq("user_id", soloUUID) // Correctly filter by the user's UUID
                 .neq("status", "Completed")
                 .order("created_at", { ascending: false });
 
             if (error) {
-                console.error("❌ Supabase fetch error:", error.message || error);
+                console.error("Supabase fetch error:", error.message);
                 return;
             }
 
-            if (!data || data.length === 0) {
-                console.warn("⚠️ No solo tasks retrieved for user:", soloId);
-            }
-
-            setTasks(data || []);
+            setTasks(data);
         } catch (err) {
-            console.error("❌ Unexpected fetch error:", err);
+            console.error("An unexpected error occurred:", err);
         }
     };
 
@@ -161,7 +157,7 @@ const SolomodeTasks = () => {
         if (!result.isConfirmed) return;
 
         const { error } = await supabase
-            .from("solo_task")
+            .from("solo_mode_task")   // ✅ correct table
             .delete()
             .in("id", selectedTaskIds);
 
@@ -190,7 +186,7 @@ const SolomodeTasks = () => {
         if (!result.isConfirmed) return;
 
         const { error } = await supabase
-            .from("solo_task")
+            .from("solo_mode_task")   // ✅ correct table
             .delete()
             .eq("id", taskId);
 

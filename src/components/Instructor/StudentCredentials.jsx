@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import "../Style/Instructor/StudentCredentials.css";
+import { exportStudentsAsPDF } from "../../services/Adviser/StudentExport";
  
 const StudentCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -213,6 +214,7 @@ const StudentCredentials = () => {
               fontSize: "0.85rem",
               borderRadius: "6px",
             }}
+            onClick={() => exportStudentsAsPDF(credentials)}
           >
             <FaDownload size={14} /> Export
           </button>

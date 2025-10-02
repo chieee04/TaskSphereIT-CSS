@@ -1,4 +1,5 @@
 import { useState, useMemo,useEffect } from "react";
+
 import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
@@ -17,6 +18,7 @@ import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
+import Profile from "../Profile";
 
 
 // Define the primary color constants for consistency
@@ -123,6 +125,7 @@ const InstructorDashboard = () => {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const isJan2025 = year === 2025 && month === 0;
+  
 
   // Hardcoded active days from the design for Jan 2025 only
   const activeDays = {
@@ -198,6 +201,7 @@ const InstructorDashboard = () => {
       </td>
     );
   };
+  
 
   //////////////////////
   useEffect(() => {
@@ -209,7 +213,9 @@ const InstructorDashboard = () => {
   }, [isSoloMode]);
 ////////////////////
 
+
   const renderContent = () => {
+    
     switch (activePage) {
       case "Students":
         return <Enroll />;
@@ -237,6 +243,8 @@ const InstructorDashboard = () => {
         return <SoloModeTasksBoard />;
         case "SolomodeTasks Record":
         return <SoloModeTasksRecord />;
+        case "Profile":
+        return <Profile />;
       default:
         return (
           <div className="dashboard-content">
@@ -663,26 +671,27 @@ const InstructorDashboard = () => {
     }
   };
 
-  return (
-    <div>
-      <Header
-        isSoloMode={isSoloMode}
-        setIsSoloMode={setIsSoloMode}
-      />
-      <div className="d-flex">
-        <Sidebar
-          activeItem={activePage}
-          onSelect={setActivePage}
-          onWidthChange={setSidebarWidth}
-          isSoloMode={isSoloMode}
-        />
-        <div
-          className="flex-grow-1 p-3"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 0.3s",
-          }}
-       id="main-content-wrapper" // New wrapper for content and footer
+ return (
+  <div>
+    <Header
+      isSoloMode={isSoloMode}
+      setIsSoloMode={setIsSoloMode}
+      
+    />
+    <div className="d-flex">
+      <Sidebar
+        activeItem={activePage}
+        onSelect={setActivePage}
+        onWidthChange={setSidebarWidth}
+        isSoloMode={isSoloMode}
+      />
+      <div
+        className="flex-grow-1 p-3"
+        style={{
+          marginLeft: `${sidebarWidth}px`,
+          transition: "margin-left 0.3s",
+        }}
+        id="main-content-wrapper" // New wrapper for content and footer
       >
         <main className="flex-grow-1 p-3">
           {renderContent()}
@@ -690,9 +699,9 @@ const InstructorDashboard = () => {
         {/* ✨ ADD THE FOOTER COMPONENT HERE */}
         <Footer /> 
       </div>
-      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default InstructorDashboard;

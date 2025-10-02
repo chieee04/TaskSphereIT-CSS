@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import "../Style/Instructor/StudentCredentials.css";
+import { exportAdvisersAsPDF } from "../../services/Adviser/AdviserExport";
  
 const AdviserCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -199,22 +200,23 @@ const AdviserCredentials = () => {
           />
  
           <button
-            className="btn mb-3"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              border: "1.5px solid #3B0304",
-              color: "#3B0304",
-              padding: "4px 10px",
-              backgroundColor: "white",
-              fontWeight: "500",
-              fontSize: "0.85rem",
-              borderRadius: "6px",
-            }}
-          >
-            <FaDownload size={14} /> Export
-          </button>
+  className="btn mb-3"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    border: "1.5px solid #3B0304",
+    color: "#3B0304",
+    padding: "4px 10px",
+    backgroundColor: "white",
+    fontWeight: "500",
+    fontSize: "0.85rem",
+    borderRadius: "6px",
+  }}
+  onClick={() => exportAdvisersAsPDF(credentials)}
+>
+  <FaDownload size={14} /> Export
+</button>
  
           <div className="student-cred-table">
             <table className="table table-sm align-middle mb-0">
