@@ -287,12 +287,14 @@ export const handleCreateTask = async (setTasks) => {
         return false;
       }
 
-      // ✅ Fix: Use eq() if only 1 manager, in() if multiple
-      let query = supabase.from("user_credentials").select("id, group_name"); // We need the group_name for the bulk insert
-      if (assignedManagers.length === 1) {
-        query = query.eq("group_name", assignedManagers[0]);
+      // ✅ REVISED LOGIC: Kumuha ng manager IDs para sa bawat unique na group
+      const uniqueManagerGroups = [...new Set(assignedManagers)];
+
+      let query = supabase.from("user_credentials").select("id, group_name");
+      if (uniqueManagerGroups.length === 1) {
+        query = query.eq("group_name", uniqueManagerGroups[0]);
       } else {
-        query = query.in("group_name", assignedManagers);
+        query = query.in("group_name", uniqueManagerGroups);
       }
 
       const { data: managerData, error: managerError } = await query;
@@ -302,6 +304,14 @@ export const handleCreateTask = async (setTasks) => {
         Swal.showValidationMessage("Error fetching manager UUIDs.");
         return false;
       }
+
+      // Group managers by group_name and get the first one for each group
+      const managersByGroup = {};
+      managerData.forEach(manager => {
+        if (!managersByGroup[manager.group_name]) {
+          managersByGroup[manager.group_name] = manager;
+        }
+      });
 
       return {
         methodology,
@@ -313,58 +323,45 @@ export const handleCreateTask = async (setTasks) => {
         due_date: dueDate,
         time,
         comment,
-        manager_data: managerData // Return the entire manager data array
+        manager_data: Object.values(managersByGroup) // Ibalik ang isang manager object per group
       };
     },
   });
 
   if (formData) {
-  const storedUser = JSON.parse(localStorage.getItem("customUser"));
-  const adviserId = storedUser?.id;
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    const adviserId = storedUser?.id;
 
-  // ✅ Instead of inserting multiple rows, get the representative only
-  const { data: managerRow, error: managerRowError } = await supabase
-    .from("user_credentials")
-    .select("id, group_name")
-    .eq("group_name", formData.manager_data[0]?.group_name) // chosen group
-    .eq("user_roles", 1) // only the manager/leader
-    .single();
+    // ✅ REVISED LOGIC: Gamitin ang `manager_data` na mayroon nang isang entry per team
+    const rowsToInsert = formData.manager_data.map((mgr) => ({
+      adviser_id: adviserId,
+      manager_id: mgr.id,
+      group_name: mgr.group_name,
+      methodology: formData.methodology,
+      project_phase: formData.project_phase,
+      task_type: formData.task_type,
+      task: formData.task,
+      subtask: formData.subtask,
+      elements: formData.elements,
+      due_date: formData.due_date,
+      time: formData.time,
+      comment: formData.comment,
+      status: "To Do",
+    }));
 
-  if (managerRowError || !managerRow) {
-    console.error(managerRowError);
-    Swal.fire("Error", "No manager found for the selected group.", "error");
-    return;
+    // ✅ Insert multiple tasks in one go
+    const { data, error } = await supabase
+      .from("adviser_oral_def")
+      .insert(rowsToInsert)
+      .select("*");
+
+    if (error) {
+      console.error(error);
+      Swal.fire("Error", "Failed to create tasks.", "error");
+      return;
+    }
+
+    Swal.fire("Success", `${data.length} Tasks Created!`, "success");
+    setTasks((prev) => [...prev, ...data]);
   }
-
-  // ✅ Insert only ONE row (for the representative/manager)
-  const { data, error } = await supabase
-    .from("adviser_oral_def")
-    .insert([
-      {
-        adviser_id: adviserId,
-        manager_id: managerRow.id, // Representative (uuid)
-        group_name: managerRow.group_name,
-        methodology: formData.methodology,
-        project_phase: formData.project_phase,
-        task_type: formData.task_type,
-        task: formData.task,
-        subtask: formData.subtask,
-        elements: formData.elements,
-        due_date: formData.due_date,
-        time: formData.time,
-        comment: formData.comment,
-        status: "To Do",
-      },
-    ])
-    .select("*");
-
-  if (error) {
-    console.error(error);
-    Swal.fire("Error", "Failed to create task.", "error");
-    return;
-  }
-
-  Swal.fire("Success", "Task Created!", "success");
-  setTasks((prev) => [...prev, ...data]);
-}
 };

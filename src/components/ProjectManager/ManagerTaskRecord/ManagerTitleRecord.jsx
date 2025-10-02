@@ -76,8 +76,34 @@ const ManagerTitleRecord = () => {
   };
  
   useEffect(() => {
-    setTasks(dummyTasks);
-  }, []);
+  const fetchTasks = async () => {
+    const { data, error } = await supabase
+      .from("manager_title_task")
+      .select(`
+        id,
+        task_name,
+        due_date,
+        due_time,
+        created_date,
+        date_completed,
+        methodology,
+        project_phase,
+        revision,
+        status,
+        member:member_id(first_name, last_name)
+      `)
+      .eq("status", "Completed"); // fetch only completed
+
+    if (error) {
+      console.error("Error fetching tasks:", error);
+    } else {
+      setTasks(data);
+    }
+  };
+
+  fetchTasks();
+}, []);
+
  
   const handleStatusChange = async (taskId, newStatus) => {
     setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)));
@@ -341,90 +367,87 @@ const ManagerTitleRecord = () => {
             </tr>
           </thead>
           <tbody>
-            {tasks.length === 0 ? (
-              <tr>
-                <td colSpan="12" className="center-text">
-                  No tasks assigned to you yet.
-                </td>
-              </tr>
-            ) : (
-              tasks.map((task, idx) => (
-                <tr key={task.id}>
-                  <td className="center-text">{idx + 1}.</td>
-                  <td className="center-text">
-                    {task.member?.first_name} {task.member?.last_name}
-                  </td>
-                  <td className="center-text">{task.task_name}</td>
-                  <td className="center-text">{task.created_date}</td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
-                      {task.due_date}
-                    </div>
-                  </td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaClock size={14} style={{ color: '#3B0304' }} />
-                      {task.due_time}
-                    </div>
-                  </td>
-                  <td className="center-text">
-                    {task.date_completed || "-"}
-                  </td>
- 
-                  {/* Revision Dropdown */}
-                  <td className="center-text">
-                    <div className="dropdown-control-wrapper">
-                      <select
-                        value={task.revision}
-                        onChange={(e) => handleRevisionChange(task.id, parseInt(e.target.value))}
-                        className="revision-select"
-                      >
-                        {REVISION_OPTIONS.map((opt, i) => (
-                          <option key={i + 1} value={i + 1}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
-                    </div>
-                  </td>
- 
-                  {/* Status Dropdown */}
-                  <td className="center-text">
-                    <div
-                      className="dropdown-control-wrapper"
-                      style={{ 
-                        backgroundColor: getStatusColor(task.status), 
-                        borderRadius: '4px', 
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)' 
-                      }}
-                    >
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                        className="status-select"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'white' }} />
-                    </div>
-                  </td>
- 
-                  <td className="center-text">{task.methodology}</td>
-                  <td className="center-text">{task.project_phase}</td>
-                  <td className="center-text">
-                    <FaTrash className="delete-icon" />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+  {tasks.filter(task => task.status === "Completed").length === 0 ? (
+    <tr>
+      <td colSpan="12" className="center-text">
+        No completed tasks yet.
+      </td>
+    </tr>
+  ) : (
+    tasks
+      .filter(task => task.status === "Completed")
+      .map((task, idx) => (
+        <tr key={task.id}>
+          <td className="center-text">{idx + 1}.</td>
+          <td className="center-text">
+            {task.member?.first_name} {task.member?.last_name}
+          </td>
+          <td className="center-text">{task.task_name}</td>
+          <td className="center-text">{task.created_date}</td>
+          <td className="center-text">
+            <div className="center-content-flex">
+              <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
+              {task.due_date}
+            </div>
+          </td>
+          <td className="center-text">
+            <div className="center-content-flex">
+              <FaClock size={14} style={{ color: '#3B0304' }} />
+              {task.due_time}
+            </div>
+          </td>
+          <td className="center-text">
+            {task.date_completed || "-"}
+          </td>
+          <td className="center-text">
+            <div className="dropdown-control-wrapper">
+              <select
+                value={task.revision}
+                onChange={(e) => handleRevisionChange(task.id, parseInt(e.target.value))}
+                className="revision-select"
+              >
+                {REVISION_OPTIONS.map((opt, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+              <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
+            </div>
+          </td>
+          <td className="center-text">
+            <div
+              className="dropdown-control-wrapper"
+              style={{ 
+                backgroundColor: getStatusColor(task.status), 
+                borderRadius: '4px', 
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)' 
+              }}
+            >
+              <select
+                value={task.status}
+                onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                className="status-select"
+                style={{ backgroundColor: getStatusColor(task.status) }}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'white' }} />
+            </div>
+          </td>
+          <td className="center-text">{task.methodology}</td>
+          <td className="center-text">{task.project_phase}</td>
+          <td className="center-text">
+            <FaTrash className="delete-icon" />
+          </td>
+        </tr>
+      ))
+  )}
+</tbody>
         </table>
       </div>
     </div>

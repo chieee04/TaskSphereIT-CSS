@@ -244,7 +244,7 @@ const SolomodeTasks = () => {
         }
 
         const { error } = await supabase
-            .from("solo_task")
+            .from("solo_mode_task")
             .update({
                 due_date: editForm.due_date,
                 time: editForm.time,
@@ -294,11 +294,11 @@ const SolomodeTasks = () => {
     // --- Update Handlers ---
 
     const handleRevisionChange = async (taskId, revisionText) => {
-        const revisionInt = parseInt(revisionText);
-        const { error } = await supabase
-            .from("solo_task")
-            .update({ revision: revisionInt })
-            .eq("id", taskId);
+    const revisionInt = parseInt(revisionText);
+    const { error } = await supabase
+        .from("solo_mode_task") // ✅ Correct table name
+        .update({ revision: revisionInt })
+        .eq("id", taskId);
 
         if (error) {
             console.error("❌ Update revision error:", error);
@@ -329,7 +329,7 @@ const SolomodeTasks = () => {
             const today = new Date().toISOString().split("T")[0];
 
             const { error } = await supabase
-                .from("solo_task")
+                .from("solo_mode_task")
                 .update({ status: newStatus, date_completed: today })
                 .eq("id", taskId);
 
@@ -342,7 +342,7 @@ const SolomodeTasks = () => {
             }
         } else {
             const { error } = await supabase
-                .from("solo_task")
+                .from("solo_mode_task")
                 .update({ status: newStatus })
                 .eq("id", taskId);
 

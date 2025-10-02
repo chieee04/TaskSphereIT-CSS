@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { FaCalendarAlt, FaEllipsisV, FaSearch, FaTrash, FaRedo, FaPen } from "react-icons/fa";
+import { FaCalendarAlt, FaEllipsisV, FaSearch, FaTrash, FaFileExport, FaPen } from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
+// Import jsPDF
+import jsPDF from "jspdf";
  
 const MySwal = withReactContent(Swal);
  
@@ -60,6 +62,119 @@ const TitleDefense = () => {
  
         fetchData();
     }, []);
+ 
+    // Move filteredSchedules calculation here, before handleExport function
+    const filteredSchedules = schedules
+    .filter((sched) => {
+        const teamName = accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
+        const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
+            .filter(Boolean)
+            .map((id) => {
+                const person = accounts.find((a) => a.id === id);
+                return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
+            })
+            .join("; ");
+ 
+        const verdict = verdictMap[sched.verdict] || "Pending";
+        const searchText = search.toLowerCase();
+ 
+        return (
+            teamName.toLowerCase().includes(searchText) ||
+            (sched.date || "").toLowerCase().includes(searchText) ||
+            (sched.time || "").toLowerCase().includes(searchText) ||
+            panelists.toLowerCase().includes(searchText) ||
+            verdict.toLowerCase().includes(searchText)
+        );
+    });
+ 
+    const exportTitleDefenseAsPDF = (data) => {
+        const today = new Date().toLocaleDateString();
+        const fileName = `title-defense-schedule-${today.replace(/\//g, '-')}.pdf`;
+ 
+        // Create PDF using jsPDF
+        const doc = new jsPDF();
+ 
+        // Add header
+        doc.setFillColor(59, 3, 4);
+        doc.rect(0, 0, 210, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Title Defense Schedule Report', 105, 15, { align: 'center' });
+ 
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${today}`, 105, 22, { align: 'center' });
+ 
+        // Reset text color for content
+        doc.setTextColor(0, 0, 0);
+ 
+        // Add table headers
+        doc.setFillColor(59, 3, 4);
+        doc.rect(10, 35, 190, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+ 
+        const headers = ['NO', 'TEAM', 'DATE', 'TIME', 'PANELISTS', 'VERDICT'];
+        const columnWidths = [15, 35, 25, 25, 60, 30];
+        let xPosition = 10;
+ 
+        headers.forEach((header, index) => {
+            doc.text(header, xPosition + 2, 42);
+            xPosition += columnWidths[index];
+        });
+ 
+        // Add table rows
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+ 
+        let yPosition = 50;
+ 
+        data.forEach((item, index) => {
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+            }
+ 
+            // Alternate row background
+            if (index % 2 === 0) {
+                doc.setFillColor(245, 245, 245);
+                doc.rect(10, yPosition - 4, 190, 6, 'F');
+            }
+ 
+            xPosition = 10;
+            const rowData = [
+                item.no.toString(),
+                item.team,
+                item.date,
+                item.time,
+                item.panelists,
+                item.verdict
+            ];
+ 
+            rowData.forEach((cell, cellIndex) => {
+                // Wrap text for panelists column
+                if (cellIndex === 4) {
+                    const lines = doc.splitTextToSize(cell, columnWidths[cellIndex] - 2);
+                    doc.text(lines, xPosition + 1, yPosition);
+                } else {
+                    doc.text(cell, xPosition + 1, yPosition);
+                }
+                xPosition += columnWidths[cellIndex];
+            });
+ 
+            yPosition += 6;
+        });
+ 
+        // Add footer with total records
+        doc.setFontSize(8);
+        doc.text(`Total Records: ${data.length}`, 14, 285);
+ 
+        // Save the PDF
+        doc.save(fileName);
+    };
  
     const handleCreateSchedule = () => {
         let selectedPanelists = [];
@@ -258,11 +373,91 @@ const TitleDefense = () => {
         });
     };
  
-    const handleReDefense = () => {
+    const handleExport = () => {
         MySwal.fire({
-            title: "Title Re-Defense",
-            text: "This feature will be implemented soon.",
-            icon: "info",
+            title: "Export Title Defense Data",
+            html: `
+                <div style="text-align: left;">
+                    <p style="margin-bottom: 15px; font-weight: 500;">Select which schedules to export:</p>
+                    <select id="exportFilter" class="form-select" style="border-radius: 8px; height: 42px; width: 100%;">
+                        <option value="all">All Schedules</option>
+                        <option value="3">Approved Only</option>
+                        <option value="1">Pending Only</option>
+                        <option value="2">Re-defense Only</option>
+                    </select>
+                </div>
+            `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            confirmButtonText: "Export",
+            cancelButtonText: "Cancel",
+            preConfirm: () => {
+                const exportFilter = document.getElementById('exportFilter').value;
+                return { exportFilter };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const { exportFilter } = result.value;
+ 
+                // Filter data based on selected option
+                let filteredExportData;
+ 
+                if (exportFilter === 'all') {
+                    filteredExportData = filteredSchedules;
+                } else {
+                    const verdictValue = parseInt(exportFilter);
+                    filteredExportData = filteredSchedules.filter(sched => sched.verdict === verdictValue);
+                }
+ 
+                // Prepare data for export
+                const exportData = filteredExportData.map((sched, index) => {
+                    const teamName = accounts.find((a) => a.id === sched.manager_id)?.group_name || "Unknown";
+                    const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
+                        .filter(Boolean)
+                        .map((id) => {
+                            const person = accounts.find((a) => a.id === id);
+                            return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
+                        })
+                        .join("; ");
+ 
+                    return {
+                        no: index + 1,
+                        team: teamName,
+                        date: new Date(sched.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                        }),
+                        time: sched.time,
+                        panelists: panelists,
+                        verdict: verdictMap[sched.verdict] || "Pending"
+                    };
+                });
+ 
+                if (exportData.length === 0) {
+                    MySwal.fire({
+                        title: "No Data to Export",
+                        text: `There are no ${exportFilter === 'all' ? 'schedules' : exportFilter === '3' ? 'approved schedules' : exportFilter === '1' ? 'pending schedules' : 're-defense schedules'} to export.`,
+                        icon: "warning",
+                        confirmButtonColor: "#3B0304"
+                    });
+                    return;
+                }
+ 
+                // Export as PDF
+                exportTitleDefenseAsPDF(exportData);
+ 
+                MySwal.fire({
+                    title: "Export Successful!",
+                    text: `Title defense ${exportFilter === 'all' ? 'data' : exportFilter === '3' ? 'approved schedules' : exportFilter === '1' ? 'pending schedules' : 're-defense schedules'} has been downloaded as PDF.`,
+                    icon: "success",
+                    confirmButtonColor: "#3B0304",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
         });
     };
  
@@ -522,29 +717,6 @@ const TitleDefense = () => {
         }
     };
  
-    const filteredSchedules = schedules
-    .filter((sched) => {
-        const teamName = accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
-        const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
-            .filter(Boolean)
-            .map((id) => {
-                const person = accounts.find((a) => a.id === id);
-                return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
-            })
-            .join("; ");
- 
-        const verdict = verdictMap[sched.verdict] || "Pending";
-        const searchText = search.toLowerCase();
- 
-        return (
-            teamName.toLowerCase().includes(searchText) ||
-            (sched.date || "").toLowerCase().includes(searchText) ||
-            (sched.time || "").toLowerCase().includes(searchText) ||
-            panelists.toLowerCase().includes(searchText) ||
-            verdict.toLowerCase().includes(searchText)
-        );
-    });
- 
     return (
         <div className="p-6">
             <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
@@ -562,9 +734,9 @@ const TitleDefense = () => {
                     </button>
                     <button
                         className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
-                        onClick={handleReDefense}
+                        onClick={handleExport}
                     >
-                        <FaRedo /> Title Re-Defense
+                        <FaFileExport /> Export
                     </button>
                 </div>
                 <div className="flex items-center justify-between">
@@ -606,7 +778,7 @@ const TitleDefense = () => {
                 </div>
             </div>
  
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+            <div className="bg-white rounded-lg shadow-md overflow-x-auto relative">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -710,13 +882,13 @@ const TitleDefense = () => {
         cancelButtonColor: "#999",
         confirmButtonText: "Yes, continue!",
     });
-
+ 
     if (confirm.isConfirmed) {
         const { error } = await supabase
             .from("user_titledef")
             .update({ verdict: 2 })
             .eq("id", sched.id);
-
+ 
         if (!error) {
             setSchedules((prev) =>
                 prev.map((s) =>
@@ -755,31 +927,41 @@ const TitleDefense = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative text-center">
                                         <button
+                                            id={`action-button-${index}`}
                                             onClick={() =>
                                                 setOpenDropdown(openDropdown === index ? null : index)
                                             }
-                                            className="bg-white border-none focus:outline-none"
+                                            className="bg-white border-none focus:outline-none relative z-20"
                                         >
                                             <FaEllipsisV className="text-[#3B0304] text-sm" />
                                         </button>
                                         {openDropdown === index && (
-                                            <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                                                <div className="py-1">
-                                                    <button
-                                                        onClick={() => handleUpdate(sched.id)}
-                                                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 bg-white hover:bg-white"
-                                                    >
-                                                        <FaPen className="mr-2" /> Update
-                                                    </button> 
-                                                    <button
-                                                        onClick={() => {
-                                                            handleDelete(sched.id);
-                                                            setOpenDropdown(null);
-                                                        }}
-                                                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 bg-white hover:bg-white"
-                                                    >
-                                                        <FaTrash className="mr-2" /> Delete
-                                                    </button>
+                                            <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)}>
+                                                <div 
+                                                    className="absolute bg-white rounded-md shadow-lg border border-gray-200 w-40 z-50"
+                                                    style={{
+                                                        top: `${document.getElementById(`action-button-${index}`)?.getBoundingClientRect().bottom + window.scrollY + 5}px`,
+                                                        left: `${document.getElementById(`action-button-${index}`)?.getBoundingClientRect().right + window.scrollX - 160}px`,
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="py-1">
+                                                        <button
+                                                            onClick={() => handleUpdate(sched.id)}
+                                                            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            <FaPen className="mr-2" /> Update
+                                                        </button> 
+                                                        <button
+                                                            onClick={() => {
+                                                                handleDelete(sched.id);
+                                                                setOpenDropdown(null);
+                                                            }}
+                                                            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                                        >
+                                                            <FaTrash className="mr-2" /> Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}

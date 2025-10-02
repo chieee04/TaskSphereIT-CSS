@@ -1,5 +1,5 @@
-import { useState, useMemo,useEffect } from "react";
-
+import { useState, useMemo, useEffect } from "react";
+ 
 import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
@@ -10,8 +10,8 @@ import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
-
-
+ 
+ 
 import Footer from "../Footer";
 import Header from "../Header";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
@@ -19,38 +19,38 @@ import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 import Profile from "../Profile";
-
-
+ 
+ 
 // Define the primary color constants for consistency
 const TASKSPHERE_DARK_RED = "#5B0A0A";
 const PENDING_TEXT_BROWN = "#795548";
 const TASKSPHERE_PURPLE = "#805ad5";
-
-
+ 
+ 
 // --- Calendar Helper Functions ---
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
-
+ 
 const getDaysInMonth = (year, month) => {
   return new Date(year, month + 1, 0).getDate();
 };
-
+ 
 const getFirstDayOfMonth = (year, month) => {
   // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   return new Date(year, month, 1).getDay();
 };
-
+ 
 // --- Teams Progress Components ---
-
+ 
 // SVG-based Circular Progress Bar
 const ProgressCircle = ({ percentage }) => {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
   const isFilled = percentage > 0;
-
+ 
   return (
     <svg width="120" height="120" viewBox="0 0 120 120">
       <circle
@@ -89,7 +89,7 @@ const ProgressCircle = ({ percentage }) => {
     </svg>
   );
 };
-
+ 
 // Reusable component for a single adviser's card
 const TeamCard = ({ adviser, teams }) => {
   return (
@@ -112,12 +112,12 @@ const TeamCard = ({ adviser, teams }) => {
     </div>
   );
 };
-
+ 
 const InstructorDashboard = () => {
   const [activePage, setActivePage] = useState("Dashboard");
-  const [sidebarWidth, setSidebarWidth] = useState(70); // ✨ ADD THIS NEW STATE
-  const [isSoloMode, setIsSoloMode] = useState(false); //
-
+  const [sidebarWidth, setSidebarWidth] = useState(70); 
+  const [isSoloMode, setIsSoloMode] = useState(false); 
+ 
   // State for the calendar
   const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1));
   const year = currentDate.getFullYear();
@@ -125,38 +125,35 @@ const InstructorDashboard = () => {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const isJan2025 = year === 2025 && month === 0;
-  
-
+ 
+ 
   // Hardcoded active days from the design for Jan 2025 only
   const activeDays = {
     filled: [8, 11, 15],
     bordered: [5, 17]
   };
-
-
-
-
-
+ 
+ 
   const handleMonthChange = (e) => {
     const [newMonthIndex, newYear] = e.target.value.split('-').map(Number);
     setCurrentDate(new Date(newYear, newMonthIndex));
   };
-
+ 
   const handleNav = (direction) => {
     const newMonth = month + direction;
     setCurrentDate(new Date(year, newMonth, 1));
   };
-
+ 
   // Generate the functional calendar grid data
   const calendarGrid = useMemo(() => {
     const totalCells = 42;
     const days = [];
-
+ 
     // Fill leading empty cells
     for (let i = 0; i < firstDay; i++) {
       days.push(null);
     }
-
+ 
     // Fill actual days
     for (let day = 1; day <= daysInMonth; day++) {
       let type = 'normal';
@@ -169,53 +166,53 @@ const InstructorDashboard = () => {
       }
       days.push({ day, type });
     }
-
+ 
     // Pad the grid to fill the weeks for consistent layout
     while (days.length % 7 !== 0 && days.length < totalCells) {
       days.push(null);
     }
-
+ 
     // Divide into 7-day rows
     const grid = [];
     for (let i = 0; i < days.length; i += 7) {
       grid.push(days.slice(i, i + 7));
     }
-
+ 
     return grid;
   }, [year, month, daysInMonth, firstDay, isJan2025]);
-
+ 
   // Calendar Day Component Helper
   const CalendarDay = ({ data }) => {
     if (!data) return <td></td>;
-
+ 
     let className = '';
     if (data.type === 'filled') {
       className = 'primary-active-day';
     } else if (data.type === 'bordered') {
       className = 'secondary-active-day';
     }
-
+ 
     return (
       <td>
         <span className={className}>{data.day}</span>
       </td>
     );
   };
-  
-
+ 
+ 
   //////////////////////
-  useEffect(() => {
-    if (isSoloMode) {
-      setActivePage("SoloModeDashboard");
-    } else {
-      setActivePage("Dashboard");
-    }
-  }, [isSoloMode]);
+  useEffect(() => {
+    if (isSoloMode) {
+      setActivePage("SoloModeDashboard");
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [isSoloMode]);
 ////////////////////
-
-
+ 
+ 
   const renderContent = () => {
-    
+ 
     switch (activePage) {
       case "Students":
         return <Enroll />;
@@ -235,15 +232,15 @@ const InstructorDashboard = () => {
         return <StudentCredentials />;
       case "AdviserCredentials":
         return <AdviserCredentials />;
-                case "SoloModeDashboard":
+      case "SoloModeDashboard":
         return <SoloModeDashboard />;
-        case "SolomodeTasks":
+      case "SoloModeTasks":
         return <SoloModeTasks />;
-        case "SolomodeTasks Board":
+      case "SoloModeTasks Board":
         return <SoloModeTasksBoard />;
-        case "SolomodeTasks Record":
+      case "SoloModeTasks Record":
         return <SoloModeTasksRecord />;
-        case "Profile":
+      case "Profile":
         return <Profile />;
       default:
         return (
@@ -252,7 +249,7 @@ const InstructorDashboard = () => {
               /* ====== Layout & Typography (Finalized) ====== */
               .dashboard-content { 
                   padding: 1rem; 
-                  flex-grow: 1; 
+                  /* REMOVED flex-grow: 1; from here, it's now on the <main> element */
                   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
               }
               h4 { 
@@ -262,7 +259,7 @@ const InstructorDashboard = () => {
                   font-weight: 600; 
                   text-transform: uppercase;
               }
-
+ 
               /* ====== Upcoming Activity (Smaller Cards & Darker Shadows) ====== */
               .upcoming-activity { 
                   display:flex; 
@@ -312,7 +309,7 @@ const InstructorDashboard = () => {
                   color: ${TASKSPHERE_DARK_RED}; 
                   font-size: 0.8rem; 
               }
-
+ 
               /* ====== Recent Activity & Calendar Layout (Darker Shadows) ====== */
               .recent-calendar-layout { 
                   display: grid; 
@@ -336,7 +333,7 @@ const InstructorDashboard = () => {
                   height: fit-content; 
                   width: 100%; 
               }
-
+ 
               /* ====== Recent Activity Created (Uniform White Rows & Darker Outlines) ====== */
               .recent-activity table { width:100%; border-collapse:collapse; margin-top: 1rem;}
               .recent-activity th, .recent-activity td { 
@@ -355,7 +352,7 @@ const InstructorDashboard = () => {
               .recent-activity tr:last-child td {
                   border-bottom: none; 
               }
-
+ 
               /* Status Pill Styling (Smaller Width & Darker Border) */
               .status-badge { 
                   padding:.2rem .6rem; /* Reduced horizontal padding */
@@ -368,7 +365,7 @@ const InstructorDashboard = () => {
                   border: 2px solid ${TASKSPHERE_DARK_RED}; 
                   background-color: transparent; 
               }
-
+ 
               /* ====== Calendar Controls & Table (Functional & Darker Outlines) ====== */
               .calendar-header-controls { 
                   display: flex; 
@@ -386,8 +383,8 @@ const InstructorDashboard = () => {
                   cursor: pointer; 
                   font-weight: 500;
                   -webkit-appearance: none; 
-                  -moz-appearance: none;    
-                  appearance: none;         
+                  -moz-appearance: none;    
+                  appearance: none;        
                   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13.4-6.3H18.9a17.6%2017.6%200%200%200-13.4%206.3%2017.6%2017.6%200%200%200-4.6%2014v6.8a17.6%2017.6%200%200%200%204.6%2014L145.4%20224.2a17.6%2017.6%200%200%200%2013.4%205.6h.4a17.6%2017.6%200%200%200%2013.4-5.6L287%20104.2a17.6%2017.6%200%200%200%204.6-14v-6.8a17.6%2017.6%200%200%200-4.6-14z%22%2F%3E%3C%2Fsvg%3E');
                   background-repeat: no-repeat;
                   background-position: right 8px center;
@@ -398,7 +395,7 @@ const InstructorDashboard = () => {
                   color: #333;
                   background-color: #fff;
               }
-
+ 
               .calendar-nav-buttons button {
                   background: none;
                   border: 2px solid ${TASKSPHERE_DARK_RED}; 
@@ -410,7 +407,7 @@ const InstructorDashboard = () => {
                   cursor: pointer;
                   margin-left: -1px; 
               }
-
+ 
               .calendar-table { width:100%; text-align:center; border-collapse:collapse; }
               .calendar-table th {
                   color:#333; 
@@ -429,7 +426,7 @@ const InstructorDashboard = () => {
               .calendar-table td:empty {
                   cursor: default;
               }
-
+ 
               /* Active Day Container (Centralized Styling) */
               .calendar-table td span {
                   display: inline-block;
@@ -442,20 +439,20 @@ const InstructorDashboard = () => {
                   border-radius: 50%;
                   cursor: pointer;
               }
-
+ 
               /* Primary active days (Filled) */
               .calendar-table td .primary-active-day {
                   background: ${TASKSPHERE_DARK_RED}; 
                   color: #fff;
               }
-
+ 
               /* Secondary active days (Bordered - Darker Border) */
               .calendar-table td .secondary-active-day {
                   background: #fff; 
                   color: ${TASKSPHERE_DARK_RED}; 
                   border: 2px solid ${TASKSPHERE_DARK_RED}; 
               }
-
+ 
               /* ====== TEAMS' PROGRESS STYLES ====== */
               .teams-progress-section {
                   padding-top: 1.5rem;
@@ -513,7 +510,7 @@ const InstructorDashboard = () => {
               .teams-progress-section h4 {
                   color: #000;
               }
-
+ 
               /* Updated styles based on new request */
               .dashboard-content h4:first-child { /* Targets "UPCOMING ACTIVITY" */
                   color: #000;
@@ -525,7 +522,7 @@ const InstructorDashboard = () => {
                   border-bottom: 2px solid #3B0304;
               }
             `}</style>
-
+ 
             {/* ==== UPCOMING ACTIVITY (Smaller Cards) ==== */}
             <h4>UPCOMING ACTIVITY</h4>
             <div className="upcoming-activity">
@@ -544,7 +541,7 @@ const InstructorDashboard = () => {
                 </div>
               ))}
             </div>
-
+ 
             {/* ==== RECENT ACTIVITY & CALENDAR LAYOUT ==== */}
             <div className="recent-calendar-layout">
               {/* ==== RECENT ACTIVITY CREATED (Uniform Rows) ==== */}
@@ -597,7 +594,7 @@ const InstructorDashboard = () => {
                   </tbody>
                 </table>
               </div>
-
+ 
               {/* ==== FUNCTIONAL CALENDAR ==== */}
               <div className="calendar-container">
                 <div className="calendar-header-controls">
@@ -637,7 +634,7 @@ const InstructorDashboard = () => {
                 </table>
               </div>
             </div>
-
+ 
             {/* ====== TEAMS' PROGRESS SECTION ====== */}
             <div className="teams-progress-section">
               <h4>TEAMS' PROGRESS</h4>
@@ -670,38 +667,63 @@ const InstructorDashboard = () => {
         );
     }
   };
-
- return (
-  <div>
-    <Header
-      isSoloMode={isSoloMode}
-      setIsSoloMode={setIsSoloMode}
-      
-    />
-    <div className="d-flex">
-      <Sidebar
-        activeItem={activePage}
-        onSelect={setActivePage}
-        onWidthChange={setSidebarWidth}
-        isSoloMode={isSoloMode}
-      />
-      <div
-        className="flex-grow-1 p-3"
-        style={{
-          marginLeft: `${sidebarWidth}px`,
-          transition: "margin-left 0.3s",
-        }}
-        id="main-content-wrapper" // New wrapper for content and footer
+ 
+// --- CORRECTED RETURN BLOCK ---
+  return (
+    <div 
+        // This outer div now holds the entire page layout and ensures it takes full viewport height
+        style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
       >
-        <main className="flex-grow-1 p-3">
-          {renderContent()}
-        </main>
-        {/* ✨ ADD THE FOOTER COMPONENT HERE */}
-        <Footer /> 
+      <Header
+        isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+ 
+      />
+ 
+      {/* This container manages the SIDEBAR and the MAIN CONTENT/FOOTER area side-by-side */}
+      <div 
+          className="d-flex" 
+          style={{ flexGrow: 1 }} // Ensures this area takes all space below the header
+      >
+        <Sidebar
+          activeItem={activePage}
+          onSelect={setActivePage}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+ 
+          {/* The main content/footer wrapper. This container is the key to the sticky footer. */}
+        <div
+          className="flex-grow-1"
+          style={{
+              // --- STICKY FOOTER CSS MAGIC ---
+              display: 'flex', 
+              flexDirection: 'column', // Stack children (Header, Main, Footer) vertically
+              minHeight: 0, // Allows the container to correctly calculate remaining vertical space
+              flexGrow: 1, // Take up all available horizontal space
+ 
+              // Sidebar transition styles
+              marginLeft: `${sidebarWidth}px`,
+              transition: "margin-left 0.3s",
+          }}
+          id="main-content-wrapper" 
+        >
+          {/* The <main> element gets flex-grow: 1 to push the footer down */}
+          <main 
+              style={{ 
+                  flexGrow: 1, // The most important line: forces content to fill all available space
+                  padding: '20px', // Apply padding here instead of in the surrounding div
+              }}
+          >
+            {renderContent()}
+          </main>
+ 
+          {/* The Footer component naturally sits at the bottom */}
+          <Footer /> 
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 };
-
+ 
 export default InstructorDashboard;
