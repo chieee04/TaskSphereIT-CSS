@@ -248,24 +248,22 @@ const handleAddStudent = async () => {
   // --- Core Functionality (No change to import/upload logic) ---
  
   const handleDownload = () => {
-    const sampleData = [
-      {
-        user_id: "20250001",
-        password: "password123",
-        first_name: "Juan",
-        last_name: "Dela Cruz",
-        middle_name: "Santos",
-      },
-    ];
-    const ws = XLSX.utils.json_to_sheet(sampleData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(
-      new Blob([wbout], { type: "application/octet-stream" }),
-      "students_template.xlsx"
-    );
-  };
+  const sampleData = [
+    {
+      "ID Number": "20250001",
+      "Password": "password123",
+      "Full Name": "Juan Dela Cruz, Santos",
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(sampleData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(
+    new Blob([wbout], { type: "application/octet-stream" }),
+    "students_template.xlsx"
+  );
+};
  
 const handleImport = (event) => {
   const file = event.target.files[0];
@@ -315,18 +313,39 @@ const handleImport = (event) => {
  
     // If all valid, process data
     const processedData = jsonData.map((row) => {
-      const firstName = row.first_name || "";
-      const lastName = row.last_name || "";
- 
-      return {
-        id: uuidv4(),
-        user_id: row.user_id ? String(row.user_id).replace(/\D/g, "") : "",
-        password: row.password || "",
-        first_name: firstName,
-        last_name: lastName,
-        middle_name: row.middle_name || "",
-      };
-    });
+  let firstName = "";
+  let lastName = "";
+  let middleName = "";
+
+  if (row["Full Name"]) {
+    const parts = row["Full Name"].split(",");
+    if (parts.length === 3) {
+      // Format: First, Last, Middle
+      firstName = parts[0].trim();
+      lastName = parts[1].trim();
+      middleName = parts[2].trim();
+    } else if (parts.length === 2) {
+      // Format: First, Last
+      firstName = parts[0].trim();
+      lastName = parts[1].trim();
+    } else {
+      // Format: First Last Middle
+      const words = row["Full Name"].trim().split(" ");
+      firstName = words[0] || "";
+      lastName = words.length > 1 ? words[words.length - 1] : "";
+      middleName = words.length > 2 ? words.slice(1, -1).join(" ") : "";
+    }
+  }
+
+  return {
+    id: uuidv4(),
+    user_id: row["ID Number"] ? String(row["ID Number"]).replace(/\D/g, "") : "",
+    password: row["Password"] || "",
+    first_name: firstName,
+    last_name: lastName,
+    middle_name: middleName,
+  };
+});
  
     setImportedData(processedData);
     setSelectedRows([]);

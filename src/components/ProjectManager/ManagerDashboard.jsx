@@ -1,6 +1,6 @@
 // ManagerDashboard.jsx
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import {
   Chart as ChartJS,
@@ -48,7 +48,7 @@ import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
 // Constants
-const WEEK_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 // ChartJS registration
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler, ArcElement);
@@ -78,7 +78,7 @@ function adjustRadiusBasedOnData(ctx) {
 // Team Progress Pie Chart
 const TeamProgressChart = () => {
   const [statusCounts, setStatusCounts] = useState({
-    "To Do":0, "In Progress":0, "To Review":0, "Completed":0, "Missed":0
+    "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0
   });
 
   useEffect(() => {
@@ -90,16 +90,16 @@ const TeamProgressChart = () => {
       if (!managerUUID) return;
 
       let allData = [];
-      const tables = ["manager_title_task","manager_oral_task","manager_final_task","manager_final_redef"];
-      for(const table of tables){
+      const tables = ["manager_title_task", "manager_oral_task", "manager_final_task", "manager_final_redef"];
+      for (const table of tables) {
         const { data } = await supabase.from(table).select("status").eq("manager_id", managerUUID);
-        if(data) allData = [...allData, ...data];
+        if (data) allData = [...allData, ...data];
       }
 
-      const counts = { "To Do":0, "In Progress":0, "To Review":0, "Completed":0, "Missed":0 };
+      const counts = { "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0 };
       allData.forEach(task => {
         const status = task.status?.trim() || "To Do";
-        if(counts[status] !== undefined) counts[status]++;
+        if (counts[status] !== undefined) counts[status]++;
       });
       setStatusCounts(counts);
     };
@@ -107,43 +107,52 @@ const TeamProgressChart = () => {
   }, []);
 
   const data = {
-    labels: ["To Do","In Progress","To Review","Completed","Missed"],
-    datasets:[{
-      data:[
+    labels: ["To Do", "In Progress", "To Review", "Completed", "Missed"],
+    datasets: [{
+      data: [
         statusCounts["To Do"],
         statusCounts["In Progress"],
         statusCounts["To Review"],
         statusCounts["Completed"],
         statusCounts["Missed"]
       ],
-      backgroundColor: ["#FABC3F","#809D3C","#578FCA","#4BC0C0","#FF6384"],
+      backgroundColor: ["#FABC3F", "#809D3C", "#578FCA", "#4BC0C0", "#FF6384"],
       borderWidth: 1
     }]
   };
-  const options = { responsive:true, plugins:{legend:{position:"bottom"}, title:{display:false}} };
+  const options = { responsive: true, plugins: { legend: { position: "bottom" }, title: { display: false } } };
 
   return (
-    <div style={{width:"220px", height:"220px", margin:"0 auto"}}>
-      <Pie data={data} options={options}/>
+    <div style={{ width: "220px", height: "220px", margin: "0 auto" }}>
+      <Pie data={data} options={options} />
     </div>
   );
 };
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
-  
+
   const location = useLocation();
   const [activePage, setActivePage] = useState(location.state?.activePage || activePageFromHeader || "Dashboard");
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [allWeeklyTasks, setAllWeeklyTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
   const [isSoloMode, setIsSoloMode] = useState(false); //
-const [sidebarWidth, setSidebarWidth] = useState(70);
-  // Fetch all weekly tasks
-   useEffect(() => {
-    if (location.state?.activePage) {
-      setActivePage(location.state.activePage);
+  const [sidebarWidth, setSidebarWidth] = useState(70);
+  const navigate = useNavigate();
+  const { subPage } = useParams();
+  const handlePageChange = (page) => {
+    setActivePage(page);
+    navigate(`/Manager/${page.replace(/\s+/g, "")}`);
+  };
+  useEffect(() => {
+    if (subPage) {
+      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
+    } else {
+      setActivePage("Dashboard");
     }
-  }, [location.key]);
+  }, [subPage]);
+
+
   useEffect(() => {
     const fetchAllWeeklyTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
@@ -155,39 +164,39 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
       let allData = [];
       const tables = [
         {
-          name:"manager_title_task",
-          select:"id, task_name, due_date, due_time, status, created_date, member_id, project_phase",
+          name: "manager_title_task",
+          select: "id, task_name, due_date, due_time, status, created_date, member_id, project_phase",
           mapTask: t => t.task_name,
           mapCreated: t => t.created_date,
-          mapTime: t => t.due_time?.slice(0,5) // HH:MM
+          mapTime: t => t.due_time?.slice(0, 5) // HH:MM
         },
         {
-          name:"manager_oral_task",
-          select:"id, task, due_date, time, status, created_at, member_id, project_phase",
+          name: "manager_oral_task",
+          select: "id, task, due_date, time, status, created_at, member_id, project_phase",
           mapTask: t => t.task,
           mapCreated: t => t.created_at,
-          mapTime: t => t.time?.slice(0,5)
+          mapTime: t => t.time?.slice(0, 5)
         },
         {
-          name:"manager_final_task",
-          select:"id, task, due_date, time, status, created_at, member_id, project_phase",
+          name: "manager_final_task",
+          select: "id, task, due_date, time, status, created_at, member_id, project_phase",
           mapTask: t => t.task,
           mapCreated: t => t.created_at,
-          mapTime: t => t.time?.slice(0,5)
+          mapTime: t => t.time?.slice(0, 5)
         },
         {
-          name:"manager_final_redef",
-  select:"id, task, due_date, time, status, created_at, member_id, project_phase",
-  mapTask: t => t.task,
-  mapCreated: t => t.created_at,
-  mapTime: t => t.time?.slice(0,5)
+          name: "manager_final_redef",
+          select: "id, task, due_date, time, status, created_at, member_id, project_phase",
+          mapTask: t => t.task,
+          mapCreated: t => t.created_at,
+          mapTime: t => t.time?.slice(0, 5)
         }
       ];
 
-      for(const table of tables){
+      for (const table of tables) {
         const { data } = await supabase.from(table.name).select(table.select).eq("manager_id", managerUUID);
-        if(data){
-          const standardized = data.map(t=>({
+        if (data) {
+          const standardized = data.map(t => ({
             id: t.id,
             task: table.mapTask(t),
             created_at: table.mapCreated(t),
@@ -203,7 +212,7 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
 
       setAllWeeklyTasks(allData);
 
-      const sorted = [...allData].sort((a,b)=>new Date(b.created_at) - new Date(a.created_at)).slice(0,5);
+      const sorted = [...allData].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
       setRecentTasks(sorted);
     };
 
@@ -214,44 +223,44 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
   useEffect(() => {
     const fetchUpcomingTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
-      if(!storedUser) return;
+      if (!storedUser) return;
       const currentUser = JSON.parse(storedUser);
       const managerUUID = currentUser.uuid || currentUser.id;
-      if(!managerUUID) return;
+      if (!managerUUID) return;
 
       let allData = [];
       const tables = [
         {
-          name:"manager_title_task",
-          select:"id, task_name, due_date, due_time, member_id, status",
-          mapTask:t=>t.task_name,
-          mapTime:t=>t.due_time?.slice(0,5)
+          name: "manager_title_task",
+          select: "id, task_name, due_date, due_time, member_id, status",
+          mapTask: t => t.task_name,
+          mapTime: t => t.due_time?.slice(0, 5)
         },
         {
-          name:"manager_oral_task",
-          select:"id, task, due_date, time, member_id, status",
-          mapTask:t=>t.task,
-          mapTime:t=>t.time?.slice(0,5)
+          name: "manager_oral_task",
+          select: "id, task, due_date, time, member_id, status",
+          mapTask: t => t.task,
+          mapTime: t => t.time?.slice(0, 5)
         },
         {
-          name:"manager_final_task",
-          select:"id, task, due_date, time, member_id, status",
-          mapTask:t=>t.task,
-          mapTime:t=>t.time?.slice(0,5)
+          name: "manager_final_task",
+          select: "id, task, due_date, time, member_id, status",
+          mapTask: t => t.task,
+          mapTime: t => t.time?.slice(0, 5)
         },
         {
-  name:"manager_final_redef",
-  select:"id, task, due_date, time, status, created_at, member_id, project_phase",
-  mapTask: t => t.task,
-  mapCreated: t => t.created_at,
-  mapTime: t => t.time?.slice(0,5)
-}
+          name: "manager_final_redef",
+          select: "id, task, due_date, time, status, created_at, member_id, project_phase",
+          mapTask: t => t.task,
+          mapCreated: t => t.created_at,
+          mapTime: t => t.time?.slice(0, 5)
+        }
       ];
 
-      for(const table of tables){
+      for (const table of tables) {
         const { data } = await supabase.from(table.name).select(table.select).eq("manager_id", managerUUID);
-        if(data){
-          const standardized = data.map(t=>({
+        if (data) {
+          const standardized = data.map(t => ({
             id: t.id,
             task: table.mapTask(t),
             due_date: t.due_date,
@@ -265,16 +274,16 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
 
       const today = new Date();
       const upcoming = allData
-        .filter(task=>task.due_date && !["Completed","Missed"].includes(task.status))
-        .map(task=>({ ...task, dueDateObj: new Date(task.due_date + "T" + task.time) }))
-        .filter(task=>task.dueDateObj >= today)
-        .sort((a,b)=>a.dueDateObj - b.dueDateObj)
-        .slice(0,5);
+        .filter(task => task.due_date && !["Completed", "Missed"].includes(task.status))
+        .map(task => ({ ...task, dueDateObj: new Date(task.due_date + "T" + task.time) }))
+        .filter(task => task.dueDateObj >= today)
+        .sort((a, b) => a.dueDateObj - b.dueDateObj)
+        .slice(0, 5);
 
-      const withNames = await Promise.all(upcoming.map(async task=>{
-        if(!task.member_id) return {...task, memberName:"No Member"};
+      const withNames = await Promise.all(upcoming.map(async task => {
+        if (!task.member_id) return { ...task, memberName: "No Member" };
         const { data: member } = await supabase.from("user_credentials").select("first_name,last_name").eq("id", task.member_id).single();
-        return {...task, memberName: member ? `${member.first_name} ${member.last_name}` : "Unknown"};
+        return { ...task, memberName: member ? `${member.first_name} ${member.last_name}` : "Unknown" };
       }));
 
       setUpcomingTasks(withNames);
@@ -284,30 +293,30 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
   }, []);
 
   // Weekly Summary
-  const weeklyData = WEEK_DAYS.map(day=>{
-    const dayTasks = allWeeklyTasks.filter(task=>{
-      const taskDay = new Date(task.due_date).toLocaleDateString("en-US",{weekday:"long"});
+  const weeklyData = WEEK_DAYS.map(day => {
+    const dayTasks = allWeeklyTasks.filter(task => {
+      const taskDay = new Date(task.due_date).toLocaleDateString("en-US", { weekday: "long" });
       return taskDay === day;
     });
     return {
-      "To Do": dayTasks.filter(t=>t.status==="To Do").length,
-      "In Progress": dayTasks.filter(t=>t.status==="In Progress").length,
-      "To Review": dayTasks.filter(t=>t.status==="To Review").length,
-      "Completed": dayTasks.filter(t=>t.status==="Completed").length,
-      "Missed": dayTasks.filter(t=>t.status==="Missed").length
+      "To Do": dayTasks.filter(t => t.status === "To Do").length,
+      "In Progress": dayTasks.filter(t => t.status === "In Progress").length,
+      "To Review": dayTasks.filter(t => t.status === "To Review").length,
+      "Completed": dayTasks.filter(t => t.status === "Completed").length,
+      "Missed": dayTasks.filter(t => t.status === "Missed").length
     };
   });
 
   const lineData = {
     labels: WEEK_DAYS,
-    datasets: ["To Do","In Progress","To Review","Completed","Missed"].map(status=>({
+    datasets: ["To Do", "In Progress", "To Review", "Completed", "Missed"].map(status => ({
       label: status,
-      data: weeklyData.map(d=>d[status]),
-      borderColor: getLineColor({dataset:{label:status}}),
+      data: weeklyData.map(d => d[status]),
+      borderColor: getLineColor({ dataset: { label: status } }),
       backgroundColor: "transparent",
       fill: false,
       tension: 0.3,
-      pointBackgroundColor: getLineColor({dataset:{label:status}}),
+      pointBackgroundColor: getLineColor({ dataset: { label: status } }),
       pointHoverBackgroundColor: makeHalfAsOpaque,
       pointRadius: adjustRadiusBasedOnData,
       pointHoverRadius: 15
@@ -315,64 +324,66 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
   };
 
   const lineOptions = {
-    responsive:true,
-    plugins:{legend:{position:"bottom"}, tooltip:{enabled:true}, title:{display:false}},
-    scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}
+    responsive: true,
+    plugins: { legend: { position: "bottom" }, tooltip: { enabled: true }, title: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
   };
 
-  const calendarEvents = allWeeklyTasks.map(task=>({
+  const calendarEvents = allWeeklyTasks.map(task => ({
     id: task.id,
     title: task.task + " (" + task.status + ")",
     start: task.due_date + "T" + (task.time || "00:00"),
     color: task.status === "Completed" ? "#4BC0C0"
-          : task.status === "Missed" ? "#FF6384"
-          : task.status === "In Progress" ? "#809D3C"
+      : task.status === "Missed" ? "#FF6384"
+        : task.status === "In Progress" ? "#809D3C"
           : task.status === "To Review" ? "#578FCA"
-          : "#FABC3F"
+            : "#FABC3F"
   }));
-  //////////////////////
-  useEffect(() => {
-    if (isSoloMode) {
-      setActivePage("SoloModeDashboard");
-    } else {
-      setActivePage("Dashboard");
-    }
-  }, [isSoloMode]);
-////////////////////
 
-  const renderContent = ()=>{
-    switch(activePage){
-      case "Tasks": return <Tasks setActivePage={setActivePage}/>;
-      case "Adviser Tasks": return <AdviserTasks/>;
-      case "Tasks Board": return <ManagerTaskBoard/>;
-      case "Title Defense": return <ManagerTitleDefense/>;
-      case "Oral Defense": return <ManagerOralDefense/>;
-      case "Final Defense": return <ManagerFinalDefense/>;
-      case "Final Re-Defense": return <ManagerFinalRedefTask/>;
-      case "Tasks Allocation": return <ManagerAllocation/>;
-      case "Tasks Record": return <ManagerTaskRecord setActivePage={setActivePage}/>;
-      case "Title Defense Record": return <ManagerTitleRecord/>;
-      case "Oral Defense Record": return <ManagerOralRecord/>;
-      case "Final Defense Record": return <ManagerFinalRecord/>;
-      case "Events": return <ManagerEvents/>;
-      case "Profile": return <Profile/>;
-              case "SoloModeDashboard":
+  
+ useEffect(() => {
+  if (isSoloMode) {
+    setActivePage("SoloModeDashboard");
+  } else if (subPage) {
+    setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
+  } else {
+    setActivePage("Dashboard");
+  }
+}, [isSoloMode, subPage]);
+
+  const renderContent = () => {
+    switch (activePage) {
+      case "Tasks": return <Tasks setActivePage={setActivePage} />;
+      case "Adviser Tasks": return <AdviserTasks />;
+      case "Tasks Board": return <ManagerTaskBoard />;
+      case "Title Defense": return <ManagerTitleDefense />;
+      case "Oral Defense": return <ManagerOralDefense />;
+      case "Final Defense": return <ManagerFinalDefense />;
+      case "Final Re-Defense": return <ManagerFinalRedefTask />;
+      case "Tasks Allocation": return <ManagerAllocation />;
+      case "Tasks Record": return <ManagerTaskRecord setActivePage={setActivePage} />;
+      case "Title Defense Record": return <ManagerTitleRecord />;
+      case "Oral Defense Record": return <ManagerOralRecord />;
+      case "Final Defense Record": return <ManagerFinalRecord />;
+      case "Events": return <ManagerEvents />;
+      case "Profile": return <Profile />;
+      case "SoloModeDashboard":
         return <SoloModeDashboard />;
-        case "SolomodeTasks":
+      case "SolomodeTasks":
         return <SoloModeTasks />;
-        case "SolomodeTasks Board":
+      case "SolomodeTasks Board":
         return <SoloModeTasksBoard />;
-        case "SolomodeTasks Record":
+      case "SolomodeTasks Record":
         return <SoloModeTasksRecord />;
       default:
         return (
           <div className="dashboard-content">
             <h4>UPCOMING TASKS</h4>
             <div className="upcoming-activity">
-              {upcomingTasks.length===0 ? (
+              {upcomingTasks.length === 0 ? (
                 <p className="fst-italic text-muted">No upcoming tasks</p>
               ) : (
-                upcomingTasks.map((t,i)=>(
+                upcomingTasks.map((t, i) => (
                   <div key={i} className="activity-card">
                     <div className="activity-header">
                       <i className="fas fa-user-tag"></i>
@@ -391,11 +402,11 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
             <div className="summary-progress-container">
               <div className="weekly-summary">
                 <h4>WEEKLY SUMMARY</h4>
-                <Line data={lineData} options={lineOptions}/>
+                <Line data={lineData} options={lineOptions} />
               </div>
               <div className="team-progress">
                 <h4>TEAM PROGRESS</h4>
-                <TeamProgressChart/>
+                <TeamProgressChart />
               </div>
             </div>
 
@@ -415,14 +426,14 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
                     <tbody>
                       {recentTasks.map((t, i) => (
                         <tr key={t.id}>
-                          <td>{i+1}.</td>
+                          <td>{i + 1}.</td>
                           <td>{t.task}</td>
                           <td>{new Date(t.created_at).toLocaleDateString()}</td>
                           <td>{new Date(t.due_date).toLocaleDateString()}</td>
                           <td>{t.time}</td>
                           <td>{t.project_phase}</td>
                           <td>
-                            <span className={`status-badge status-${t.status.toLowerCase().replace(" ","-")}`}>
+                            <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
                               {t.status}
                             </span>
                           </td>
@@ -453,37 +464,37 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
     }
   };
 
- return (
-  <div>
-    <Header
-      isSoloMode={isSoloMode}
-      setIsSoloMode={setIsSoloMode}
-      
-    />
-    <div className="d-flex">
-      <Sidebar
-        activeItem={activePage}
-        onSelect={setActivePage}
-        onWidthChange={setSidebarWidth}
+  return (
+    <div>
+      <Header
         isSoloMode={isSoloMode}
+        setIsSoloMode={setIsSoloMode}
+
       />
-      <div
-        className="flex-grow-1 p-3"
-        style={{
-          marginLeft: `${sidebarWidth}px`,
-          transition: "margin-left 0.3s",
-        }}
-        id="main-content-wrapper" // New wrapper for content and footer
-      >
-        <main className="flex-grow-1 p-3">
-          {renderContent()}
-        </main>
-        {/* ✨ ADD THE FOOTER COMPONENT HERE */}
-        <Footer /> 
+      <div className="d-flex">
+        <Sidebar
+          activeItem={activePage}
+          onSelect={handlePageChange}
+          onWidthChange={setSidebarWidth}
+          isSoloMode={isSoloMode}
+        />
+        <div
+          className="flex-grow-1 p-3"
+          style={{
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
+          }}
+          id="main-content-wrapper" // New wrapper for content and footer
+        >
+          <main className="flex-grow-1 p-3">
+            {renderContent()}
+          </main>
+          {/* ✨ ADD THE FOOTER COMPONENT HERE */}
+          <Footer />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default ManagerDashboard;

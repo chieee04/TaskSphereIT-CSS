@@ -54,7 +54,7 @@ const Signin = () => {
             showConfirmButton: false,
           });
 
-          navigate("/InstructorDashboard");
+          navigate("/Instructor");
           return;
         }
       }
@@ -103,7 +103,7 @@ const Signin = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        navigate("/ManagerDashboard");
+        navigate("/Manager");
       } else if (user.user_roles === 2) {
         Swal.fire({
           icon: "success",
@@ -112,7 +112,7 @@ const Signin = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        navigate("/MemberDashboard");
+        navigate("/Member");
       } else if (user.user_roles === 3) {
         Swal.fire({
           icon: "success",
@@ -121,7 +121,7 @@ const Signin = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        navigate("/AdviserDashboard");
+        navigate("/Adviser");
       } else {
         Swal.fire({
           icon: "warning",

@@ -41,7 +41,6 @@ export const router = createBrowserRouter([
   //-----------------------------------------------------------
 
   //IT INSTRUCTOR 
-  { path: "/InstructorDashboard", element: <InstructorDashboard /> },
   { path: "/Student-Credentials", element: <StudentCredentials /> },
   { path: "/Adviser-Credentials", element: <AdviserCredentials /> },
   { path: "/Adviser-Enroll", element: <Adviser /> },
@@ -61,18 +60,26 @@ export const router = createBrowserRouter([
   
 
   //MEMBER
-  { path: "/MemberAdviserTasks", element: <MemberAdviserTasks /> },
-  { path: "/MemberAllocation", element: <MemberAllocation /> },
   { path: "/MemberTask", element: <MemberTask /> },
-{ path: "Final Re Defense", element: <AdviserFinalRedefTask /> },
+  { path: "Final Re Defense", element: <AdviserFinalRedefTask /> },
   
   //
   
 
+
+
   //dashboard
-  { path: "/ManagerDashboard", element: <ManagerDashboard /> },
-  { path: "/MemberDashboard", element: <MemberDashboard /> },
-  { path: "/AdviserDashboard", element: <AdviserDashboard /> },
+  { path: "/Manager", element: <ManagerDashboard /> },
+  { path: "/Manager/:subPage", element: <ManagerDashboard /> },
+
+  { path: "/Member", element: <MemberDashboard /> },
+  { path: "/Member/:subPage", element: <MemberDashboard /> },
+
+  { path: "/Adviser", element: <AdviserDashboard /> },
+  { path: "/Adviser/:subPage", element: <AdviserDashboard /> },
+  
+  { path: "/Instructor", element: <InstructorDashboard /> },
+  { path: "/Instructor/:subPage", element: <InstructorDashboard /> },
 
     ],
   },

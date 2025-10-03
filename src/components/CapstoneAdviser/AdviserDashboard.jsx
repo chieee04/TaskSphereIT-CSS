@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation,useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 
 import AdviserTeamSummary from "./AdviserTeamsSummary";
@@ -116,19 +116,32 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     location.state?.activePage || activePageFromHeader || "Dashboard"
   );
 
-  useEffect(() => {
-    if (location.state?.activePage) {
-      setActivePage(location.state.activePage);
-    }
-  }, [location.key]);
-
-  useEffect(() => {
-    if (isSoloMode) {
-      setActivePage("SoloModeDashboard");
+  const navigate = useNavigate();
+const { subPage } = useParams();
+const handlePageChange = (page) => {
+  setActivePage(page);
+  navigate(`/Adviser/${page.replace(/\s+/g, "")}`);
+};
+useEffect(() => {
+    if (subPage) {
+      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
     } else {
       setActivePage("Dashboard");
     }
-  }, [isSoloMode]);
+  }, [subPage]);
+
+
+
+  useEffect(() => {
+  if (isSoloMode) {
+    setActivePage("SoloModeDashboard");
+  } else if (subPage) {
+    setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
+  } else {
+    setActivePage("Dashboard");
+  }
+}, [isSoloMode, subPage]);
+
 
   // Fetch all data for the adviser dashboard
   useEffect(() => {
@@ -365,11 +378,11 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     />
     <div className="d-flex" style={{ marginTop: "30px" }}> {/* ✅ Idinagdag ang style={{ marginTop: "60px" }} */}
       <Sidebar
-        activeItem={activePage}
-        onSelect={setActivePage}
-        onWidthChange={setSidebarWidth}
-        isSoloMode={isSoloMode}
-      />
+  activeItem={activePage}
+  onSelect={handlePageChange}
+  onWidthChange={setSidebarWidth}
+  isSoloMode={isSoloMode}
+/>
       <div
         className="flex-grow-1 p-3"
         style={{

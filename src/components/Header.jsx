@@ -71,13 +71,13 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     const customUser = JSON.parse(localStorage.getItem("customUser"));
 
     if (customUser?.user_roles === 1) {
-      navigate("/ManagerDashboard", { state: { activePage: "Profile" } });
+      navigate("/Manager/Profile", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 2) {
-      navigate("/MemberDashboard", { state: { activePage: "Profile" } });
+      navigate("/Member/Profile", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 3) {
-      navigate("/AdviserDashboard", { state: { activePage: "Profile" } });
+      navigate("/Adviser/Profile", { state: { activePage: "Profile" } });
     } else if (user) {
-      navigate("/InstructorDashboard", { state: { activePage: "Profile" } });
+      navigate("/Instructor/Profile", { state: { activePage: "Profile" } });
     } else {
       navigate("/Profile");
     }

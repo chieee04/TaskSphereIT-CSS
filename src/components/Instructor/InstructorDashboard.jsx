@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
- 
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
@@ -10,8 +10,7 @@ import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
- 
- 
+
 import Footer from "../Footer";
 import Header from "../Header";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
@@ -19,38 +18,38 @@ import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 import Profile from "../Profile";
- 
- 
+
+
 // Define the primary color constants for consistency
 const TASKSPHERE_DARK_RED = "#5B0A0A";
 const PENDING_TEXT_BROWN = "#795548";
 const TASKSPHERE_PURPLE = "#805ad5";
- 
- 
+
+
 // --- Calendar Helper Functions ---
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
- 
+
 const getDaysInMonth = (year, month) => {
   return new Date(year, month + 1, 0).getDate();
 };
- 
+
 const getFirstDayOfMonth = (year, month) => {
   // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   return new Date(year, month, 1).getDay();
 };
- 
+
 // --- Teams Progress Components ---
- 
+
 // SVG-based Circular Progress Bar
 const ProgressCircle = ({ percentage }) => {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
   const isFilled = percentage > 0;
- 
+
   return (
     <svg width="120" height="120" viewBox="0 0 120 120">
       <circle
@@ -89,7 +88,7 @@ const ProgressCircle = ({ percentage }) => {
     </svg>
   );
 };
- 
+
 // Reusable component for a single adviser's card
 const TeamCard = ({ adviser, teams }) => {
   return (
@@ -112,12 +111,12 @@ const TeamCard = ({ adviser, teams }) => {
     </div>
   );
 };
- 
+
 const InstructorDashboard = () => {
   const [activePage, setActivePage] = useState("Dashboard");
-  const [sidebarWidth, setSidebarWidth] = useState(70); 
-  const [isSoloMode, setIsSoloMode] = useState(false); 
- 
+  const [sidebarWidth, setSidebarWidth] = useState(70);
+  const [isSoloMode, setIsSoloMode] = useState(false);
+
   // State for the calendar
   const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1));
   const year = currentDate.getFullYear();
@@ -125,35 +124,48 @@ const InstructorDashboard = () => {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const isJan2025 = year === 2025 && month === 0;
- 
- 
+  const navigate = useNavigate();
+  const { subPage } = useParams();
+  const handlePageChange = (page) => {
+    setActivePage(page);
+    navigate(`/Instructor/${page.replace(/\s+/g, "")}`);
+  };
+  useEffect(() => {
+    if (subPage) {
+      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [subPage]);
+
+
   // Hardcoded active days from the design for Jan 2025 only
   const activeDays = {
     filled: [8, 11, 15],
     bordered: [5, 17]
   };
- 
- 
+
+
   const handleMonthChange = (e) => {
     const [newMonthIndex, newYear] = e.target.value.split('-').map(Number);
     setCurrentDate(new Date(newYear, newMonthIndex));
   };
- 
+
   const handleNav = (direction) => {
     const newMonth = month + direction;
     setCurrentDate(new Date(year, newMonth, 1));
   };
- 
+
   // Generate the functional calendar grid data
   const calendarGrid = useMemo(() => {
     const totalCells = 42;
     const days = [];
- 
+
     // Fill leading empty cells
     for (let i = 0; i < firstDay; i++) {
       days.push(null);
     }
- 
+
     // Fill actual days
     for (let day = 1; day <= daysInMonth; day++) {
       let type = 'normal';
@@ -166,53 +178,54 @@ const InstructorDashboard = () => {
       }
       days.push({ day, type });
     }
- 
+
     // Pad the grid to fill the weeks for consistent layout
     while (days.length % 7 !== 0 && days.length < totalCells) {
       days.push(null);
     }
- 
+
     // Divide into 7-day rows
     const grid = [];
     for (let i = 0; i < days.length; i += 7) {
       grid.push(days.slice(i, i + 7));
     }
- 
+
     return grid;
   }, [year, month, daysInMonth, firstDay, isJan2025]);
- 
+
   // Calendar Day Component Helper
   const CalendarDay = ({ data }) => {
     if (!data) return <td></td>;
- 
+
     let className = '';
     if (data.type === 'filled') {
       className = 'primary-active-day';
     } else if (data.type === 'bordered') {
       className = 'secondary-active-day';
     }
- 
+
     return (
       <td>
         <span className={className}>{data.day}</span>
       </td>
     );
   };
- 
- 
-  //////////////////////
+
+
   useEffect(() => {
     if (isSoloMode) {
       setActivePage("SoloModeDashboard");
+    } else if (subPage) {
+      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
     } else {
       setActivePage("Dashboard");
     }
-  }, [isSoloMode]);
-////////////////////
- 
- 
+  }, [isSoloMode, subPage]);
+
+
+
   const renderContent = () => {
- 
+
     switch (activePage) {
       case "Students":
         return <Enroll />;
@@ -522,7 +535,7 @@ const InstructorDashboard = () => {
                   border-bottom: 2px solid #3B0304;
               }
             `}</style>
- 
+
             {/* ==== UPCOMING ACTIVITY (Smaller Cards) ==== */}
             <h4>UPCOMING ACTIVITY</h4>
             <div className="upcoming-activity">
@@ -541,7 +554,7 @@ const InstructorDashboard = () => {
                 </div>
               ))}
             </div>
- 
+
             {/* ==== RECENT ACTIVITY & CALENDAR LAYOUT ==== */}
             <div className="recent-calendar-layout">
               {/* ==== RECENT ACTIVITY CREATED (Uniform Rows) ==== */}
@@ -594,7 +607,7 @@ const InstructorDashboard = () => {
                   </tbody>
                 </table>
               </div>
- 
+
               {/* ==== FUNCTIONAL CALENDAR ==== */}
               <div className="calendar-container">
                 <div className="calendar-header-controls">
@@ -634,7 +647,7 @@ const InstructorDashboard = () => {
                 </table>
               </div>
             </div>
- 
+
             {/* ====== TEAMS' PROGRESS SECTION ====== */}
             <div className="teams-progress-section">
               <h4>TEAMS' PROGRESS</h4>
@@ -667,63 +680,63 @@ const InstructorDashboard = () => {
         );
     }
   };
- 
-// --- CORRECTED RETURN BLOCK ---
+
+  // --- CORRECTED RETURN BLOCK ---
   return (
-    <div 
-        // This outer div now holds the entire page layout and ensures it takes full viewport height
-        style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
-      >
+    <div
+      // This outer div now holds the entire page layout and ensures it takes full viewport height
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+    >
       <Header
         isSoloMode={isSoloMode}
         setIsSoloMode={setIsSoloMode}
- 
+
       />
- <div className="d-flex" style={{ marginTop: "30px" }}></div>
+      <div className="d-flex" style={{ marginTop: "30px" }}></div>
       {/* This container manages the SIDEBAR and the MAIN CONTENT/FOOTER area side-by-side */}
-      <div 
-          className="d-flex" 
-          style={{ flexGrow: 1 }} // Ensures this area takes all space below the header
+      <div
+        className="d-flex"
+        style={{ flexGrow: 1 }} // Ensures this area takes all space below the header
       >
         <Sidebar
           activeItem={activePage}
-          onSelect={setActivePage}
+          onSelect={handlePageChange}
           onWidthChange={setSidebarWidth}
           isSoloMode={isSoloMode}
         />
- 
-          {/* The main content/footer wrapper. This container is the key to the sticky footer. */}
+
+        {/* The main content/footer wrapper. This container is the key to the sticky footer. */}
         <div
           className="flex-grow-1"
           style={{
-              // --- STICKY FOOTER CSS MAGIC ---
-              display: 'flex', 
-              flexDirection: 'column', // Stack children (Header, Main, Footer) vertically
-              minHeight: 0, // Allows the container to correctly calculate remaining vertical space
-              flexGrow: 1, // Take up all available horizontal space
- 
-              // Sidebar transition styles
-              marginLeft: `${sidebarWidth}px`,
-              transition: "margin-left 0.3s",
+            // --- STICKY FOOTER CSS MAGIC ---
+            display: 'flex',
+            flexDirection: 'column', // Stack children (Header, Main, Footer) vertically
+            minHeight: 0, // Allows the container to correctly calculate remaining vertical space
+            flexGrow: 1, // Take up all available horizontal space
+
+            // Sidebar transition styles
+            marginLeft: `${sidebarWidth}px`,
+            transition: "margin-left 0.3s",
           }}
-          id="main-content-wrapper" 
+          id="main-content-wrapper"
         >
           {/* The <main> element gets flex-grow: 1 to push the footer down */}
-          <main 
-              style={{ 
-                  flexGrow: 1, // The most important line: forces content to fill all available space
-                  padding: '20px', // Apply padding here instead of in the surrounding div
-              }}
+          <main
+            style={{
+              flexGrow: 1, // The most important line: forces content to fill all available space
+              padding: '20px', // Apply padding here instead of in the surrounding div
+            }}
           >
             {renderContent()}
           </main>
- 
+
           {/* The Footer component naturally sits at the bottom */}
-          <Footer /> 
+          <Footer />
         </div>
       </div>
     </div>
   );
 };
- 
+
 export default InstructorDashboard;

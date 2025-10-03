@@ -1,6 +1,6 @@
 // MemberDashboard.jsx
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation,useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import MemberAllocation from "./MemberAllocation";
 import MemberTask from "./MemberTask";
@@ -94,7 +94,20 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
   const [statusCounts, setStatusCounts] = useState({ "To Do":0,"In Progress":0,"To Review":0,"Completed":0,"Missed":0 });
-
+const navigate = useNavigate();
+const { subPage } = useParams();
+const handlePageChange = (page) => {
+  setActivePage(page);
+  navigate(`/Member/${page.replace(/\s+/g, "")}`);
+};
+useEffect(() => {
+    if (subPage) {
+      // convert TasksAllocation → Tasks Allocation
+      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
+    } else {
+      setActivePage("Dashboard");
+    }
+  }, [subPage]);
   // Fetch tasks for member's group
   useEffect(() => {
     const fetchTasks = async () => {
@@ -230,10 +243,15 @@ const [sidebarWidth, setSidebarWidth] = useState(70);
   }, [isSoloMode]);
 ////////////////////
  useEffect(() => {
-    if (location.state?.activePage) {
-      setActivePage(location.state.activePage);
-    }
-  }, [location.key]);
+  const path = location.pathname.split("/")[2]; 
+  if (path) {
+    // Convert "TasksAllocation" → "Tasks Allocation"
+    setActivePage(path.replace(/([A-Z])/g, " $1").trim());
+  } else {
+    // Default kapag wala sa URL
+    setActivePage("Dashboard");
+  }
+}, [location.pathname]);
   const renderContent = ()=>{
     switch(activePage){
       case "Tasks Allocation": return <MemberAllocation />;
@@ -342,11 +360,11 @@ return (
     />
     <div className="d-flex">
       <Sidebar
-        activeItem={activePage}
-        onSelect={setActivePage}
-        onWidthChange={setSidebarWidth}
-        isSoloMode={isSoloMode}
-      />
+  activeItem={activePage}
+  onSelect={handlePageChange}
+  onWidthChange={setSidebarWidth}
+  isSoloMode={isSoloMode}
+/>
       <div
         className="flex-grow-1 p-3"
         style={{
