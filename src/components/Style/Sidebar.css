@@ -1,17 +1,16 @@
 .sidebar {
- display: flex;
- flex-direction: column;
- background-color: #f8f9fa; /* bg-light */
- padding: 0.5rem;
- transition: width 0.3s;
- 
- /* FIXED POSITION - HINDE GALAW KAHIT MAG-SCROLL */
- position: fixed;
- top: 0; /* Aligns the top of the sidebar with the bottom of the header */
- bottom: 0; /* Extends the sidebar to the bottom of the viewport */
- left: 0;
- overflow-y: auto;
- z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa; /* bg-light */
+    padding: 0.5rem;
+    transition: width 0.3s;
+    
+    position: fixed;
+    top: 60px; /* Adjust this value to match the header's height */
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    z-index: 999; /* A value less than the header's z-index */
 }
 
 .sidebar-collapsed {

@@ -175,7 +175,7 @@ const Teams = () => {
           if (team.group_number) {
             await supabase
               .from("user_credentials")
-              .update({ group_number: null, group_name: null, adviser_group: null })
+              .update({ group_number: null, group_name: null, adviser_group: null, user_roles : 2})
               .eq("group_number", team.group_number);
           } else if (team.adviser_group) {
             await supabase
@@ -592,7 +592,7 @@ const Teams = () => {
 
           const { error } = await supabase
             .from("user_credentials")
-            .update({ group_number: null, group_name: null })
+            .update({ group_number: null, group_name: null ,user_roles : 2})
             .eq("id", memberId);
 
           if (error) {

@@ -679,7 +679,7 @@ const InstructorDashboard = () => {
         setIsSoloMode={setIsSoloMode}
  
       />
- 
+ <div className="d-flex" style={{ marginTop: "30px" }}></div>
       {/* This container manages the SIDEBAR and the MAIN CONTENT/FOOTER area side-by-side */}
       <div 
           className="d-flex" 

@@ -97,14 +97,20 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
   const userRole = getUserRole();
 
   return (
-    <div
+    <header
       className="px-4 py-2"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         height: "60px",
-        position: "relative",
+        position: "fixed", // Changed from relative to fixed
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        backgroundColor: "white",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
       }}
     >
       <a href="/" style={{ display: "inline-block" }}>
@@ -249,7 +255,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
           </div>
         </div>
       )}
-    </div>
+    </header>
   );
 };
 export default Header;

@@ -358,34 +358,34 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
   };
 
   return (
-    <div>
-      <Header
+  <div>
+    <Header
+      isSoloMode={isSoloMode}
+      setIsSoloMode={setIsSoloMode}
+    />
+    <div className="d-flex" style={{ marginTop: "30px" }}> {/* ✅ Idinagdag ang style={{ marginTop: "60px" }} */}
+      <Sidebar
+        activeItem={activePage}
+        onSelect={setActivePage}
+        onWidthChange={setSidebarWidth}
         isSoloMode={isSoloMode}
-        setIsSoloMode={setIsSoloMode}
       />
-      <div className="d-flex">
-        <Sidebar
-          activeItem={activePage}
-          onSelect={setActivePage}
-          onWidthChange={setSidebarWidth}
-          isSoloMode={isSoloMode}
-        />
-        <div
-          className="flex-grow-1 p-3"
-          style={{
-            marginLeft: `${sidebarWidth}px`,
-            transition: "margin-left 0.3s",
-          }}
-          id="main-content-wrapper"
-        >
-          <main className="flex-grow-1 p-3">
-            {renderContent()}
-          </main>
-          <Footer />
-        </div>
+      <div
+        className="flex-grow-1 p-3"
+        style={{
+          marginLeft: `${sidebarWidth}px`,
+          transition: "margin-left 0.3s",
+        }}
+        id="main-content-wrapper"
+      >
+        <main className="flex-grow-1 p-3">
+          {renderContent()}
+        </main>
+        <Footer />
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default AdviserDashboard;

@@ -1,90 +1,225 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { FaUserCircle } from "react-icons/fa";
+import { FaUserCircle, FaSave, FaTimes } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+ 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-useEffect(() => {
-  const fetchCurrentUser = async () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [saving, setSaving] = useState(false);
+ 
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const customUser = JSON.parse(localStorage.getItem("customUser"));
+        console.log("🔍 Loaded from localStorage:", customUser);
+ 
+        const userId = customUser?.id;          // Supabase UID
+        const userNameId = customUser?.user_id; // for Manager/Adviser/Member
+        const hasRole = !!customUser?.user_roles;
+ 
+        if (!userId && !userNameId) {
+          console.error("❌ Walang valid user sa localStorage");
+          setLoading(false);
+          return;
+        }
+ 
+        let user = null;
+ 
+        if (hasRole) {
+          // 👉 Manager / Member / Adviser → fetch from user_credentials
+          console.log("🔄 Fetching from user_credentials with user_id:", userNameId);
+ 
+          const { data, error } = await supabase
+            .from("user_credentials")
+            .select("user_id, first_name, last_name, middle_name, user_roles, password")
+            .eq("user_id", userNameId)
+            .single();
+ 
+          if (error) {
+            console.error("❌ Error fetching user info:", error);
+            setLoading(false);
+            return;
+          }
+ 
+          user = {
+            ...data,
+            // For non-instructors, use user_id as email since there's no email column
+            email: data.user_id
+          };
+        } else {
+          // 👉 Instructor → fetch from Supabase Auth
+          console.log("🔄 Fetching instructor from auth");
+          const { data: authUser, error } = await supabase.auth.getUser();
+          if (error || !authUser?.user) {
+            console.error("❌ Error fetching instructor from auth:", error);
+            setLoading(false);
+            return;
+          }
+          user = { 
+            user_id: authUser.user.email, 
+            email: authUser.user.email, 
+            user_roles: 4,
+            first_name: authUser.user.user_metadata?.first_name || "",
+            last_name: authUser.user.user_metadata?.last_name || "",
+            middle_name: authUser.user.user_metadata?.middle_name || "",
+            password: "" // Instructors don't have password in user_credentials
+          };
+        }
+ 
+        console.log("✅ User fetched:", user);
+        setUserData(user);
+        setFormData(user);
+      } catch (err) {
+        console.error("❌ Unexpected error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+ 
+    fetchCurrentUser();
+  }, []);
+ 
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Cancel editing - reset form data
+      setFormData(userData);
+    }
+    setIsEditing(!isEditing);
+  };
+ 
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+ 
+  const handleSave = async () => {
+    setSaving(true);
     try {
       const customUser = JSON.parse(localStorage.getItem("customUser"));
-      console.log("🔍 Loaded from localStorage:", customUser);
-
-      const userId = customUser?.id;          // Supabase UID
-      const userNameId = customUser?.user_id; // for Manager/Adviser/Member
       const hasRole = !!customUser?.user_roles;
-
-      if (!userId && !userNameId) {
-        console.error("❌ Walang valid user sa localStorage");
-        setLoading(false);
-        return;
-      }
-
-      let user = null;
-
-      if (hasRole) {
-        // 👉 Manager / Member / Adviser → fetch from user_credentials
-        let query = supabase
-          .from("user_credentials")
-          .select("user_id, first_name, last_name, middle_name, user_roles");
-
-        if (userNameId) {
-          query = query.eq("user_id", userNameId);
-        } else if (userId) {
-          query = query.eq("id", userId);
+      const userRole = userData.user_roles;
+ 
+      if (hasRole && (userRole === 2 || userRole === 3 || userRole === 1)) {
+        // Member (2), Adviser (3), or Project Manager (1) - update in user_credentials
+        const updates = {};
+ 
+        // For non-instructors, user_id serves as both username and email
+        if (formData.email && formData.email !== userData.email) {
+          updates.user_id = formData.email; // Update user_id since it's used as email
         }
-
-        const { data, error } = await query.single();
-        if (error || !data) {
-          console.error("❌ Error fetching user info:", error);
-          setLoading(false);
-          return;
+ 
+        // Update names if they are editable (only for certain roles)
+        if ((userRole === 2 || userRole === 3) && formData.first_name !== userData.first_name) {
+          updates.first_name = formData.first_name;
         }
-        user = data;
-      } else {
-        // 👉 Instructor → fetch from Supabase Auth
-        const { data: authUser, error } = await supabase.auth.getUser();
-        if (error || !authUser?.user) {
-          console.error("❌ Error fetching instructor from auth:", error);
-          setLoading(false);
-          return;
+ 
+        if ((userRole === 2 || userRole === 3) && formData.last_name !== userData.last_name) {
+          updates.last_name = formData.last_name;
         }
-        user = { 
-          user_id: authUser.user.email, 
-          email: authUser.user.email, 
-          user_roles: 4 
+ 
+        if ((userRole === 2 || userRole === 3) && formData.middle_name !== userData.middle_name) {
+          updates.middle_name = formData.middle_name;
+        }
+ 
+        // Update password if provided
+        if (formData.newPassword) {
+          updates.password = formData.newPassword;
+        }
+ 
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase
+            .from("user_credentials")
+            .update(updates)
+            .eq("user_id", userData.user_id); // Use original user_id for lookup
+ 
+          if (error) throw error;
+ 
+          // If user_id was updated, update localStorage
+          if (updates.user_id) {
+            const updatedCustomUser = {
+              ...customUser,
+              user_id: updates.user_id
+            };
+            localStorage.setItem("customUser", JSON.stringify(updatedCustomUser));
+          }
+        }
+      } else if (userRole === 4) {
+        // Instructor (4) - update all data in auth and user_metadata
+        const updateData = {
+          email: formData.email,
         };
+ 
+        // Only include data that has changed
+        if (formData.first_name !== userData.first_name) {
+          updateData.data = {
+            ...updateData.data,
+            first_name: formData.first_name
+          };
+        }
+        if (formData.last_name !== userData.last_name) {
+          updateData.data = {
+            ...updateData.data,
+            last_name: formData.last_name
+          };
+        }
+        if (formData.middle_name !== userData.middle_name) {
+          updateData.data = {
+            ...updateData.data,
+            middle_name: formData.middle_name
+          };
+        }
+ 
+        const { error } = await supabase.auth.updateUser(updateData);
+        if (error) throw error;
+ 
+        // Update password separately if provided
+        if (formData.newPassword) {
+          const { error: passwordError } = await supabase.auth.updateUser({
+            password: formData.newPassword
+          });
+ 
+          if (passwordError) throw passwordError;
+        }
       }
-
-      console.log("✅ User fetched:", user);
-      setUserData(user);
-    } catch (err) {
-      console.error("❌ Unexpected error:", err);
+ 
+      // Update local state with new data
+      const updatedUserData = {
+        ...formData,
+        // If user_id was updated, use the new user_id
+        user_id: formData.email || userData.user_id
+      };
+ 
+      setUserData(updatedUserData);
+      setIsEditing(false);
+      alert("Profile updated successfully!");
+ 
+    } catch (error) {
+      console.error("❌ Error updating profile:", error);
+      alert("Error updating profile: " + error.message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  fetchCurrentUser();
-}, []);
-
-
-  
-  
-
+ 
   if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading profile...</p>;
   if (!userData) return <p style={{ textAlign: "center", marginTop: "50px" }}>User not found</p>;
-
+ 
   const roleMap = {
     1: "Project Manager",
     2: "Member",
     3: "Adviser",
     4: "IT Instructor"
   };
-
+ 
+  const isMemberOrAdviser = userData.user_roles === 2 || userData.user_roles === 3;
+  const isInstructor = userData.user_roles === 4;
+  const isProjectManager = userData.user_roles === 1;
+ 
   return (
     <div className="container my-4">
       <style>
@@ -128,6 +263,7 @@ useEffect(() => {
             display: flex;
             justify-content: flex-end;
             align-items: flex-start;
+            gap: 10px;
           }
           .section-title {
             font-size: 1.2rem;
@@ -192,8 +328,13 @@ useEffect(() => {
             background-color: white;
           }
           .form-control:read-only {
-            background-color: white;
+            background-color: #f8f9fa;
             cursor: not-allowed;
+          }
+          .form-control:focus {
+            border-color: #5a0d0e;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(90, 13, 14, 0.25);
           }
           .forgot-password-link-container {
             width: 80%;
@@ -208,29 +349,67 @@ useEffect(() => {
             font-weight: bold;
             margin-top: 5px;
           }
-          .update-btn {
-            background-color: #5a0d0e;
-            color: white;
+          .update-btn, .save-btn, .cancel-btn {
             padding: 10px 20px;
             border: none;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .update-btn {
+            background-color: #5a0d0e;
+            color: white;
           }
           .update-btn:hover {
             background-color: #3b0304;
           }
+          .update-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+          }
+          .save-btn {
+            background-color: #28a745;
+            color: white;
+          }
+          .save-btn:hover {
+            background-color: #218838;
+          }
+          .save-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+          }
+          .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+          }
+          .cancel-btn:hover {
+            background-color: #545b62;
+          }
+          .edit-note {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+            font-style: italic;
+          }
+          .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+          }
         `}
       </style>
-
+ 
       <div className="profile-container">
         {/* Profile Header */}
         <div className="profile-header">
           <FaUserCircle className="me-2" style={{ color: "black" }} />
           <span>Profile</span>
         </div>
-
+ 
         {/* Main Content Area */}
         <div className="profile-main-content">
           <div className="profile-top-row">
@@ -241,16 +420,36 @@ useEffect(() => {
                 <FaUserCircle />
               </div>
             </div>
-
-            {/* Right Side: Update Profile Button */}
+ 
+            {/* Right Side: Action Buttons */}
             <div className="update-button-wrapper">
-              <button className="update-btn d-flex align-items-center">
-                <FaUserCircle className="me-2" />
-                Update Profile
-              </button>
+              {!isEditing ? (
+                <button 
+                  className="update-btn" 
+                  onClick={handleEditToggle}
+                >
+                  <FaUserCircle />
+                  Edit Profile
+                </button>
+              ) : (
+                <>
+                  <button 
+                    className="save-btn" 
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    <FaSave />
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button className="cancel-btn" onClick={handleEditToggle}>
+                    <FaTimes />
+                    Cancel
+                  </button>
+                </>
+              )}
             </div>
           </div>
-
+ 
           {/* Details Section */}
           <div className="details-sections-wrapper">
             {/* Personal Details Column */}
@@ -258,15 +457,42 @@ useEffect(() => {
               <h3 className="section-title">Personal Details</h3>
               <div className="form-group">
                 <label>Last Name</label>
-                <input type="text" className="form-control" value={userData.last_name} readOnly />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={formData.last_name || ""} 
+                  readOnly={!isEditing || (!isInstructor && !isMemberOrAdviser)}
+                  onChange={(e) => handleInputChange("last_name", e.target.value)}
+                />
+                {isEditing && !isInstructor && !isMemberOrAdviser && (
+                  <div className="edit-note">Only instructors, members, and advisers can edit this field</div>
+                )}
               </div>
               <div className="form-group">
                 <label>First Name</label>
-                <input type="text" className="form-control" value={userData.first_name} readOnly />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={formData.first_name || ""} 
+                  readOnly={!isEditing || (!isInstructor && !isMemberOrAdviser)}
+                  onChange={(e) => handleInputChange("first_name", e.target.value)}
+                />
+                {isEditing && !isInstructor && !isMemberOrAdviser && (
+                  <div className="edit-note">Only instructors, members, and advisers can edit this field</div>
+                )}
               </div>
               <div className="form-group">
                 <label>Middle Name</label>
-                <input type="text" className="form-control" value={userData.middle_name || ""} readOnly />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={formData.middle_name || ""} 
+                  readOnly={!isEditing || (!isInstructor && !isMemberOrAdviser)}
+                  onChange={(e) => handleInputChange("middle_name", e.target.value)}
+                />
+                {isEditing && !isInstructor && !isMemberOrAdviser && (
+                  <div className="edit-note">Only instructors, members, and advisers can edit this field</div>
+                )}
               </div>
               <div className="form-group">
                 <label>Role</label>
@@ -278,24 +504,45 @@ useEffect(() => {
                 />
               </div>
             </div>
-
+ 
             {/* Security Account Column */}
             <div className="details-column">
               <h3 className="section-title">Security Account</h3>
               <div className="form-group">
                 <label>ID NO</label>
-                <input type="text" className="form-control" value={userData.user_id} readOnly />
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={formData.user_id || ""} 
+                  readOnly 
+                />
               </div>
               <div className="form-group">
                 <label>Password</label>
-                <input type="password" className="form-control" value="********" readOnly />
+                <input 
+                  type="password" 
+                  className="form-control" 
+                  value={isEditing ? (formData.newPassword || "") : "********"} 
+                  readOnly={!isEditing}
+                  placeholder={isEditing ? "Enter new password" : ""}
+                  onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                />
                 <div className="forgot-password-link-container">
                   <a href="#" className="forgot-password-link">Forgot Password</a>
                 </div>
               </div>
               <div className="form-group">
-                <label>Email</label>
-                <input type="email" className="form-control" value=""/*{userData.email}*/ readOnly />
+                <label>Username/Email</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={formData.email || ""} 
+                  readOnly={!isEditing}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                />
+                {isEditing && (
+                  <div className="edit-note">This serves as both username and email</div>
+                )}
               </div>
             </div>
           </div>
@@ -304,5 +551,5 @@ useEffect(() => {
     </div>
   );
 };
-
+ 
 export default Profile;

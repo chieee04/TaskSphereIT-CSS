@@ -14,7 +14,6 @@ import {
   FaTrash,
   FaSearch,
 } from "react-icons/fa";
-// Assuming this file contains generic Bootstrap/CSS overrides, keeping import for now
 import "../Style/Instructor/Enroll-Member.css"; 
 import { openAddStudent } from "../../services/instructor/addStudent";
  
@@ -96,18 +95,156 @@ const Enroll = () => {
   };
  
 const handleAddStudent = async () => {
-  const result = await openAddStudent();
-  if (result.isConfirmed && result.value) {
-    const newStudent = {
-      id: uuidv4(),
-      ...result.value,
-    };
-    setImportedData((prev) => [...prev, newStudent]);
-    MySwal.fire("Added!", "New student added successfully.", "success");
-  }
+  MySwal.fire({
+    title: "",
+    html: `
+      <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
+        <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+          </svg>
+          Add Student
+        </h5>
+      </div>
+ 
+      <div style="padding: 1.2rem 1.2rem;">
+        <!-- Student ID -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+          <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Student ID</label>
+          <input id="user_id" class="swal2-input" placeholder=""
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+        </div>
+ 
+        <!-- Password -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+          <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
+          <input id="password" class="swal2-input" placeholder=""
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+        </div>
+ 
+        <!-- Last Name -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+          <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
+          <input id="last_name" class="swal2-input" placeholder=""
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+        </div>
+ 
+        <!-- First Name -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+          <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
+          <input id="first_name" class="swal2-input" placeholder=""
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+        </div>
+ 
+        <!-- Middle Name -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
+          <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+          <input id="middle_name" class="swal2-input" placeholder=""
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+        </div>
+ 
+        <!-- Buttons -->
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
+          <button id="cancel-btn" class="swal2-cancel"
+            style="border: 1.5px solid #3B0304; background-color: #fff; color: #3B0304; font-weight: 500; padding: 0.5rem 1.8rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem;">
+            Cancel
+          </button>
+          <button id="enroll-btn" class="swal2-confirm"
+            style="background-color: #3B0304; color: #fff; font-weight: 500; padding: 0.5rem 1.8rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; border: 1.5px solid #3B0304;">
+            Enroll
+          </button>
+        </div>
+      </div>
+    `,
+    showConfirmButton: false,
+    showCancelButton: false,
+    width: "460px",
+    customClass: {
+      popup: 'custom-swal-popup',
+    },
+    didOpen: () => {
+      const popup = Swal.getPopup();
+ 
+      // Cancel button functionality
+      popup.querySelector('#cancel-btn').onclick = () => {
+        Swal.close();
+      };
+ 
+      // Enroll button functionality
+      popup.querySelector('#enroll-btn').onclick = () => {
+        Swal.clickConfirm();
+      };
+ 
+      // Hover effects
+      popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
+        e.target.style.backgroundColor = '#f8f8f8';
+      });
+      popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
+        e.target.style.backgroundColor = '#fff';
+      });
+      popup.querySelector('#enroll-btn').addEventListener('mouseenter', (e) => {
+        e.target.style.backgroundColor = '#2a0203';
+        e.target.style.borderColor = '#2a0203';
+      });
+      popup.querySelector('#enroll-btn').addEventListener('mouseleave', (e) => {
+        e.target.style.backgroundColor = '#3B0304';
+        e.target.style.borderColor = '#3B0304';
+      });
+ 
+      // Add focus effects to inputs
+      const inputs = popup.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', (e) => {
+          e.target.style.borderColor = '#3B0304';
+          e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
+        });
+        input.addEventListener('blur', (e) => {
+          e.target.style.borderColor = '#888';
+          e.target.style.boxShadow = 'none';
+        });
+      });
+    },
+    preConfirm: () => {
+      const user_id = document.getElementById("user_id").value;
+      const password = document.getElementById("password").value;
+      const first_name = document.getElementById("first_name").value;
+      const last_name = document.getElementById("last_name").value;
+ 
+      if (!user_id || !password || !first_name || !last_name) {
+        MySwal.showValidationMessage(
+          'Please fill out all required fields (Student ID, Password, First Name, Last Name).'
+        );
+        return false;
+      }
+ 
+      // Number check
+      if (/\d/.test(first_name) || /\d/.test(last_name)) {
+        MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+        return false;
+      }
+ 
+      return {
+        user_id,
+        password,
+        first_name,
+        last_name,
+        middle_name: document.getElementById("middle_name").value,
+      };
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const newStudent = {
+        id: uuidv4(),
+        ...result.value,
+      };
+      setImportedData((prev) => [...prev, newStudent]);
+      MySwal.fire("Added!", "New student added successfully.", "success");
+    }
+  });
 };
-
-  
+ 
+ 
   // --- Core Functionality (No change to import/upload logic) ---
  
   const handleDownload = () => {
@@ -133,7 +270,7 @@ const handleAddStudent = async () => {
 const handleImport = (event) => {
   const file = event.target.files[0];
   if (!file) return;
-
+ 
   const reader = new FileReader();
   reader.onload = (e) => {
     const data = new Uint8Array(e.target.result);
@@ -141,12 +278,12 @@ const handleImport = (event) => {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
+ 
     // 1️⃣ Check for numbers in first or last name
     const invalidRow = jsonData.find(
       (row) => /\d/.test(row.first_name || "") || /\d/.test(row.last_name || "")
     );
-
+ 
     if (invalidRow) {
       MySwal.fire({
         title: "Invalid Name",
@@ -156,16 +293,16 @@ const handleImport = (event) => {
       });
       return; // Stop import
     }
-
+ 
     // 2️⃣ Check for duplicate user_id in the imported file
     const idCounts = jsonData.reduce((acc, row) => {
       const id = row.user_id ? String(row.user_id).trim() : "";
       if (id) acc[id] = (acc[id] || 0) + 1;
       return acc;
     }, {});
-
+ 
     const duplicateId = Object.keys(idCounts).find((id) => idCounts[id] > 1);
-
+ 
     if (duplicateId) {
       MySwal.fire({
         title: "Duplicate ID",
@@ -175,12 +312,12 @@ const handleImport = (event) => {
       });
       return; // Stop import
     }
-
+ 
     // If all valid, process data
     const processedData = jsonData.map((row) => {
       const firstName = row.first_name || "";
       const lastName = row.last_name || "";
-
+ 
       return {
         id: uuidv4(),
         user_id: row.user_id ? String(row.user_id).replace(/\D/g, "") : "",
@@ -190,16 +327,15 @@ const handleImport = (event) => {
         middle_name: row.middle_name || "",
       };
     });
-
+ 
     setImportedData(processedData);
     setSelectedRows([]);
     setSearchTerm("");
   };
-
+ 
   reader.readAsArrayBuffer(file);
 };
-
-
+ 
  
   const handleUpload = async () => {
     if (importedData.length === 0) {
@@ -235,57 +371,60 @@ const handleImport = (event) => {
     MySwal.fire({
       title: "",
       html: `
-       <div style="text-align: left; padding-bottom: 10px; border-bottom: 2px solid #3B0304; display: flex; align-items: center; justify-content: space-between;">
-          <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3B0304" viewBox="0 0 16 16">
+        <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
+          <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
               <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
               <path d="m14.207 2.5l-.707.707L13.5 3.707l.707-.707.646.646a.5.5 0 0 1 0 .708l-3 3-.707.707-.707-.707.707-.707 3-3 .707.707.646-.646a.5.5 0 0 1 0-.708l-3-3z"/>
             </svg>
-            Student Details
+            Edit Student
           </h5>
-          <button type="button" class="swal2-close" aria-label="Close this dialog" style="font-size: 1.5rem; color: #3B0304;">×</button>
         </div>
  
-        <div style="padding: .9rem; margin-right: 0;">
- 
-          <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; flex-direction: column; flex: 1;">
-              <label for="user_id" style="font-weight: 500; margin-bottom: 0.25rem;">Student ID</label>
-              <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder="Student ID"
-                style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
-            </div>
-            <div style="display: flex; flex-direction: column; flex: 1;">
-              <label for="password" style="font-weight: 500; margin-bottom: 0.25rem;">Password</label>
-              <input id="password" class="swal2-input" value="${row.password}" placeholder="Password"
-                style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
-            </div>
+        <div style="padding: 1.2rem 1.2rem;">
+          <!-- Student ID -->
+          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Student ID</label>
+            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder=""
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; flex-direction: column; flex: 1;">
-              <label for="first_name" style="font-weight: 500; margin-bottom: 0.25rem;">First Name</label>
-              <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder="First Name"
-                style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
-            </div>
-            <div style="display: flex; flex-direction: column; flex: 1;">
-              <label for="last_name" style="font-weight: 500; margin-bottom: 0.25rem;">Last Name</label>
-              <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder="Last Name"
-                style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
-            </div>
-            <div style="display: flex; flex-direction: column; flex: 1;">
-              <label for="middle_name" style="font-weight: 500; margin-bottom: 0.25rem;">Middle Name</label>
-              <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder="Middle Name"
-                style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
-            </div>
+          <!-- Password -->
+          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
+            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+          <!-- Last Name -->
+          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
+            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder=""
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+          </div>
+ 
+          <!-- First Name -->
+          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+            <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
+            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+          </div>
+ 
+          <!-- Middle Name -->
+          <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+          </div>
+ 
+          <!-- Buttons -->
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
             <button id="cancel-btn" class="swal2-cancel"
-              style="border: 1px solid #3B0304; background-color: #fff; color: #000; font-weight: 500; padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer; transition: background-color 0.1s;">
+              style="border: 1.5px solid #3B0304; background-color: #fff; color: #3B0304; font-weight: 500; padding: 0.5rem 1.8rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem;">
               Cancel
             </button>
             <button id="save-btn" class="swal2-confirm"
-              style="background-color: #3B0304; color: #fff; font-weight: 500; padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer; transition: opacity 0.1s;">
+              style="background-color: #3B0304; color: #fff; font-weight: 500; padding: 0.5rem 1.8rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; border: 1.5px solid #3B0304;">
               Save
             </button>
           </div>
@@ -293,51 +432,79 @@ const handleImport = (event) => {
       `,
       showConfirmButton: false,
       showCancelButton: false,
+      width: "460px",
       customClass: {
         popup: 'custom-swal-popup',
       },
       didOpen: () => {
         const popup = Swal.getPopup();
-        popup.querySelector('.swal2-close').onclick = () => Swal.close();
-        popup.querySelector('#save-btn').onclick = () => {
-          Swal.clickConfirm();
-        };
+ 
+        // Cancel button functionality
         popup.querySelector('#cancel-btn').onclick = () => {
           Swal.close();
         };
-        popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => e.target.style.backgroundColor = '#f0f0f0');
-        popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => e.target.style.backgroundColor = '#fff');
-        popup.querySelector('#save-btn').addEventListener('mouseenter', (e) => e.target.style.opacity = '0.9');
-        popup.querySelector('#save-btn').addEventListener('mouseleave', (e) => e.target.style.opacity = '1');
  
+        // Save button functionality
+        popup.querySelector('#save-btn').onclick = () => {
+          Swal.clickConfirm();
+        };
+ 
+        // Hover effects
+        popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
+          e.target.style.backgroundColor = '#f8f8f8';
+        });
+        popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
+          e.target.style.backgroundColor = '#fff';
+        });
+        popup.querySelector('#save-btn').addEventListener('mouseenter', (e) => {
+          e.target.style.backgroundColor = '#2a0203';
+          e.target.style.borderColor = '#2a0203';
+        });
+        popup.querySelector('#save-btn').addEventListener('mouseleave', (e) => {
+          e.target.style.backgroundColor = '#3B0304';
+          e.target.style.borderColor = '#3B0304';
+        });
+ 
+        // Add focus effects to inputs
+        const inputs = popup.querySelectorAll('input');
+        inputs.forEach(input => {
+          input.addEventListener('focus', (e) => {
+            e.target.style.borderColor = '#3B0304';
+            e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
+          });
+          input.addEventListener('blur', (e) => {
+            e.target.style.borderColor = '#888';
+            e.target.style.boxShadow = 'none';
+          });
+        });
       },
-preConfirm: () => {
-  const user_id = document.getElementById("user_id").value;
-  const password = document.getElementById("password").value;
-  const first_name = document.getElementById("first_name").value;
-  const last_name = document.getElementById("last_name").value;
-
-  if (!user_id || !password || !first_name || !last_name) {
-    MySwal.showValidationMessage(
-      'Please fill out all required fields (ID, Password, First, Last Name).'
-    );
-    return false;
-  }
-
-  // Number check
-  if (/\d/.test(first_name) || /\d/.test(last_name)) {
-    MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
-    return false;
-  }
-
-  return {
-    user_id,
-    password,
-    first_name,
-    last_name,
-    middle_name: document.getElementById("middle_name").value,
-  };
-},
+      preConfirm: () => {
+        const user_id = document.getElementById("user_id").value;
+        const password = document.getElementById("password").value;
+        const first_name = document.getElementById("first_name").value;
+        const last_name = document.getElementById("last_name").value;
+ 
+        if (!user_id || !password || !first_name || !last_name) {
+          MySwal.showValidationMessage(
+            'Please fill out all required fields (Student ID, Password, First Name, Last Name).'
+          );
+          return false;
+        }
+ 
+        // Number check
+        if (/\d/.test(first_name) || /\d/.test(last_name)) {
+          MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+          return false;
+        }
+ 
+        return {
+          user_id,
+          password,
+          first_name,
+          last_name,
+          middle_name: document.getElementById("middle_name").value,
+        };
+      },
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...importedData];
@@ -384,7 +551,7 @@ preConfirm: () => {
   const firstName = String(row.first_name ?? "").toLowerCase();
   const lastName = String(row.last_name ?? "").toLowerCase();
   const middleName = String(row.middle_name ?? "").toLowerCase();
-
+ 
   return (
     userId.includes(searchTerm.toLowerCase()) ||
     firstName.includes(searchTerm.toLowerCase()) ||
@@ -571,15 +738,15 @@ preConfirm: () => {
                   whiteSpace: "nowrap",
                   transition: "background-color 0.2s",
                 }}
-
+ 
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                 onClick={handleAddStudent}
-
+ 
               >
                 + Add Student
               </button>
-              
+ 
             </div>
           </div>
  

@@ -64,7 +64,10 @@ export const openCreateFinalTask = async () => {
   }
 
   const memberOptions = members
-    .map((m) => `<option value="${m.id}">${m.last_name}, ${m.first_name}</option>`)
+    .map(
+      (m) =>
+        `<option value="${m.id}">${m.last_name}, ${m.first_name}</option>`
+    )
     .join("");
 
   // 🔹 Step 5: Open SweetAlert Form
@@ -84,7 +87,9 @@ export const openCreateFinalTask = async () => {
             ${Object.keys(finalDefenseData)
               .map(
                 (m) =>
-                  `<option value="${m}" ${m === selectedMethodology ? "selected" : ""}>${m}</option>`
+                  `<option value="${m}" ${
+                    m === selectedMethodology ? "selected" : ""
+                  }>${m}</option>`
               )
               .join("")}
           </select>
@@ -169,6 +174,11 @@ export const openCreateFinalTask = async () => {
       const assignedDropdown = document.getElementById("assignedMembers");
       const membersListDiv = document.getElementById("membersList");
       let selectedMembers = [];
+      window.__finalDefSelectedMembers = [];
+
+      const syncMembers = () => {
+        window.__finalDefSelectedMembers = [...selectedMembers];
+      };
 
       // ✅ Helper functions
       const resetSelect = (select, placeholder = "") => {
@@ -196,7 +206,11 @@ export const openCreateFinalTask = async () => {
         resetSelect(subtaskSelect, "");
         resetSelect(elementSelect, "");
         if (finalDefenseData[selected]) {
-          populateOptions(projectPhaseSelect, finalDefenseData[selected].phases, "Select Project Phase");
+          populateOptions(
+            projectPhaseSelect,
+            finalDefenseData[selected].phases,
+            "Select Project Phase"
+          );
         }
       });
 
@@ -208,7 +222,11 @@ export const openCreateFinalTask = async () => {
         resetSelect(subtaskSelect, "");
         resetSelect(elementSelect, "");
         if (finalDefenseData[m]?.taskTypes[p]) {
-          populateOptions(taskTypeSelect, finalDefenseData[m].taskTypes[p], "Select Task Type");
+          populateOptions(
+            taskTypeSelect,
+            finalDefenseData[m].taskTypes[p],
+            "Select Task Type"
+          );
         }
       });
 
@@ -229,7 +247,11 @@ export const openCreateFinalTask = async () => {
         resetSelect(subtaskSelect, "");
         resetSelect(elementSelect, "");
         if (finalDefenseData[m]?.subtasks[t]) {
-          populateOptions(subtaskSelect, finalDefenseData[m].subtasks[t], "Select Subtask");
+          populateOptions(
+            subtaskSelect,
+            finalDefenseData[m].subtasks[t],
+            "Select Subtask"
+          );
         }
       });
 
@@ -238,7 +260,11 @@ export const openCreateFinalTask = async () => {
         const st = subtaskSelect.value;
         resetSelect(elementSelect, "");
         if (finalDefenseData[m]?.elements[st]) {
-          populateOptions(elementSelect, finalDefenseData[m].elements[st], "Select Element");
+          populateOptions(
+            elementSelect,
+            finalDefenseData[m].elements[st],
+            "Select Element"
+          );
         }
       });
 
@@ -261,6 +287,7 @@ export const openCreateFinalTask = async () => {
           btn.addEventListener("click", () => {
             const idToRemove = btn.getAttribute("data-id");
             selectedMembers = selectedMembers.filter((m) => m.id !== idToRemove);
+            syncMembers();
             renderMembersList();
           });
         });
@@ -268,15 +295,15 @@ export const openCreateFinalTask = async () => {
 
       assignedDropdown.addEventListener("change", () => {
         const selectedId = assignedDropdown.value;
-        const selectedText = assignedDropdown.options[assignedDropdown.selectedIndex]?.text;
+        const selectedText =
+          assignedDropdown.options[assignedDropdown.selectedIndex]?.text;
         if (!selectedId) return;
         selectedMembers.push({ id: selectedId, name: selectedText });
+        syncMembers();
         assignedDropdown.querySelector(`option[value="${selectedId}"]`).remove();
         assignedDropdown.value = "";
         renderMembersList();
       });
-
-      window.__finalDefSelectedMembers = selectedMembers;
 
       // Auto trigger methodology
       if (methodologySelect.value) {
@@ -292,14 +319,34 @@ export const openCreateFinalTask = async () => {
       const element = document.getElementById("element").value;
       const dueDate = document.getElementById("dueDate").value;
       const time = document.getElementById("time").value;
-      const assignedMembers = (window.__finalDefSelectedMembers || []).map((m) => m.id);
+      const assignedMembers = (window.__finalDefSelectedMembers || []).map(
+        (m) => m.id
+      );
       const comment = document.getElementById("comment").value;
 
-      if (!methodology || !projectPhase || !taskType || !task || !dueDate || assignedMembers.length === 0) {
+      if (
+        !methodology ||
+        !projectPhase ||
+        !taskType ||
+        !task ||
+        !dueDate ||
+        assignedMembers.length === 0
+      ) {
         Swal.showValidationMessage("⚠ Please complete all required fields!");
         return false;
       }
-      return { methodology, projectPhase, taskType, task, subtask, element, dueDate, time, assignedMembers, comment };
+      return {
+        methodology,
+        projectPhase,
+        taskType,
+        task,
+        subtask,
+        element,
+        dueDate,
+        time,
+        assignedMembers,
+        comment,
+      };
     },
   });
 
@@ -318,6 +365,8 @@ export const openCreateFinalTask = async () => {
       time: formData.time,
       comment: formData.comment,
     }));
+
+    console.log("📥 Inserting tasks:", tasksToInsert);
 
     const { data, error } = await supabase
       .from("manager_final_task")
