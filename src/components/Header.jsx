@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { FaBell, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/img/Logo.png";
-import { UserAuth } from "../Contex/AuthContext";
 
 // --- TEMPORARY INLINE CSS STYLES FOR THE SWITCH ---
 const switchContainerStyle = {
@@ -37,30 +36,20 @@ const textStyle = {
 };
 // ----------------------------------------------------
 
-// ✅ Accept isSoloMode and setIsSoloMode as props
 const Header = ({ isSoloMode, setIsSoloMode }) => {
-  const auth = UserAuth();
-  const user = auth?.user || null;
-  const logout = auth?.logout || (() => {});
-
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null);
   const [showProfileCard, setShowProfileCard] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setActiveUser(user);
-    } else {
-      const customUser = localStorage.getItem("customUser");
-      const adminUser = localStorage.getItem("adminUser");
-      if (customUser) setActiveUser(JSON.parse(customUser));
-      else if (adminUser) setActiveUser(JSON.parse(adminUser));
-      else setActiveUser(null);
-    }
-  }, [user]);
+    const storedUser =
+      JSON.parse(localStorage.getItem("customUser")) ||
+      JSON.parse(localStorage.getItem("adminUser")) ||
+      null;
+    setActiveUser(storedUser);
+  }, []);
 
-  const handleSignOut = async () => {
-    await logout();
+  const handleSignOut = () => {
     localStorage.removeItem("customUser");
     localStorage.removeItem("adminUser");
     setActiveUser(null);
@@ -69,33 +58,40 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
 
   const handleProfileClick = () => {
     const customUser = JSON.parse(localStorage.getItem("customUser"));
+    const role = customUser?.user_roles;
 
-    if (customUser?.user_roles === 1) {
-      navigate("/Manager/Profile", { state: { activePage: "Profile" } });
-    } else if (customUser?.user_roles === 2) {
-      navigate("/Member/Profile", { state: { activePage: "Profile" } });
-    } else if (customUser?.user_roles === 3) {
-      navigate("/Adviser/Profile", { state: { activePage: "Profile" } });
-    } else if (user) {
-      navigate("/Instructor/Profile", { state: { activePage: "Profile" } });
-    } else {
-      navigate("/Profile");
+    switch (role) {
+      case 1:
+        navigate("/Manager/Profile", { state: { activePage: "Profile" } });
+        break;
+      case 2:
+        navigate("/Member/Profile", { state: { activePage: "Profile" } });
+        break;
+      case 3:
+        navigate("/Adviser/Profile", { state: { activePage: "Profile" } });
+        break;
+      case 4:
+        navigate("/Instructor/Profile", { state: { activePage: "Profile" } });
+        break;
+      default:
+        navigate("/Profile");
+        break;
     }
   };
 
-  // ✅ Handler for Solo/Team switch with role-based navigation
+  // ✅ Toggle Solo/Team Mode
   const handleToggleMode = () => {
     const newMode = !isSoloMode;
     setIsSoloMode(newMode);
 
     const customUser = JSON.parse(localStorage.getItem("customUser"));
-    const role = customUser?.user_roles; // 1=Manager, 2=Member, 3=Adviser
+    const role = customUser?.user_roles;
     let basePath = "/";
 
     if (role === 1) basePath = "/Manager";
     else if (role === 2) basePath = "/Member";
     else if (role === 3) basePath = "/Adviser";
-    else basePath = "/Instructor"; // fallback default
+    else if (role === 4) basePath = "/Instructor";
 
     if (newMode) {
       navigate(`${basePath}/SoloModeDashboard`, { state: { activePage: "SoloModeDashboard" } });
@@ -109,6 +105,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     if (roleId === 1) return "Manager";
     if (roleId === 2) return "Member";
     if (roleId === 3) return "Adviser";
+    if (roleId === 4) return "Instructor";
     return "User";
   };
 
@@ -125,7 +122,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
         alignItems: "center",
         justifyContent: "space-between",
         height: "60px",
-        position: "fixed", // Changed from relative to fixed
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
@@ -147,13 +144,14 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
             gap: "10px",
           }}
         >
+          {/* SOLO/TEAM SWITCH */}
           <div
             style={{
               ...switchContainerStyle,
               backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
               justifyContent: isSoloMode ? "flex-end" : "flex-start",
             }}
-            onClick={handleToggleMode} // ✅ now role-aware
+            onClick={handleToggleMode}
           >
             <div
               style={{
@@ -177,6 +175,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
             <FaBell size={20} />
           </button>
 
+          {/* PROFILE */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setShowProfileCard(true)}
@@ -279,4 +278,5 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     </header>
   );
 };
+
 export default Header;

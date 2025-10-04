@@ -1,4 +1,4 @@
-// Sidebar.jsx
+// src/components/Sidebar.jsx
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -17,14 +17,13 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
   const logout = auth?.logout || (() => {});
   const navigate = useNavigate();
 
+  // ✅ Load user_roles from AuthContext or localStorage
   useEffect(() => {
-    if (user?.email) {
-      setuser_roles(0);
-    } else {
-      const customUser = JSON.parse(localStorage.getItem("customUser"));
-      if (customUser?.user_roles) {
-        setuser_roles(customUser.user_roles);
-      }
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (storedUser?.user_roles) {
+      setuser_roles(storedUser.user_roles);
+    } else if (user?.user_roles) {
+      setuser_roles(user.user_roles);
     }
   }, [user]);
 
@@ -38,6 +37,8 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
   const handleSignOut = async (e) => {
     e.preventDefault();
     await logout();
+    localStorage.removeItem("customUser");
+    localStorage.removeItem("user_id");
     navigate("/");
   };
 
@@ -75,9 +76,9 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
       </>
     );
   } else {
-    // Original switch statement for team mode
+    // ✅ Updated switch statement — now includes role 4 = Admin
     switch (user_roles) {
-      case 0: // Admin
+      case 4: // Admin
         sidebarItems = (
           <>
             {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
@@ -92,7 +93,7 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
             {renderMenuItem('bi-lock', 'Advisers Credentials', () => onSelect('AdviserCredentials'), activeItem === 'AdviserCredentials')}
             {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
             {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
-            {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
+            {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('RoleTransfer'), activeItem === 'RoleTransfer')}
             {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>
         );
@@ -128,10 +129,10 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
         sidebarItems = (
           <>
             {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-            {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('Teams Summary'), activeItem === 'Teams Summary')}
+            {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('TeamsSummary'), activeItem === 'TeamsSummary')}
             {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-            {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('Teams Board'), activeItem === 'Teams Board')}
-            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('TeamsBoard'), activeItem === 'TeamsBoard')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
             {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>
@@ -142,9 +143,7 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
     }
   }
 
-  if (sidebarItems === null) {
-    return null;
-  }
+  if (sidebarItems === null) return null;
 
   return (
     <div className={`sidebar ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>

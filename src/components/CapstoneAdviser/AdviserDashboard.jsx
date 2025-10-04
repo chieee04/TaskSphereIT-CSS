@@ -249,7 +249,7 @@ useEffect(() => {
 
   const renderContent = () => {
     switch (activePage) {
-      case "Teams Summary":
+      case "TeamsSummary":
         return <AdviserTeamSummary />;
       case "Tasks":
         return <AdviserTask setActivePage={setActivePage} />;
@@ -257,9 +257,9 @@ useEffect(() => {
         return <AdviserOralDef />;
       case "Final Defense":
         return <AdviserFinalDef />;
-      case "Teams Board":
+      case "TeamsBoard":
         return <AdviserTeamBoard />;
-      case "Tasks Record":
+      case "TasksRecord":
         return <AdviserTaskRecord setActivePage={setActivePage} />;
       case "Oral Defense Record":
         return <AdviserOralRecord />;

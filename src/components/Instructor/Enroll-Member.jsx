@@ -247,7 +247,7 @@ const handleAddStudent = async () => {
  
   // --- Core Functionality (No change to import/upload logic) ---
  
-  const handleDownload = () => {
+ const handleDownload = () => {
   const sampleData = [
     {
       "ID Number": "20250001",
@@ -255,7 +255,19 @@ const handleAddStudent = async () => {
       "Full Name": "Juan Dela Cruz, Santos",
     },
   ];
+
   const ws = XLSX.utils.json_to_sheet(sampleData);
+
+  // ✅ Auto width adjustment (based on max content per column)
+  const data = [Object.keys(sampleData[0]), ...sampleData.map(obj => Object.values(obj))];
+  const colWidths = data[0].map((_, colIndex) =>
+    ({
+      wch: Math.max(...data.map(row => (row[colIndex] ? row[colIndex].toString().length : 0)))
+    })
+  );
+
+  ws['!cols'] = colWidths;
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -264,6 +276,7 @@ const handleAddStudent = async () => {
     "students_template.xlsx"
   );
 };
+
  
 const handleImport = (event) => {
   const file = event.target.files[0];

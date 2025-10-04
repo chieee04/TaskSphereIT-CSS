@@ -18,6 +18,7 @@ import MemberAdviserTasks from "./components/Member/MemberAdviserTasks";
 import MemberAllocation from "./components/Member/MemberAllocation";
 
 import MemberTask from "./components/Member/MemberTask";
+import ForgotPassword from "./components/Instructor/ForgotPassword";
 
 
 // DASHBOARD INTERFACE
@@ -49,6 +50,8 @@ export const router = createBrowserRouter([
   //SCHEDULE
   { path: "title-defense", element: <Schedule /> },
     //SCHEDULE
+{ path: "/ForgotPassword", element: <ForgotPassword /> },
+    
 
   //-----------------------------------------------------------
   //Manager

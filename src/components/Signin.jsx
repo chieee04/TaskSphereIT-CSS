@@ -6,7 +6,7 @@ import "../components/Style/Style.css";
 import Logo1 from "../assets/img/Dct-Logo.png";
 import Logo2 from "../assets/img/Costum.png";
 import { supabase } from "../supabaseClient";
-import { UserAuth } from "../Contex/AuthContext"; // ✅ Global Auth Context
+import { UserAuth } from "../Contex/AuthContext";
 import SigninHead from "./heade-foot/SigninHead";
 import SigninFoot from "./heade-foot/SigninFoot";
 
@@ -19,57 +19,22 @@ const Signin = () => {
   const { setIsLoggedIn } = useOutletContext();
   const { login } = UserAuth();
 
-  // 🔑 Main Sign In Function
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const isEmail = userID.includes("@");
-
       // =====================================================
-      // ADMIN LOGIN → Supabase Auth (email)
+      // 🔹 Unified Login for All Roles (Admin / Manager / Member / Adviser)
       // =====================================================
-      if (isEmail) {
-        const { data: authData, error: authError } =
-          await supabase.auth.signInWithPassword({
-            email: userID,
-            password,
-          });
-
-        if (!authError && authData?.user) {
-          login(authData.user);
-          setIsLoggedIn(true);
-
-          console.log("✅ Admin signed in:", {
-            email: authData.user.email,
-            uuid: authData.user.id, // Supabase UID
-          });
-
-          Swal.fire({
-            icon: "success",
-            title: "Welcome Admin",
-            text: `Hello ${authData.user.email}`,
-            timer: 1500,
-            showConfirmButton: false,
-          });
-
-          navigate("/Instructor");
-          return;
-        }
-      }
-
-      // =====================================================
-      // MANAGER / MEMBER / ADVISER LOGIN → user_credentials
-      // =====================================================
-      const { data: user, error: userError } = await supabase
+      const { data: user, error } = await supabase
         .from("user_credentials")
         .select("*")
         .eq("user_id", userID)
         .eq("password", password)
         .single();
 
-      if (userError || !user) {
+      if (error || !user) {
         Swal.fire({
           icon: "error",
           title: "Login failed",
@@ -81,19 +46,18 @@ const Signin = () => {
       // ✅ Save to context + localStorage
       login(user);
       localStorage.setItem("customUser", JSON.stringify(user));
-      localStorage.setItem("user_id", user.user_id); // pang tawag sa ibang components
+      localStorage.setItem("user_id", user.user_id);
 
       setIsLoggedIn(true);
 
-      // 🔹 Debug Console
       console.log("✅ User signed in:", {
         user_id: user.user_id,
-        uuid: user.id, // PK ng row sa table user_credentials
+        uuid: user.id,
         role: user.user_roles,
       });
 
       // =====================================================
-      // Role-based navigation
+      // 🔹 Role-based navigation (1=Manager, 2=Member, 3=Adviser, 4=Admin)
       // =====================================================
       if (user.user_roles === 1) {
         Swal.fire({
@@ -122,11 +86,20 @@ const Signin = () => {
           showConfirmButton: false,
         });
         navigate("/Adviser");
+      } else if (user.user_roles === 4) {
+        Swal.fire({
+          icon: "success",
+          title: "Login successful",
+          text: "Welcome Admin",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        navigate("/Instructor");
       } else {
         Swal.fire({
           icon: "warning",
           title: "Unknown role",
-          text: "Please contact the admin.",
+          text: "Please contact the administrator.",
         });
       }
     } catch (err) {
@@ -143,10 +116,10 @@ const Signin = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-100 flex flex-col">
-      {/* 🔹 HEADER */}
+      {/* HEADER */}
       <SigninHead />
 
-      {/* 🔹 MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color flex-grow">
         {/* LEFT: Sign In Form */}
         <div className="w-full md:w-1/2 p-6 flex items-center justify-center b-rd bg-white">
@@ -155,34 +128,42 @@ const Signin = () => {
             <img src={Logo1} alt="Logo" className="mx-auto mb-6 w-24 h-24" />
             <div className="mb-4 text-left">
               <label htmlFor="userID" className="block font-medium mb-1">
-                Email / ID
+                ID Number
               </label>
               <input
                 onChange={(e) => setUserID(e.target.value)}
                 value={userID}
                 className="w-full p-3 border rounded"
                 type="text"
-                name="userID"
                 id="userID"
-                placeholder="Enter your email or ID"
+                placeholder="Enter your ID number"
                 required
               />
             </div>
-            <div className="mb-4 text-left">
-              <label htmlFor="password" className="block font-medium mb-1">
-                Password
-              </label>
-              <input
-                onChange={(e) => setPassword(e.target.value)}
-                value={password}
-                className="w-full p-3 border rounded"
-                type="password"
-                name="password"
-                id="password"
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+            <div className="mb-2 text-left">
+  <label htmlFor="password" className="block font-medium mb-1">
+    Password
+  </label>
+  <input
+    onChange={(e) => setPassword(e.target.value)}
+    value={password}
+    className="w-full p-3 border rounded"
+    type="password"
+    id="password"
+    placeholder="Enter your password"
+    required
+  />
+  {/* Forgot Password Button */}
+  <div className="text-right mt-1">
+    <button
+      type="button"
+      onClick={() => navigate("/ForgotPassword")}
+      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+    >
+      Forgot Password?
+    </button>
+  </div>
+</div>
             <button
               type="submit"
               disabled={loading}
@@ -192,6 +173,7 @@ const Signin = () => {
             </button>
           </form>
         </div>
+
         {/* RIGHT: Info Panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center main-bg-color text-white rounded-lg p-8 space-y-6">
           <h1 className="text-3xl font-semibold text-center">
@@ -199,15 +181,11 @@ const Signin = () => {
             <br />
             Streamlining IT Capstone Success.
           </h1>
-          <img
-            src={Logo2}
-            alt="Team"
-            className="w-80 h-auto rounded-lg shadow-md"
-          />
+          <img src={Logo2} alt="Team" className="w-80 h-auto rounded-lg shadow-md" />
         </div>
       </div>
 
-      {/* 🔹 FOOTER */}
+      {/* FOOTER */}
       <SigninFoot />
     </div>
   );
