@@ -362,293 +362,244 @@ const AdviserFinalDef = () => {
 
   // Render table based on current view
   const renderTable = () => {
-    if (currentView === 0) {
-      // First View: NO, Team, Task Type, Task, SubTasks, Elements, Date Created, Due Date
-      return (
-        <table className="tasks-table">
-          <thead className="bg-gray-50">
-            <tr>
-              {isSelectionMode && (
-                <th className="center-text" style={{ width: '40px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={allTasksSelected}
-                    onChange={(e) => handleSelectAllTasks(e.target.checked)}
-                    disabled={filteredAndSearchedTasks.length === 0}
-                  />
-                </th>
-              )}
-              <th className="center-text">NO</th>
-              <th className="center-text">Team</th>
-              <th className="center-text">Task Type</th>
-              <th className="center-text">Task</th>
-              <th className="center-text">SubTasks</th>
-              <th className="center-text">Elements</th>
-              <th className="center-text">Date Created</th>
-              <th className="center-text">Due Date</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSearchedTasks.length > 0 ? (
-              filteredAndSearchedTasks.map((task, idx) => (
-                <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
-                  {isSelectionMode && (
-                    <td className="center-text">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedTaskIds.includes(task.id)}
-                        onChange={(e) => handleSelectTask(task.id, e.target.checked)}
-                      />
-                    </td>
-                  )}
-                  <td className="center-text">{idx + 1}.</td>
-                  <td className="center-text">{task.group_name || "CS001, Et Al."}</td>
-                  <td className="center-text">{task.task_type || "-"}</td>
-                  <td className="center-text">{cleanTaskName(task.task) || "Final Defense Review Meeting"}</td>
-                  <td className="center-text">{task.subtask || "-"}</td>
-                  <td className="center-text">{task.elements || "-"}</td>
-                  <td className="center-text">
-                    {task.date_created ? new Date(task.date_created).toLocaleDateString("en-US") : "10/2/2025"}
-                  </td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
-                      {task.due_date ? new Date(task.due_date).toLocaleDateString("en-US") : "10/4/2025"}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              // Sample data for first view
-              <>
-                <tr>
-                  <td className="center-text">1.</td>
-                  <td className="center-text">CS001, Et Al.</td>
-                  <td className="center-text">Final Defense</td>
-                  <td className="center-text">Final Defense Review Meeting</td>
-                  <td className="center-text">-</td>
-                  <td className="center-text">-</td>
-                  <td className="center-text">10/2/2025</td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
-                      10/4/2025
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="center-text">2.</td>
-                  <td className="center-text">mulL Et Al.</td>
-                  <td className="center-text">Final Defense</td>
-                  <td className="center-text">Final Defense Review Meeting</td>
-                  <td className="center-text">-</td>
-                  <td className="center-text">-</td>
-                  <td className="center-text">10/2/2025</td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
-                      10/4/2025
-                    </div>
-                  </td>
-                </tr>
-              </>
+  if (currentView === 0) {
+    // --- FIRST VIEW: Task overview ---
+    return (
+      <table className="tasks-table">
+        <thead className="bg-gray-50">
+          <tr>
+            {isSelectionMode && (
+              <th className="center-text" style={{ width: "40px" }}>
+                <input
+                  type="checkbox"
+                  checked={allTasksSelected}
+                  onChange={(e) => handleSelectAllTasks(e.target.checked)}
+                  disabled={filteredAndSearchedTasks.length === 0}
+                />
+              </th>
             )}
-          </tbody>
-        </table>
-      );
-    } else {
-      // Second View: Time, Revision No., Status, Methodology, Project Phase, Comment, Action
-      return (
-        <table className="tasks-table">
-          <thead className="bg-gray-50">
+            <th className="center-text">NO</th>
+            <th className="center-text">Assigned</th>
+            <th className="center-text">Tasks</th>
+            <th className="center-text">SubTasks</th>
+            <th className="center-text">Elements</th>
+            <th className="center-text">Date Created</th>
+            <th className="center-text">Due Date</th>
+          </tr>
+        </thead>
+
+        <tbody className="bg-white divide-y divide-gray-200">
+          {filteredAndSearchedTasks.length > 0 ? (
+            filteredAndSearchedTasks.map((task, idx) => (
+              <tr
+                key={task.id}
+                className="hover:bg-gray-50 transition duration-150"
+              >
+                {isSelectionMode && (
+                  <td className="center-text">
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskIds.includes(task.id)}
+                      onChange={(e) =>
+                        handleSelectTask(task.id, e.target.checked)
+                      }
+                    />
+                  </td>
+                )}
+                <td className="center-text">{idx + 1}.</td>
+                <td className="center-text">{task.group_name || "Unnamed Group"}</td>
+                <td className="center-text">{cleanTaskName(task.task) || "Untitled Task"}</td>
+                <td className="center-text">{task.subtask || "-"}</td>
+                <td className="center-text">{task.elements || "-"}</td>
+                <td className="center-text">
+                  {task.date_created
+                    ? new Date(task.date_created).toLocaleDateString("en-US")
+                    : "-"}
+                </td>
+                <td className="center-text">
+                  <div className="center-content-flex">
+                    <FaCalendarAlt size={14} style={{ color: "#3B0304" }} />
+                    {task.due_date
+                      ? new Date(task.due_date).toLocaleDateString("en-US")
+                      : "-"}
+                  </div>
+                </td>
+              </tr>
+            ))
+          ) : (
             <tr>
-              <th className="center-text">NO</th>
-              <th className="center-text">Time</th>
-              <th className="center-text">Revision No.</th>
-              <th className="center-text">Status</th>
-              <th className="center-text">Methodology</th>
-              <th className="center-text">Project Phase</th>
-              <th className="center-text">Comment</th>
-              <th className="center-text">Action</th>
+              <td
+                colSpan={isSelectionMode ? 8 : 7}
+                className="center-text"
+                style={{
+                  color: "#6c757d",
+                  padding: "20px",
+                  fontStyle: "italic",
+                }}
+              >
+                No tasks found for this filter.
+              </td>
             </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSearchedTasks.length > 0 ? (
-              filteredAndSearchedTasks.map((task, idx) => {
-                const statusColor = getStatusColor(task.status);
-                const isMissed = task.status === "Missed";
+          )}
+        </tbody>
+      </table>
+    );
+  } else {
+    // --- SECOND VIEW: Status and additional details ---
+    return (
+      <table className="tasks-table">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="center-text">NO</th>
+            <th className="center-text">Time</th>
+            <th className="center-text">Revision No.</th>
+            <th className="center-text">Status</th>
+            <th className="center-text">Methodology</th>
+            <th className="center-text">Project Phase</th>
+            <th className="center-text">Action</th>
+          </tr>
+        </thead>
 
-                return (
-                  <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
-                    <td className="center-text">{idx + 1}.</td>
-                    
-                    {/* Time Cell */}
-                    <td className="center-text">
-                      <div className="center-content-flex">
-                        <FaClock size={14} style={{ color: '#3B0304' }} />
-                        {task.time || "03:06:00+00"}
-                      </div>
-                    </td>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {filteredAndSearchedTasks.length > 0 ? (
+            filteredAndSearchedTasks.map((task, idx) => {
+              const statusColor = getStatusColor(task.status);
+              const isMissed = task.status === "Missed";
 
-                    <td className="center-text">
-                      <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
-                        <select
-                          value={task.revision_no || "No Revision"}
-                          onChange={(e) => handleRevisionChange(task.id, e.target.value)}
-                          className="revision-select"
+              return (
+                <tr
+                  key={task.id}
+                  className="hover:bg-gray-50 transition duration-150"
+                >
+                  <td className="center-text">{idx + 1}.</td>
+
+                  {/* Time */}
+                  <td className="center-text">
+                    <div className="center-content-flex">
+                      <FaClock size={14} style={{ color: "#3B0304" }} />
+                      {task.time || "-"}
+                    </div>
+                  </td>
+
+                  {/* Revision */}
+                  <td className="center-text">
+                    <div
+                      className="dropdown-control-wrapper"
+                      style={{ minWidth: "100px" }}
+                    >
+                      <select
+                        value={task.revision_no || "No Revision"}
+                        onChange={(e) =>
+                          handleRevisionChange(task.id, e.target.value)
+                        }
+                        className="revision-select"
+                      >
+                        {REVISION_OPTIONS.map((label, i) => (
+                          <option key={i} value={label}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <FaChevronDown
+                        className="dropdown-icon-chevron"
+                        style={{ color: "#3B0304" }}
+                      />
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td className="center-text">
+                    {isMissed ? (
+                      <div
+                        className="status-container"
+                        style={{ backgroundColor: statusColor }}
+                      >
+                        <span
+                          style={{
+                            padding: "4px 6px",
+                            color: "white",
+                            fontWeight: "500",
+                            fontSize: "0.85rem",
+                            minWidth: "90px",
+                          }}
                         >
-                          {REVISION_OPTIONS.map((label, i) => (
-                            <option key={i} value={label}>
-                              {label}
+                          Missed
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        className="dropdown-control-wrapper"
+                        style={{
+                          backgroundColor: statusColor,
+                          borderRadius: "4px",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        <select
+                          value={task.status || "To Do"}
+                          onChange={(e) =>
+                            handleStatusChange(task.id, e.target.value)
+                          }
+                          className="status-select"
+                          style={{ backgroundColor: statusColor }}
+                        >
+                          {STATUS_OPTIONS.filter(
+                            (s) => s !== "Missed"
+                          ).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
                             </option>
                           ))}
                         </select>
-                        <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
+                        <FaChevronDown
+                          className="dropdown-icon-chevron"
+                          style={{ color: "white" }}
+                        />
                       </div>
-                    </td>
-
-                    <td className="center-text">
-                      {isMissed ? (
-                        <div className="status-container" style={{ backgroundColor: statusColor }}>
-                          <span style={{ 
-                            padding: '4px 6px', 
-                            color: 'white', 
-                            fontWeight: '500', 
-                            fontSize: '0.85rem',
-                            minWidth: '90px'
-                          }}>
-                            Missed
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="dropdown-control-wrapper" style={{ backgroundColor: statusColor, borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                          <select
-                            value={task.status || "To Do"}
-                            onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                            className="status-select"
-                            style={{ backgroundColor: statusColor }} 
-                          >
-                            {STATUS_OPTIONS.filter(s => s !== "Missed").map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                          <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'white' }} />
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="center-text">{task.methodology || "Extreme Programming"}</td>
-                    <td className="center-text">{task.project_phase || "Planning"}</td>
-                    <td className="center-text">{task.comment || "-"}</td>
-
-                    {/* Action Column (Kebab Menu) */}
-                    <td className="center-text">
-                      <div className="kebab-menu-container">
-                        <button
-                          ref={el => kebabRefs.current[task.id] = el}
-                          className="kebab-button"
-                          onClick={() => toggleKebabMenu(task.id)}
-                          title="More options"
-                        >
-                          <FaEllipsisV size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              // Sample data for second view
-              <>
-                <tr>
-                  <td className="center-text">1.</td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaClock size={14} style={{ color: '#3B0304' }} />
-                      03:06:00+00
-                    </div>
+                    )}
                   </td>
-                  <td className="center-text">
-                    <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
-                      <select value="No Revision" className="revision-select">
-                        {REVISION_OPTIONS.map((label, i) => (
-                          <option key={i} value={label}>{label}</option>
-                        ))}
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
-                    </div>
-                  </td>
-                  <td className="center-text">
-                    <div className="dropdown-control-wrapper" style={{ backgroundColor: '#FABC3F', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                      <select value="To Do" className="status-select" style={{ backgroundColor: '#FABC3F' }}>
-                        <option value="To Do">To Do</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="To Review">To Review</option>
-                        <option value="Completed">Completed</option>
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'black' }} />
-                    </div>
-                  </td>
-                  <td className="center-text">Extreme Programming</td>
-                  <td className="center-text">Planning</td>
-                  <td className="center-text">-</td>
+
+                  {/* Other columns */}
+                  <td className="center-text">{task.methodology || "Extreme Programming"}</td>
+                  <td className="center-text">{task.project_phase || "Planning"}</td>
+
+                  {/* Actions */}
                   <td className="center-text">
                     <div className="kebab-menu-container">
-                      <button className="kebab-button">
+                      <button
+                        ref={(el) => (kebabRefs.current[task.id] = el)}
+                        className="kebab-button"
+                        onClick={() => toggleKebabMenu(task.id)}
+                        title="More options"
+                      >
                         <FaEllipsisV size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
-                <tr>
-                  <td className="center-text">2.</td>
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaClock size={14} style={{ color: '#3B0304' }} />
-                      03:06:00+00
-                    </div>
-                  </td>
-                  <td className="center-text">
-                    <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
-                      <select value="No Revision" className="revision-select">
-                        {REVISION_OPTIONS.map((label, i) => (
-                          <option key={i} value={label}>{label}</option>
-                        ))}
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
-                    </div>
-                  </td>
-                  <td className="center-text">
-                    <div className="dropdown-control-wrapper" style={{ backgroundColor: '#809D3C', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                      <select value="In Progress" className="status-select" style={{ backgroundColor: '#809D3C' }}>
-                        <option value="To Do">To Do</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="To Review">To Review</option>
-                        <option value="Completed">Completed</option>
-                      </select>
-                      <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'white' }} />
-                    </div>
-                  </td>
-                  <td className="center-text">Extreme Programming</td>
-                  <td className="center-text">Planning</td>
-                  <td className="center-text">-</td>
-                  <td className="center-text">
-                    <div className="kebab-menu-container">
-                      <button className="kebab-button">
-                        <FaEllipsisV size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </>
-            )}
-          </tbody>
-        </table>
-      );
-    }
-  };
+              );
+            })
+          ) : (
+            <tr>
+              <td
+                colSpan="8"
+                className="center-text"
+                style={{
+                  color: "#6c757d",
+                  padding: "20px",
+                  fontStyle: "italic",
+                }}
+              >
+                No tasks found for this filter.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    );
+  }
+};
+
 
   return (
     <div className="container-fluid px-4 py-3">

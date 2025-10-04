@@ -159,7 +159,9 @@ export const openCreateTask = async () => {
     } else {
       task.innerHTML = `<option value="" disabled selected hidden></option>`;
     }
+    
     task.disabled = false;
+
   });
 
   // 🟢 Members assign logic

@@ -183,90 +183,131 @@ export const handleCreateTask = async (setTasks) => {
       </div>
     `,
     didOpen: () => {
-      const methodology = document.getElementById("methodology");
-      const projectPhase = document.getElementById("projectPhase");
-      const taskType = document.getElementById("taskType");
-      const task = document.getElementById("task");
-      const subtask = document.getElementById("subtask");
-      const element = document.getElementById("element");
-      const assignManagers = document.getElementById("assignManagers");
-      const managerList = document.getElementById("managerList");
+  const methodology = document.getElementById("methodology");
+  const projectPhase = document.getElementById("projectPhase");
+  const taskType = document.getElementById("taskType");
+  const task = document.getElementById("task");
+  const subtask = document.getElementById("subtask");
+  const element = document.getElementById("element");
+  const assignManagers = document.getElementById("assignManagers");
+  const managerList = document.getElementById("managerList");
 
-      // Set initial state for the manager dropdown
-      const availableManagers = [...allManagers];
+  // Initial state
+  projectPhase.disabled = true;
+  taskType.disabled = true;
+  task.disabled = true;
+  subtask.disabled = true;
+  element.disabled = true;
 
-      // Helper function to render the manager list
-      const renderManagerList = () => {
-        managerList.innerHTML = "";
-        const assignedManagers = allManagers.filter(
-          (m) => !availableManagers.includes(m)
-        );
-        assignedManagers.forEach((manager) => {
-          const managerSpan = document.createElement("span");
-          managerSpan.className = "badge bg-secondary text-white p-2 rounded-pill";
-          managerSpan.style.cssText = "display: flex; align-items: center; gap: 5px; cursor: pointer;";
-          managerSpan.innerHTML = `${manager} <i class="bi bi-x-circle-fill"></i>`;
-          managerSpan.addEventListener("click", () => {
-            // Add manager back to available list
-            availableManagers.push(manager);
-            availableManagers.sort();
-            assignManagers.innerHTML = buildOptions(availableManagers);
-            managerSpan.remove();
-          });
-          managerList.appendChild(managerSpan);
-        });
-      };
+  // ---- Manager Logic ----
+  const availableManagers = [...allManagers];
 
-      // 🔹 Methodology Change
-      methodology.addEventListener("change", () => {
-        const selected = adCapsTaskData[methodology.value];
-        projectPhase.innerHTML = buildOptions(selected?.phases || []);
-        projectPhase.disabled = (selected?.phases?.length || 0) === 0;
-        taskType.innerHTML = buildOptions(Object.keys(selected?.tasks || {}));
-        taskType.disabled = Object.keys(selected?.tasks || {}).length === 0;
-        task.innerHTML = buildOptions([]);
-        subtask.innerHTML = buildOptions([]);
-        element.innerHTML = buildOptions([]);
+  const renderManagerList = () => {
+    managerList.innerHTML = "";
+    const assignedManagers = allManagers.filter(
+      (m) => !availableManagers.includes(m)
+    );
+    assignedManagers.forEach((manager) => {
+      const managerSpan = document.createElement("span");
+      managerSpan.className =
+        "badge bg-secondary text-white p-2 rounded-pill";
+      managerSpan.style.cssText =
+        "display: flex; align-items: center; gap: 5px; cursor: pointer;";
+      managerSpan.innerHTML = `${manager} <i class="bi bi-x-circle-fill"></i>`;
+      managerSpan.addEventListener("click", () => {
+        availableManagers.push(manager);
+        availableManagers.sort();
+        assignManagers.innerHTML = buildOptions(availableManagers);
+        managerSpan.remove();
       });
+      managerList.appendChild(managerSpan);
+    });
+  };
 
-      // 🔹 TaskType Change
-      taskType.addEventListener("change", () => {
-        const selected = adCapsTaskData[methodology.value];
-        const data = selected?.tasks?.[taskType.value] || [];
-        task.innerHTML = buildOptions(data);
-        task.disabled = data.length === 0;
-        subtask.innerHTML = buildOptions([]);
-        element.innerHTML = buildOptions([]);
-      });
+  assignManagers.addEventListener("change", (event) => {
+    const selectedManager = event.target.value;
+    const index = availableManagers.indexOf(selectedManager);
+    if (index > -1) {
+      availableManagers.splice(index, 1);
+      assignManagers.innerHTML = buildOptions(availableManagers);
+      renderManagerList();
+    }
+  });
 
-      // 🔹 Task Change
-      task.addEventListener("change", () => {
-        const subtasks =
-          adCapsTaskData[methodology.value]?.subtasks?.[task.value] || [];
-        subtask.innerHTML = buildOptions(subtasks);
-        subtask.disabled = subtasks.length === 0;
-        element.innerHTML = buildOptions([]);
-      });
+  // ---- Dropdown Logic ----
 
-      // 🔹 Subtask Change
-      subtask.addEventListener("change", () => {
-        const elements =
-          adCapsTaskData[methodology.value]?.elements?.[subtask.value] || [];
-        element.innerHTML = buildOptions(elements);
-        element.disabled = elements.length === 0;
-      });
+  // 🔹 Methodology Change
+  methodology.addEventListener("change", () => {
+    const selectedMethod = adCapsTaskData[methodology.value];
 
-      // 🔹 Assign Managers Change
-      assignManagers.addEventListener("change", (event) => {
-        const selectedManager = event.target.value;
-        const index = availableManagers.indexOf(selectedManager);
-        if (index > -1) {
-          availableManagers.splice(index, 1);
-          assignManagers.innerHTML = buildOptions(availableManagers);
-          renderManagerList();
-        }
-      });
-    },
+    // Reset and disable everything below
+    projectPhase.innerHTML = buildOptions(selectedMethod?.phases || []);
+    taskType.innerHTML = buildOptions([]);
+    task.innerHTML = buildOptions([]);
+    subtask.innerHTML = buildOptions([]);
+    element.innerHTML = buildOptions([]);
+
+    projectPhase.disabled = (selectedMethod?.phases?.length || 0) === 0;
+    taskType.disabled = true;
+    task.disabled = true;
+    subtask.disabled = true;
+    element.disabled = true;
+  });
+
+  // 🔹 Project Phase Change
+  projectPhase.addEventListener("change", () => {
+    const selectedMethod = adCapsTaskData[methodology.value];
+    const taskTypeOptions = Object.keys(selectedMethod?.tasks || {});
+
+    // Reset lower dropdowns
+    task.innerHTML = buildOptions([]);
+    subtask.innerHTML = buildOptions([]);
+    element.innerHTML = buildOptions([]);
+
+    taskType.innerHTML = buildOptions(taskTypeOptions);
+    taskType.disabled = taskTypeOptions.length === 0 ? true : false;
+    task.disabled = true;
+    subtask.disabled = true;
+    element.disabled = true;
+  });
+
+  // 🔹 Task Type Change
+  taskType.addEventListener("change", () => {
+    const selectedMethod = adCapsTaskData[methodology.value];
+    const taskOptions = selectedMethod?.tasks?.[taskType.value] || [];
+
+    // Reset lower dropdowns
+    subtask.innerHTML = buildOptions([]);
+    element.innerHTML = buildOptions([]);
+
+    task.innerHTML = buildOptions(taskOptions);
+    task.disabled = taskOptions.length === 0 ? true : false;
+    subtask.disabled = true;
+    element.disabled = true;
+  });
+
+  // 🔹 Task Change
+  task.addEventListener("change", () => {
+    const subtaskOptions =
+      adCapsTaskData[methodology.value]?.subtasks?.[task.value] || [];
+
+    subtask.innerHTML = buildOptions(subtaskOptions);
+    subtask.disabled = subtaskOptions.length === 0 ? true : false;
+
+    // Reset element
+    element.innerHTML = buildOptions([]);
+    element.disabled = true;
+  });
+
+  // 🔹 Subtask Change
+  subtask.addEventListener("change", () => {
+    const elementOptions =
+      adCapsTaskData[methodology.value]?.elements?.[subtask.value] || [];
+
+    element.innerHTML = buildOptions(elementOptions);
+    element.disabled = elementOptions.length === 0 ? true : false;
+  });
+},
     preConfirm: async () => {
       const methodology = document.getElementById("methodology").value;
       const projectPhase = document.getElementById("projectPhase").value;

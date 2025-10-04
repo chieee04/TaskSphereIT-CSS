@@ -18,6 +18,7 @@ import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 import Profile from "../Profile";
+import FinalDefense from "./FinalDefense";
 
 
 // Define the primary color constants for consistency
@@ -128,15 +129,19 @@ const InstructorDashboard = () => {
   const { subPage } = useParams();
   const handlePageChange = (page) => {
     setActivePage(page);
-    navigate(`/Instructor/${page.replace(/\s+/g, "")}`);
+    navigate(`/Instructor/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
   };
-  useEffect(() => {
-    if (subPage) {
-      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
-    } else {
-      setActivePage("Dashboard");
-    }
-  }, [subPage]);
+
+useEffect(() => {
+  if (subPage) {
+    setActivePage(subPage); // gamitin na lang raw string, walang formatting
+  } else if (isSoloMode) {
+    setActivePage("SoloModeDashboard");
+  } else {
+    setActivePage("Dashboard");
+  }
+}, [isSoloMode, subPage])
+
 
 
   // Hardcoded active days from the design for Jan 2025 only
@@ -212,18 +217,6 @@ const InstructorDashboard = () => {
   };
 
 
-  useEffect(() => {
-    if (isSoloMode) {
-      setActivePage("SoloModeDashboard");
-    } else if (subPage) {
-      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
-    } else {
-      setActivePage("Dashboard");
-    }
-  }, [isSoloMode, subPage]);
-
-
-
   const renderContent = () => {
 
     switch (activePage) {
@@ -233,6 +226,10 @@ const InstructorDashboard = () => {
         return <Adviser />;
       case "Teams":
         return <Teams />;
+        case "StudentCredentials":
+        return <StudentCredentials />;
+      case "AdviserCredentials":
+        return <AdviserCredentials />;
       case "Schedule":
         return <Schedule setActivePage={setActivePage} />;
       case "Title Defense":
@@ -241,17 +238,16 @@ const InstructorDashboard = () => {
         return <ManuScript />;
       case "Oral Defense":
         return <OralDefense />;
-      case "StudentCredentials":
-        return <StudentCredentials />;
-      case "AdviserCredentials":
-        return <AdviserCredentials />;
-      case "SoloModeDashboard":
+        case "Final Defense":
+        return <FinalDefense />;
+
+         case "SoloModeDashboard":
         return <SoloModeDashboard />;
-      case "SoloModeTasks":
+      case "SolomodeTasks":
         return <SoloModeTasks />;
-      case "SoloModeTasks Board":
+      case "SolomodeTasksBoard":
         return <SoloModeTasksBoard />;
-      case "SoloModeTasks Record":
+      case "SolomodeTasksRecord":
         return <SoloModeTasksRecord />;
       case "Profile":
         return <Profile />;

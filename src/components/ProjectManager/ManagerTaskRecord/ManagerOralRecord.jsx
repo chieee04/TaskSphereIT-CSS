@@ -486,23 +486,7 @@ const ManagerOralRecord = () => {
                 </div>
  
                 <div className="col-12 col-md-12 col-lg-12">
- 
-                    {/* Top Control Buttons (Row 1) */}
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                        {/* Create Task Button */}
-                        <button
-                            type="button"
-                            className="primary-button"
-                            onClick={async () => {
-                                const newTasks = await openCreateOralDefTask(managerId);
-                                if (newTasks && Array.isArray(newTasks)) {
-                                    setTasks((prev) => [...newTasks, ...prev]);
-                                }
-                            }}
-                        >
-                            <FaPlus size={14} /> Create Task
-                        </button>
-                    </div>
+
  
                     {/* Search, Delete Selected, and Filter (Row 2) */}
                     <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">

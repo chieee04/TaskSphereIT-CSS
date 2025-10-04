@@ -142,15 +142,18 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
   const { subPage } = useParams();
   const handlePageChange = (page) => {
     setActivePage(page);
-    navigate(`/Manager/${page.replace(/\s+/g, "")}`);
+    navigate(`/Manager/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
   };
-  useEffect(() => {
-    if (subPage) {
-      setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
-    } else {
-      setActivePage("Dashboard");
-    }
-  }, [subPage]);
+
+useEffect(() => {
+  if (subPage) {
+    setActivePage(subPage); // gamitin na lang raw string, walang formatting
+  } else if (isSoloMode) {
+    setActivePage("SoloModeDashboard");
+  } else {
+    setActivePage("Dashboard");
+  }
+}, [isSoloMode, subPage])
 
 
   useEffect(() => {
@@ -341,15 +344,6 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
   }));
 
   
- useEffect(() => {
-  if (isSoloMode) {
-    setActivePage("SoloModeDashboard");
-  } else if (subPage) {
-    setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
-  } else {
-    setActivePage("Dashboard");
-  }
-}, [isSoloMode, subPage]);
 
   const renderContent = () => {
     switch (activePage) {
@@ -367,13 +361,14 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
       case "Final Defense Record": return <ManagerFinalRecord />;
       case "Events": return <ManagerEvents />;
       case "Profile": return <Profile />;
-      case "SoloModeDashboard":
+
+       case "SoloModeDashboard":
         return <SoloModeDashboard />;
       case "SolomodeTasks":
         return <SoloModeTasks />;
-      case "SolomodeTasks Board":
+      case "SolomodeTasksBoard":
         return <SoloModeTasksBoard />;
-      case "SolomodeTasks Record":
+      case "SolomodeTasksRecord":
         return <SoloModeTasksRecord />;
       default:
         return (

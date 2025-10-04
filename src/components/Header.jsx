@@ -83,6 +83,27 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     }
   };
 
+  // ✅ Handler for Solo/Team switch with role-based navigation
+  const handleToggleMode = () => {
+    const newMode = !isSoloMode;
+    setIsSoloMode(newMode);
+
+    const customUser = JSON.parse(localStorage.getItem("customUser"));
+    const role = customUser?.user_roles; // 1=Manager, 2=Member, 3=Adviser
+    let basePath = "/";
+
+    if (role === 1) basePath = "/Manager";
+    else if (role === 2) basePath = "/Member";
+    else if (role === 3) basePath = "/Adviser";
+    else basePath = "/Instructor"; // fallback default
+
+    if (newMode) {
+      navigate(`${basePath}/SoloModeDashboard`, { state: { activePage: "SoloModeDashboard" } });
+    } else {
+      navigate(`${basePath}/Dashboard`, { state: { activePage: "Dashboard" } });
+    }
+  };
+
   const getUserRole = () => {
     const roleId = activeUser?.user_roles;
     if (roleId === 1) return "Manager";
@@ -132,7 +153,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
               backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
               justifyContent: isSoloMode ? "flex-end" : "flex-start",
             }}
-            onClick={() => setIsSoloMode(!isSoloMode)} // ✅ Use the setter from props
+            onClick={handleToggleMode} // ✅ now role-aware
           >
             <div
               style={{

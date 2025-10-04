@@ -120,27 +120,26 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
 const { subPage } = useParams();
 const handlePageChange = (page) => {
   setActivePage(page);
-  navigate(`/Adviser/${page.replace(/\s+/g, "")}`);
+
+  navigate(`/Adviser/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
 };
-useEffect(() => {
+/*useEffect(() => {
     if (subPage) {
       setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
     } else {
       setActivePage("Dashboard");
     }
-  }, [subPage]);
+  }, [subPage]);*/
 
-
-
-  useEffect(() => {
-  if (isSoloMode) {
+useEffect(() => {
+  if (subPage) {
+    setActivePage(subPage); // gamitin na lang raw string, walang formatting
+  } else if (isSoloMode) {
     setActivePage("SoloModeDashboard");
-  } else if (subPage) {
-    setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());
   } else {
     setActivePage("Dashboard");
   }
-}, [isSoloMode, subPage]);
+}, [isSoloMode, subPage])
 
 
   // Fetch all data for the adviser dashboard
@@ -276,13 +275,14 @@ useEffect(() => {
         return <Profile />;
       case "Final Re Defense":
         return <AdviserFinalRedefTask />;
-      case "SoloModeDashboard":
+
+       case "SoloModeDashboard":
         return <SoloModeDashboard />;
       case "SolomodeTasks":
         return <SoloModeTasks />;
-      case "SolomodeTasks Board":
+      case "SolomodeTasksBoard":
         return <SoloModeTasksBoard />;
-      case "SolomodeTasks Record":
+      case "SolomodeTasksRecord":
         return <SoloModeTasksRecord />;
 
       default:

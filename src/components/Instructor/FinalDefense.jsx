@@ -280,7 +280,7 @@ const FinalDefense = () => {
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
-        <FaCalendarAlt /> Oral Defense » Scheduled Teams
+        <FaCalendarAlt /> Final Defense » Scheduled Teams
       </h1>
       <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
 

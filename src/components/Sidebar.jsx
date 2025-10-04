@@ -70,8 +70,8 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
       <>
         {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('SoloModeDashboard'), activeItem === 'SoloModeDashboard')}
         {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('SolomodeTasks'), activeItem === 'SolomodeTasks')}
-        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('SolomodeTasks Board'), activeItem === 'SolomodeTasks Board')}
-        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('SolomodeTasks Record'), activeItem === 'SolomodeTasks Record')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('SolomodeTasksBoard'), activeItem === 'SolomodeTasksBoard')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('SolomodeTasksRecord'), activeItem === 'SolomodeTasksRecord')}
       </>
     );
   } else {
@@ -114,11 +114,11 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
         sidebarItems = (
           <>
             {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-            {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
+            {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('TasksAllocation'), activeItem === 'TasksAllocation')}
             {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('AdviserTasks'), activeItem === 'AdviserTasks')}
+            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('TasksBoard'), activeItem === 'TasksBoard')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
             {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>

@@ -141,59 +141,103 @@ export const handleCreateTask = async (setTasks) => {
     confirmButtonText: "Create Task",
     showCancelButton: true,
     cancelButtonText: "Cancel",
-    html: `
-      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px;">
-        <div>
-          <label style="font-weight:600;">Methodology</label>
-          <select id="methodology" class="form-select">
-            ${methodologyOptionsHtml}
-          </select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Project Phase</label>
-          <select id="projectPhase" class="form-select" disabled>${emptySelectHtml}</select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Task Type</label>
-          <select id="task_type" class="form-select" disabled>${emptySelectHtml}</select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Task</label>
-          <select id="task" class="form-select" disabled>${emptySelectHtml}</select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Subtask</label>
-          <select id="subtask" class="form-select" disabled>${emptySelectHtml}</select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Element</label>
-          <select id="elements" class="form-select" disabled>${emptySelectHtml}</select>
-        </div>
-        <div>
-          <label style="font-weight:600;">Due Date</label>
-          <input id="dueDate" type="date" class="form-control"/>
-        </div>
-        <div>
-          <label style="font-weight:600;">Time</label>
-          <input id="time" type="time" class="form-control"/>
-        </div>
-        <div style="grid-column: 1 / span 3;">
-          <label style="font-weight:600;">Assign Managers *</label>
-          <select id="assignManagers" class="form-select">
-            <option value="" disabled selected hidden></option>
-            ${allManagers.map((m) => `<option value="${m}">${m}</option>`).join("")}
-          </select>
-        </div>
-        <div style="grid-column: 1 / span 3;">
-          <label style="font-weight:600;">Manager Lists</label>
-          <div id="managerList" class="form-control" style="min-height:40px; padding:6px 12px; border:1px solid #ced4da; border-radius:4px; display:flex; flex-wrap:wrap; gap:8px;"></div>
-        </div>
-        <div style="grid-column: 1 / span 3;">
-          <label style="font-weight:600;">Leave Comment</label>
-          <textarea id="comment" rows="2" class="form-control"></textarea>
-        </div>
-      </div>
-    `,
+html: `
+  <div style="
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: start;
+    font-family: 'Inter', sans-serif;
+  ">
+    <!-- Row 1 -->
+    <div>
+      <label style="font-weight:600;">Methodology</label>
+      <select id="methodology" class="form-select">
+        ${methodologyOptionsHtml}
+      </select>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Project Phase</label>
+      <select id="projectPhase" class="form-select" disabled>
+        ${emptySelectHtml}
+      </select>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Task Type</label>
+      <select id="task_type" class="form-select" disabled>
+        ${emptySelectHtml}
+      </select>
+    </div>
+
+    <!-- Row 2 -->
+    <div>
+      <label style="font-weight:600;">Task</label>
+      <select id="task" class="form-select" disabled>
+        ${emptySelectHtml}
+      </select>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Subtask</label>
+      <select id="subtask" class="form-select" disabled>
+        ${emptySelectHtml}
+      </select>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Element</label>
+      <select id="elements" class="form-select" disabled>
+        ${emptySelectHtml}
+      </select>
+    </div>
+
+    <!-- Row 3 -->
+    <div>
+      <label style="font-weight:600;">Due Date</label>
+      <input id="dueDate" type="date" class="form-control"/>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Time</label>
+      <input id="time" type="time" class="form-control"/>
+    </div>
+
+    <div>
+      <label style="font-weight:600;">Assign Managers *</label>
+      <select id="assignManagers" class="form-select">
+        <option value="" disabled selected hidden></option>
+        ${allManagers.map((m) => `<option value="${m}">${m}</option>`).join("")}
+      </select>
+    </div>
+
+    <!-- Row 4: Manager list -->
+    <div style="grid-column: 1 / span 3;">
+      <label style="font-weight:600;">Manager Lists</label>
+      <div id="managerList" 
+        class="form-control" 
+        style="
+          min-height: 45px;
+          padding: 8px 12px;
+          border: 1px solid #ced4da;
+          border-radius: 6px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+        ">
+      </div>
+    </div>
+
+    <!-- Row 5: Comment -->
+    <div style="grid-column: 1 / span 3;">
+      <label style="font-weight:600;">Leave Comment</label>
+      <textarea id="comment" rows="2" class="form-control" 
+        style="resize: vertical; border-radius: 6px;"></textarea>
+    </div>
+  </div>
+`,
     didOpen: () => {
       // cascading dropdown events
       document.getElementById("methodology").addEventListener("change", () => {

@@ -181,30 +181,29 @@ if (!managerUUID) {
 
       // TaskType selection
       taskType.addEventListener("change", () => {
-        const selected = oralDefenseData[methodology.value];
-        const data = selected[taskType.value] || {};
-        task.innerHTML = buildOptions(Object.keys(data));
-        task.disabled = true;
-        subtask.disabled = true;
-        element.disabled = true;
+  const selected = oralDefenseData[methodology.value];
+  const data = selected[taskType.value] || {};
 
-        if (Object.keys(data).length > 0) {
-          task.disabled = false;
-        }
-      });
+  task.innerHTML = buildOptions(Object.keys(data));
+  subtask.innerHTML = buildOptions([]); // 🔹 reset subtask
+  element.innerHTML = buildOptions([]); // 🔹 reset element
+
+  task.disabled = Object.keys(data).length === 0;
+  subtask.disabled = true;
+  element.disabled = true;
+});
+
 
       // Task selection
       task.addEventListener("change", () => {
-        const selected =
-          oralDefenseData[methodology.value][taskType.value][task.value];
-        subtask.innerHTML = buildOptions(Object.keys(selected));
-        subtask.disabled = true;
-        element.disabled = true;
+  const selected = oralDefenseData[methodology.value][taskType.value][task.value];
+  
+  subtask.innerHTML = buildOptions(Object.keys(selected));
+  element.innerHTML = buildOptions([]); // 🔹 reset element
 
-        if (Object.keys(selected).length > 0) {
-          subtask.disabled = false;
-        }
-      });
+  subtask.disabled = Object.keys(selected).length === 0;
+  element.disabled = true;
+});
 
       // Subtask selection
       subtask.addEventListener("change", () => {
