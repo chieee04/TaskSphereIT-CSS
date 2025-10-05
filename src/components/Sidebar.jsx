@@ -103,9 +103,9 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
           <>
             {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
             {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+            {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('AdviserTasks'), activeItem === 'AdviserTasks')}
+            {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('TasksBoard'), activeItem === 'TasksBoard')}
+            {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
             {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>

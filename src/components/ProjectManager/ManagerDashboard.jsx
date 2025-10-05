@@ -347,18 +347,22 @@ useEffect(() => {
 
   const renderContent = () => {
     switch (activePage) {
+      case "AdviserTasks": return <AdviserTasks />;
+      case "TasksBoard": return <ManagerTaskBoard />;
+
       case "Tasks": return <Tasks setActivePage={setActivePage} />;
-      case "Adviser Tasks": return <AdviserTasks />;
-      case "Tasks Board": return <ManagerTaskBoard />;
       case "Title Defense": return <ManagerTitleDefense />;
       case "Oral Defense": return <ManagerOralDefense />;
       case "Final Defense": return <ManagerFinalDefense />;
       case "Final Re-Defense": return <ManagerFinalRedefTask />;
       case "Tasks Allocation": return <ManagerAllocation />;
-      case "Tasks Record": return <ManagerTaskRecord setActivePage={setActivePage} />;
+
+      case "TasksRecord": return <ManagerTaskRecord setActivePage={setActivePage} />;
+
       case "Title Defense Record": return <ManagerTitleRecord />;
       case "Oral Defense Record": return <ManagerOralRecord />;
       case "Final Defense Record": return <ManagerFinalRecord />;
+
       case "Events": return <ManagerEvents />;
       case "Profile": return <Profile />;
 
