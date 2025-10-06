@@ -1,25 +1,24 @@
-// FinalDefense.jsx
 import { FaPlus, FaCalendarAlt, FaPen } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { supabase } from "../../supabaseClient";
-
+ 
 const MySwal = withReactContent(Swal);
-
+ 
 const FinalDefense = () => {
   const [advisers, setAdvisers] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [search, setSearch] = useState("");
-
+ 
   const verdictMap = {
     1: "Pending",
     2: "Re-Defense",
     3: "Disapproved",
     4: "Approved",
   };
-
+ 
   // fetch advisers, accounts, schedules
   useEffect(() => {
     const fetchData = async () => {
@@ -27,12 +26,12 @@ const FinalDefense = () => {
         .from("user_credentials")
         .select("*");
       if (accError) return console.error("Error fetching accounts:", accError);
-
+ 
       if (accData) {
         setAccounts(accData);
         setAdvisers(accData.filter((a) => a.user_roles === 3)); // advisers
       }
-
+ 
       const { data: schedData, error: schedError } = await supabase
         .from("user_final_sched")
         .select(
@@ -41,18 +40,18 @@ const FinalDefense = () => {
           manager:manager_id ( group_name )
         `
         );
-
+ 
       if (schedError) return console.error("Error fetching schedules:", schedError);
       if (schedData) setSchedules(schedData);
     };
     fetchData();
   }, []);
-
+ 
   // create schedule
   const handleCreateSchedule = () => {
     let selectedPanelists = [];
     let selectedAdviser = null;
-
+ 
     MySwal.fire({
       title: `<div style="color:#3B0304;font-weight:600;">➕ Create Schedule</div>`,
       html: `
@@ -103,18 +102,18 @@ const FinalDefense = () => {
         const teamSelect = document.getElementById("teamSelect");
         const panelSelect = document.getElementById("panelSelect");
         const panelList = document.getElementById("panelList");
-
+ 
         // update team options
         const updateTeamOptions = (adviserId) => {
           const adviser = accounts.find((a) => a.id === adviserId);
           if (!adviser) return;
-
+ 
           const teams = accounts.filter(
             (a) => a.adviser_group === adviser.adviser_group && a.user_roles === 1
           );
-
+ 
           teamSelect.innerHTML = '<option disabled selected value="">Select</option>';
-
+ 
           if (teams.length > 0) {
             teams.forEach((t) => {
               if (t.group_name) {
@@ -129,7 +128,7 @@ const FinalDefense = () => {
             teamSelect.appendChild(opt);
           }
         };
-
+ 
         // update panel options
         const updatePanelOptions = (adviserId) => {
           panelSelect.innerHTML = '<option disabled selected value="">Select</option>';
@@ -138,7 +137,7 @@ const FinalDefense = () => {
               panelSelect.innerHTML += `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`;
           });
         };
-
+ 
         adviserSelect.addEventListener("change", () => {
           selectedAdviser = adviserSelect.value;
           updateTeamOptions(selectedAdviser);
@@ -148,7 +147,7 @@ const FinalDefense = () => {
           selectedPanelists = [];
           panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
         });
-
+ 
         // add panelist
         panelSelect.addEventListener("change", () => {
           const id = panelSelect.value;
@@ -167,7 +166,7 @@ const FinalDefense = () => {
           }
           panelSelect.value = "";
         });
-
+ 
         // remove panelist
         panelList.addEventListener("click", (e) => {
           if (e.target.classList.contains("remove-panelist-btn")) {
@@ -183,21 +182,21 @@ const FinalDefense = () => {
         const team = document.getElementById("teamSelect").value;
         const date = document.getElementById("scheduleDate").value;
         const time = document.getElementById("scheduleTime").value;
-
+ 
         if (!selectedAdviser || !team || !date || !time || selectedPanelists.length === 0) {
           MySwal.showValidationMessage("Please fill all fields and select panelists.");
           return false;
         }
-
+ 
         return { adviser: selectedAdviser, team, date, time, panelists: selectedPanelists };
       },
     }).then(async (result) => {
       if (result.isConfirmed) {
         const { adviser, team, date, time, panelists } = result.value;
-
+ 
         const manager = accounts.find((a) => a.user_roles === 1 && a.group_name === team);
         const [p1, p2, p3] = panelists;
-
+ 
         const { error, data } = await supabase
           .from("user_final_sched")
           .insert([
@@ -219,7 +218,7 @@ const FinalDefense = () => {
             manager:manager_id ( group_name )
           `
           );
-
+ 
         if (!error) {
           setSchedules((prev) => [...prev, data[0]]);
           MySwal.fire({
@@ -232,33 +231,33 @@ const FinalDefense = () => {
       }
     });
   };
-
+ 
   // change verdict
   const handleVerdictChange = async (id, newVerdict) => {
     const { error } = await supabase
       .from("user_final_sched")
       .update({ verdict: newVerdict })
       .eq("id", id);
-
+ 
     if (!error) {
       setSchedules((prev) =>
         prev.map((s) => (s.id === id ? { ...s, verdict: newVerdict } : s))
       );
     }
   };
-
+ 
   // update schedule date & time
   const handleUpdateSchedule = async (schedule) => {
     let date = prompt("Enter new date:", schedule.date);
     if (!date) return;
     let time = prompt("Enter new time:", schedule.time);
     if (!time) return;
-
+ 
     const { error } = await supabase
       .from("user_final_sched")
       .update({ date, time })
       .eq("id", schedule.id);
-
+ 
     if (!error) {
       setSchedules((prev) =>
         prev.map((s) => (s.id === schedule.id ? { ...s, date, time } : s))
@@ -271,19 +270,19 @@ const FinalDefense = () => {
       });
     }
   };
-
+ 
   // search by team
   const filteredSchedules = schedules.filter((s) =>
     s.manager?.group_name?.toLowerCase().includes(search.toLowerCase())
   );
-
+ 
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
         <FaCalendarAlt /> Final Defense » Scheduled Teams
       </h1>
       <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
-
+ 
       <div className="flex items-center gap-2 mb-4">
         <button
           onClick={handleCreateSchedule}
@@ -299,7 +298,7 @@ const FinalDefense = () => {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-
+ 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-300 text-left">
           <thead className="bg-gray-100">
@@ -364,5 +363,5 @@ const FinalDefense = () => {
     </div>
   );
 };
-
+ 
 export default FinalDefense;

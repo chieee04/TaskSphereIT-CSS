@@ -1,368 +1,969 @@
-// OralDefense.jsx
-import { FaPlus, FaCalendarAlt, FaPen } from "react-icons/fa";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import { FaCalendarAlt, FaEllipsisV, FaSearch, FaTrash, FaFileExport, FaPen, FaPlus } from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
-
+import jsPDF from "jspdf";
+ 
 const MySwal = withReactContent(Swal);
-
+ 
 const OralDefense = () => {
-  const [advisers, setAdvisers] = useState([]);
-  const [accounts, setAccounts] = useState([]);
-  const [schedules, setSchedules] = useState([]);
-  const [search, setSearch] = useState("");
-
-  const verdictMap = {
-    1: "Pending",
-    2: "Re-Defense",
-    3: "Disapproved",
-    4: "Approved",
-  };
-
-  // fetch advisers, accounts, schedules
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: accData, error: accError } = await supabase
-        .from("user_credentials")
-        .select("*");
-      if (accError) return console.error("Error fetching accounts:", accError);
-
-      if (accData) {
-        setAccounts(accData);
-        setAdvisers(accData.filter((a) => a.user_roles === 3)); // advisers
-      }
-
-      const { data: schedData, error: schedError } = await supabase
-        .from("user_oraldef")
-        .select(
-          `
-          *,
-          manager:manager_id ( group_name )
-        `
-        );
-
-      if (schedError) return console.error("Error fetching schedules:", schedError);
-      if (schedData) setSchedules(schedData);
+    const [advisers, setAdvisers] = useState([]);
+    const [accounts, setAccounts] = useState([]);
+    const [schedules, setSchedules] = useState([]);
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [search, setSearch] = useState("");
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
+    const [selectedSchedules, setSelectedSchedules] = useState([]);
+    const dropdownRef = useRef(null);
+ 
+    const verdictMap = {
+        1: "Pending",
+        2: "Approved",
+        3: "Revisions",
+        4: "Disapproved",
     };
-    fetchData();
-  }, []);
-
-  // create schedule
-  const handleCreateSchedule = () => {
-    let selectedPanelists = [];
-    let selectedAdviser = null;
-
-    MySwal.fire({
-      title: `<div style="color:#3B0304;font-weight:600;">➕ Create Schedule</div>`,
-      html: `
-        <div class="mb-3">
-          <label style="font-weight:600;">Select Adviser</label>
-          <select id="adviserSelect" class="form-select" style="border-radius:8px;height:42px;">
-            <option disabled selected value="">Select</option>
-            ${advisers
-              .map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`)
-              .join("")}
-          </select>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Assign Team</label>
-          <select id="teamSelect" class="form-select" style="border-radius:8px;height:42px;" disabled>
-            <option disabled selected value="">Select</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Assign Panelists</label>
-          <select id="panelSelect" class="form-select" style="border-radius:8px;height:42px;" disabled>
-            <option disabled selected value="">Select</option>
-          </select>
-        </div>
-        <div class="mb-2">
-          <label style="font-weight:600;">Panelist Lists</label>
-          <div id="panelList" class="form-control d-flex flex-wrap gap-2" style="border-radius:8px;min-height:40px;align-items:center;padding:12px;">
-            <span class="text-muted">No panelist selected</span>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Date</label>
-          <input type="date" id="scheduleDate" class="form-control" style="border-radius:8px;height:42px;"/>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Time</label>
-          <input type="time" id="scheduleTime" class="form-control" style="border-radius:8px;height:42px;"/>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "Create",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#3B0304",
-      cancelButtonColor: "#999",
-      width: "600px",
-      didOpen: () => {
-        const adviserSelect = document.getElementById("adviserSelect");
-        const teamSelect = document.getElementById("teamSelect");
-        const panelSelect = document.getElementById("panelSelect");
-        const panelList = document.getElementById("panelList");
-
-        // update team options
-        const updateTeamOptions = (adviserId) => {
-          const adviser = accounts.find((a) => a.id === adviserId);
-          if (!adviser) return;
-
-          const teams = accounts.filter(
-            (a) => a.adviser_group === adviser.adviser_group && a.user_roles === 1
-          );
-
-          teamSelect.innerHTML = '<option disabled selected value="">Select</option>';
-
-          if (teams.length > 0) {
-            teams.forEach((t) => {
-              if (t.group_name) {
-                teamSelect.innerHTML += `<option value="${t.group_name}">${t.group_name}</option>`;
-              }
-            });
-          } else {
-            const opt = document.createElement("option");
-            opt.value = "";
-            opt.disabled = true;
-            opt.textContent = "No manager available";
-            teamSelect.appendChild(opt);
-          }
-        };
-
-        // update panel options
-        const updatePanelOptions = (adviserId) => {
-          panelSelect.innerHTML = '<option disabled selected value="">Select</option>';
-          advisers.forEach((a) => {
-            if (a.id !== adviserId)
-              panelSelect.innerHTML += `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`;
-          });
-        };
-
-        adviserSelect.addEventListener("change", () => {
-          selectedAdviser = adviserSelect.value;
-          updateTeamOptions(selectedAdviser);
-          updatePanelOptions(selectedAdviser);
-          teamSelect.disabled = false;
-          panelSelect.disabled = false;
-          selectedPanelists = [];
-          panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
-        });
-
-        // add panelist
-        panelSelect.addEventListener("change", () => {
-          const id = panelSelect.value;
-          if (!selectedPanelists.includes(id)) {
-            if (selectedPanelists.length < 3) {
-              selectedPanelists.push(id);
-              const person = advisers.find((a) => a.id === id);
-              if (panelList.querySelector(".text-muted")) panelList.innerHTML = "";
-              const tag = document.createElement("span");
-              tag.className = "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
-              tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${id}">-</button>`;
-              panelList.appendChild(tag);
-            } else {
-              MySwal.showValidationMessage("Maximum of 3 panelists.");
+ 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setOpenDropdown(null);
             }
-          }
-          panelSelect.value = "";
+        };
+ 
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+ 
+    // fetch advisers, accounts, schedules
+    useEffect(() => {
+        const fetchData = async () => {
+            const { data: accData, error: accError } = await supabase
+                .from("user_credentials")
+                .select("*");
+            if (accError) return console.error("Error fetching accounts:", accError);
+ 
+            if (accData) {
+                setAccounts(accData);
+                setAdvisers(accData.filter((a) => a.user_roles === 3)); // advisers
+            }
+ 
+            const { data: schedData, error: schedError } = await supabase
+                .from("user_oraldef")
+                .select(
+                    `
+                    *,
+                    manager:manager_id ( group_name )
+                  `
+                );
+ 
+            if (schedError) return console.error("Error fetching schedules:", schedError);
+            if (schedData) setSchedules(schedData);
+        };
+        fetchData();
+    }, []);
+ 
+    // search by team
+    const filteredSchedules = schedules.filter((s) =>
+        s.manager?.group_name?.toLowerCase().includes(search.toLowerCase())
+    );
+ 
+    const exportOralDefenseAsPDF = (data) => {
+        const today = new Date().toLocaleDateString();
+        const fileName = `oral-defense-schedule-${today.replace(/\//g, '-')}.pdf`;
+ 
+        // Create PDF using jsPDF
+        const doc = new jsPDF();
+ 
+        // Add header
+        doc.setFillColor(59, 3, 4);
+        doc.rect(0, 0, 210, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Oral Defense Schedule Report', 105, 15, { align: 'center' });
+ 
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${today}`, 105, 22, { align: 'center' });
+ 
+        // Reset text color for content
+        doc.setTextColor(0, 0, 0);
+ 
+        // Add table headers
+        doc.setFillColor(59, 3, 4);
+        doc.rect(10, 35, 190, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+ 
+        const headers = ['NO', 'TEAM', 'TITLE', 'DATE', 'TIME', 'ADVISER', 'PANELISTS', 'VERDICT'];
+        const columnWidths = [10, 30, 35, 20, 15, 25, 40, 20];
+        let xPosition = 10;
+ 
+        headers.forEach((header, index) => {
+            doc.text(header, xPosition + 2, 42);
+            xPosition += columnWidths[index];
         });
-
-        // remove panelist
-        panelList.addEventListener("click", (e) => {
-          if (e.target.classList.contains("remove-panelist-btn")) {
-            const idToRemove = e.target.dataset.id;
-            selectedPanelists = selectedPanelists.filter((pid) => pid !== idToRemove);
-            e.target.parentElement.remove();
-            if (selectedPanelists.length === 0)
-              panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
-          }
+ 
+        // Add table rows
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+ 
+        let yPosition = 50;
+ 
+        data.forEach((item, index) => {
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+            }
+ 
+            // Alternate row background
+            if (index % 2 === 0) {
+                doc.setFillColor(245, 245, 245);
+                doc.rect(10, yPosition - 4, 190, 6, 'F');
+            }
+ 
+            xPosition = 10;
+            const rowData = [
+                item.no.toString(),
+                item.team,
+                item.title,
+                item.date,
+                item.time,
+                item.adviser,
+                item.panelists,
+                item.verdict
+            ];
+ 
+            rowData.forEach((cell, cellIndex) => {
+                // Wrap text for panelists and title columns
+                if (cellIndex === 2 || cellIndex === 6) {
+                    const lines = doc.splitTextToSize(cell, columnWidths[cellIndex] - 2);
+                    doc.text(lines, xPosition + 1, yPosition);
+                } else {
+                    doc.text(cell, xPosition + 1, yPosition);
+                }
+                xPosition += columnWidths[cellIndex];
+            });
+ 
+            yPosition += 6;
         });
-      },
-      preConfirm: () => {
-        const team = document.getElementById("teamSelect").value;
-        const date = document.getElementById("scheduleDate").value;
-        const time = document.getElementById("scheduleTime").value;
-
-        if (!selectedAdviser || !team || !date || !time || selectedPanelists.length === 0) {
-          MySwal.showValidationMessage("Please fill all fields and select panelists.");
-          return false;
-        }
-
-        return { adviser: selectedAdviser, team, date, time, panelists: selectedPanelists };
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const { adviser, team, date, time, panelists } = result.value;
-
-        const manager = accounts.find((a) => a.user_roles === 1 && a.group_name === team);
-        const [p1, p2, p3] = panelists;
-
-        const { error, data } = await supabase
-          .from("user_oraldef")
-          .insert([
-            {
-              manager_id: manager.id,
-              adviser_id: adviser,
-              date,
-              time,
-              panelist1_id: p1 || null,
-              panelist2_id: p2 || null,
-              panelist3_id: p3 || null,
-              verdict: 1,
-              title: null,
+ 
+        // Add footer with total records
+        doc.setFontSize(8);
+        doc.text(`Total Records: ${data.length}`, 14, 285);
+ 
+        // Save the PDF
+        doc.save(fileName);
+    };
+ 
+    const handleCreateSchedule = () => {
+        let selectedPanelists = [];
+        let selectedAdviser = null;
+ 
+        MySwal.fire({
+            title: `<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-calendar-plus"></i> Create Schedule</div>`,
+            html: `
+                <style>
+                    .remove-panelist-btn {
+                        border: 1px solid #3B0304;
+                        border-radius: 50%;
+                        width: 16px;
+                        height: 16px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: transparent;
+                        color: #3B0304;
+                        font-weight: bold;
+                        font-size: 10px;
+                        cursor: pointer;
+                        line-height: 1;
+                        padding: 0;
+                    }
+                </style>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Select Adviser</label>
+                    <select id="adviserSelect" class="form-select" style="border-radius:8px;height:42px;">
+                        <option disabled selected value="">Select</option>
+                        ${advisers
+                            .map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`)
+                            .join("")}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Assign Team</label>
+                    <select id="teamSelect" class="form-select" style="border-radius:8px;height:42px;" disabled>
+                        <option disabled selected value="">Select</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Assign Panelists</label>
+                    <select id="panelSelect" class="form-select" style="border-radius:8px;height:42px;" disabled>
+                        <option disabled selected value="">Select</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label style="font-weight:600;">Panelist Lists</label>
+                    <div id="panelList" class="form-control d-flex flex-wrap gap-2" style="border-radius:8px;min-height:40px;align-items:center;padding:12px;">
+                        <span class="text-muted">No panelist selected</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Date</label>
+                    <input type="date" id="scheduleDate" class="form-control" style="border-radius:8px;height:42px;"/>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Time</label>
+                    <input type="time" id="scheduleTime" class="form-control" style="border-radius:8px;height:42px;"/>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Create",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            width: "600px",
+            didOpen: () => {
+                const adviserSelect = document.getElementById("adviserSelect");
+                const teamSelect = document.getElementById("teamSelect");
+                const panelSelect = document.getElementById("panelSelect");
+                const panelList = document.getElementById("panelList");
+ 
+                // update team options
+                const updateTeamOptions = (adviserId) => {
+                    const adviser = accounts.find((a) => a.id === adviserId);
+                    if (!adviser) return;
+ 
+                    const teams = accounts.filter(
+                        (a) => a.adviser_group === adviser.adviser_group && a.user_roles === 1
+                    );
+ 
+                    teamSelect.innerHTML = '<option disabled selected value="">Select</option>';
+ 
+                    if (teams.length > 0) {
+                        teams.forEach((t) => {
+                            if (t.group_name) {
+                                teamSelect.innerHTML += `<option value="${t.group_name}">${t.group_name}</option>`;
+                            }
+                        });
+                    } else {
+                        const opt = document.createElement("option");
+                        opt.value = "";
+                        opt.disabled = true;
+                        opt.textContent = "No manager available";
+                        teamSelect.appendChild(opt);
+                    }
+                };
+ 
+                // update panel options
+                const updatePanelOptions = (adviserId) => {
+                    panelSelect.innerHTML = '<option disabled selected value="">Select</option>';
+                    advisers.forEach((a) => {
+                        if (a.id !== adviserId)
+                            panelSelect.innerHTML += `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`;
+                    });
+                };
+ 
+                adviserSelect.addEventListener("change", () => {
+                    selectedAdviser = adviserSelect.value;
+                    updateTeamOptions(selectedAdviser);
+                    updatePanelOptions(selectedAdviser);
+                    teamSelect.disabled = false;
+                    panelSelect.disabled = false;
+                    selectedPanelists = [];
+                    panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
+                });
+ 
+                // add panelist
+                panelSelect.addEventListener("change", () => {
+                    const id = panelSelect.value;
+                    if (!selectedPanelists.includes(id)) {
+                        if (selectedPanelists.length < 3) {
+                            selectedPanelists.push(id);
+                            const person = advisers.find((a) => a.id === id);
+                            if (panelList.querySelector(".text-muted")) panelList.innerHTML = "";
+                            const tag = document.createElement("span");
+                            tag.className = "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
+                            tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${id}">-</button>`;
+                            panelList.appendChild(tag);
+                        } else {
+                            MySwal.showValidationMessage("Maximum of 3 panelists.");
+                        }
+                    }
+                    panelSelect.value = "";
+                });
+ 
+                // remove panelist
+                panelList.addEventListener("click", (e) => {
+                    if (e.target.classList.contains("remove-panelist-btn")) {
+                        const idToRemove = e.target.dataset.id;
+                        selectedPanelists = selectedPanelists.filter((pid) => pid !== idToRemove);
+                        e.target.parentElement.remove();
+                        if (selectedPanelists.length === 0)
+                            panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
+                    }
+                });
             },
-          ])
-          .select(
-            `
-            *,
-            manager:manager_id ( group_name )
-          `
-          );
-
+            preConfirm: () => {
+                const team = document.getElementById("teamSelect").value;
+                const date = document.getElementById("scheduleDate").value;
+                const time = document.getElementById("scheduleTime").value;
+ 
+                if (!selectedAdviser || !team || !date || !time || selectedPanelists.length === 0) {
+                    MySwal.showValidationMessage("Please fill all fields and select panelists.");
+                    return false;
+                }
+ 
+                return { adviser: selectedAdviser, team, date, time, panelists: selectedPanelists };
+            },
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const { adviser, team, date, time, panelists } = result.value;
+ 
+                const manager = accounts.find((a) => a.user_roles === 1 && a.group_name === team);
+                const [p1, p2, p3] = panelists;
+ 
+                const { error, data } = await supabase
+                    .from("user_oraldef")
+                    .insert([
+                        {
+                            manager_id: manager.id,
+                            adviser_id: adviser,
+                            date,
+                            time,
+                            panelist1_id: p1 || null,
+                            panelist2_id: p2 || null,
+                            panelist3_id: p3 || null,
+                            verdict: 1,
+                            title: null,
+                        },
+                    ])
+                    .select(
+                        `
+                        *,
+                        manager:manager_id ( group_name )
+                      `
+                    );
+ 
+                if (!error) {
+                    setSchedules((prev) => [...prev, data[0]]);
+                    MySwal.fire({
+                        icon: "success",
+                        title: "✓ Schedule Created",
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                } else MySwal.fire("Error", "Failed to create schedule", "error");
+            }
+        });
+    };
+ 
+    // Update schedule with SweetAlert2 modal
+    const handleUpdate = (id) => {
+        setOpenDropdown(null);
+        const schedule = schedules.find(s => s.id === id);
+        if (!schedule) return;
+ 
+        let selectedPanelists = [
+            schedule.panelist1_id,
+            schedule.panelist2_id, 
+            schedule.panelist3_id
+        ].filter(Boolean);
+ 
+        const currentAdviser = accounts.find(a => a.id === schedule.adviser_id);
+        const currentTeam = schedule.manager?.group_name;
+ 
+        MySwal.fire({
+            title: `<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <i class="bi bi-pencil-square"></i> Update Schedule</div>`,
+            html: `
+                <style>
+                    .remove-panelist-btn {
+                        border: 1px solid #3B0304;
+                        border-radius: 50%;
+                        width: 16px;
+                        height: 16px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: transparent;
+                        color: #3B0304;
+                        font-weight: bold;
+                        font-size: 10px;
+                        cursor: pointer;
+                        line-height: 1;
+                        padding: 0;
+                    }
+                    .current-selection {
+                        background-color: #f8f9fa;
+                        padding: 10px;
+                        border-radius: 8px;
+                        margin-bottom: 15px;
+                        border-left: 4px solid #3B0304;
+                    }
+                </style>
+                <div class="current-selection">
+                    <div style="font-weight: 600; color: #3B0304;">Current Selection</div>
+                    <div><strong>Adviser:</strong> ${currentAdviser ? `${currentAdviser.last_name}, ${currentAdviser.first_name}` : 'N/A'}</div>
+                    <div><strong>Team:</strong> ${currentTeam || 'N/A'}</div>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Assign Panelists</label>
+                    <select id="panelSelect" class="form-select" style="border-radius:8px;height:42px;">
+                        <option disabled selected value="">Select Panelist</option>
+                        ${advisers
+                            .map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`)
+                            .join("")}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label style="font-weight:600;">Panelist Lists</label>
+                    <div id="panelList" class="form-control d-flex flex-wrap gap-2" style="border-radius:8px;min-height:40px;align-items:center;padding:12px;">
+                        ${selectedPanelists.length > 0 ? 
+                            selectedPanelists.map(pid => {
+                                const person = advisers.find(a => a.id === pid);
+                                return person ? 
+                                    `<span class="bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1">
+                                        ${person.last_name}, ${person.first_name} 
+                                        <button type="button" class="remove-panelist-btn ml-1" data-id="${pid}">-</button>
+                                    </span>` : '';
+                            }).join('') 
+                            : '<span class="text-muted">No panelist selected</span>'
+                        }
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Date</label>
+                    <input type="date" id="scheduleDate" class="form-control" style="border-radius:8px;height:42px;" value="${schedule.date}"/>
+                </div>
+                <div class="mb-3">
+                    <label style="font-weight:600;">Time</label>
+                    <input type="time" id="scheduleTime" class="form-control" style="border-radius:8px;height:42px;" value="${schedule.time}"/>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Update",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            width: "600px",
+            didOpen: () => {
+                const panelSelect = document.getElementById("panelSelect");
+                const panelList = document.getElementById("panelList");
+ 
+                // add panelist
+                panelSelect.addEventListener("change", () => {
+                    const id = panelSelect.value;
+                    if (!selectedPanelists.includes(id)) {
+                        if (selectedPanelists.length < 3) {
+                            selectedPanelists.push(id);
+                            const person = advisers.find((a) => a.id === id);
+                            if (panelList.querySelector(".text-muted")) panelList.innerHTML = "";
+                            const tag = document.createElement("span");
+                            tag.className = "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
+                            tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${id}">-</button>`;
+                            panelList.appendChild(tag);
+                        } else {
+                            MySwal.showValidationMessage("Maximum of 3 panelists.");
+                        }
+                    }
+                    panelSelect.value = "";
+                });
+ 
+                // remove panelist
+                panelList.addEventListener("click", (e) => {
+                    if (e.target.classList.contains("remove-panelist-btn")) {
+                        const idToRemove = e.target.dataset.id;
+                        selectedPanelists = selectedPanelists.filter((pid) => pid !== idToRemove);
+                        e.target.parentElement.remove();
+                        if (selectedPanelists.length === 0)
+                            panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
+                    }
+                });
+            },
+            preConfirm: () => {
+                const date = document.getElementById("scheduleDate").value;
+                const time = document.getElementById("scheduleTime").value;
+ 
+                if (!date || !time || selectedPanelists.length === 0) {
+                    MySwal.showValidationMessage("Please fill all fields and select panelists.");
+                    return false;
+                }
+ 
+                return { date, time, panelists: selectedPanelists };
+            },
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const { date, time, panelists } = result.value;
+                const [p1, p2, p3] = panelists;
+ 
+                const { error } = await supabase
+                    .from("user_oraldef")
+                    .update({ 
+                        date, 
+                        time,
+                        panelist1_id: p1 || null,
+                        panelist2_id: p2 || null,
+                        panelist3_id: p3 || null
+                    })
+                    .eq("id", id);
+ 
+                if (!error) {
+                    setSchedules((prev) =>
+                        prev.map((s) => (s.id === id ? { 
+                            ...s, 
+                            date, 
+                            time,
+                            panelist1_id: p1 || null,
+                            panelist2_id: p2 || null,
+                            panelist3_id: p3 || null
+                        } : s))
+                    );
+                    MySwal.fire({
+                        icon: "success",
+                        title: "✓ Schedule Updated",
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                } else {
+                    MySwal.fire("Error", "Failed to update schedule", "error");
+                }
+            }
+        });
+    };
+ 
+    // Export functionality with filter options
+    const handleExport = () => {
+        MySwal.fire({
+            title: "Export Oral Defense Data",
+            html: `
+                <div style="text-align: left;">
+                    <p style="margin-bottom: 15px; font-weight: 500;">Select which schedules to export:</p>
+                    <select id="exportFilter" class="form-select" style="border-radius: 8px; height: 42px; width: 100%;">
+                        <option value="all">All Schedules</option>
+                        <option value="4">Pending Only</option>
+                        <option value="1">Approved Only</option>
+                        <option value="2">Revisions Only</option>
+                        <option value="3">Disapproved Only</option>
+                    </select>
+                </div>
+            `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            confirmButtonText: "Export",
+            cancelButtonText: "Cancel",
+            preConfirm: () => {
+                const exportFilter = document.getElementById('exportFilter').value;
+                return { exportFilter };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const { exportFilter } = result.value;
+ 
+                // Filter data based on selected option
+                let filteredExportData;
+ 
+                if (exportFilter === 'all') {
+                    filteredExportData = filteredSchedules;
+                } else {
+                    const verdictValue = parseInt(exportFilter);
+                    filteredExportData = filteredSchedules.filter(sched => sched.verdict === verdictValue);
+                }
+ 
+                // Prepare data for export
+                const exportData = filteredExportData.map((sched, index) => {
+                    const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
+                        .map((pid) => {
+                            const account = accounts.find((a) => a.id === pid);
+                            return account ? `${account.last_name}, ${account.first_name}` : "";
+                        })
+                        .filter(Boolean)
+                        .join("; ");
+ 
+                    const adviser = accounts.find((a) => a.id === sched.adviser_id);
+                    const adviserName = adviser ? `${adviser.last_name}, ${adviser.first_name}` : "N/A";
+ 
+                    return {
+                        no: index + 1,
+                        team: sched.manager?.group_name || "-",
+                        title: sched.title || "-",
+                        date: sched.date,
+                        time: sched.time,
+                        adviser: adviserName,
+                        panelists: panelists,
+                        verdict: verdictMap[sched.verdict] || "PENDING"
+                    };
+                });
+ 
+                if (exportData.length === 0) {
+                    const filterText = exportFilter === 'all' ? 'schedules' : 
+                                    exportFilter === '4' ? 'APPROVED schedules' : 
+                                    exportFilter === '1' ? 'PENDING schedules' : 
+                                    exportFilter === '2' ? 'REVISIONS schedules' : 'DISAPPROVED schedules';
+ 
+                    MySwal.fire({
+                        title: "No Data to Export",
+                        text: `There are no ${filterText} to export.`,
+                        icon: "warning",
+                        confirmButtonColor: "#3B0304"
+                    });
+                    return;
+                }
+ 
+                // Export as PDF
+                exportOralDefenseAsPDF(exportData);
+ 
+                const filterText = exportFilter === 'all' ? 'data' : 
+                                exportFilter === '4' ? 'APPROVED schedules' : 
+                                exportFilter === '1' ? 'PENDING schedules' : 
+                                exportFilter === '2' ? 'REVISIONS schedules' : 'DISAPPROVED schedules';
+ 
+                MySwal.fire({
+                    title: "Export Successful!",
+                    text: `Oral defense ${filterText} has been downloaded as PDF.`,
+                    icon: "success",
+                    confirmButtonColor: "#3B0304",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        });
+    };
+ 
+    const handleDelete = async (id) => {
+        const confirm = await MySwal.fire({
+            title: "Delete Schedule?",
+            text: "This action cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            confirmButtonText: "Yes, delete it!",
+        });
+ 
+        if (confirm.isConfirmed) {
+            const { error } = await supabase
+                .from("user_oraldef")
+                .delete()
+                .eq("id", id);
+ 
+            if (!error) {
+                setSchedules((prev) => prev.filter((s) => s.id !== id));
+                MySwal.fire("Deleted!", "Schedule has been deleted.", "success");
+            } else {
+                MySwal.fire("Error", "Failed to delete schedule.", "error");
+            }
+        }
+    };
+ 
+    const handleCheckboxChange = (id, isChecked) => {
+        setSelectedSchedules(prev => {
+            if (isChecked) {
+                return [...prev, id];
+            } else {
+                return prev.filter(scheduleId => scheduleId !== id);
+            }
+        });
+    };
+ 
+    const handleDeleteSelected = async () => {
+        if (selectedSchedules.length === 0) {
+            MySwal.fire("No schedules selected", "Please select one or more schedules to delete.", "warning");
+            return;
+        }
+ 
+        const confirm = await MySwal.fire({
+            title: "Delete Selected Schedules?",
+            text: "This action cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3B0304",
+            cancelButtonColor: "#999",
+            confirmButtonText: "Yes, delete them!",
+        });
+ 
+        if (confirm.isConfirmed) {
+            const { error } = await supabase
+                .from("user_oraldef")
+                .delete()
+                .in("id", selectedSchedules);
+ 
+            if (!error) {
+                setSchedules(prev => prev.filter(s => !selectedSchedules.includes(s.id)));
+                setSelectedSchedules([]);
+                setIsDeleteMode(false);
+                MySwal.fire("Deleted!", "Selected schedules have been deleted.", "success");
+            } else {
+                MySwal.fire("Error", "Failed to delete selected schedules.", "error");
+            }
+        }
+    };
+ 
+    // change verdict
+    const handleVerdictChange = async (id, newVerdict) => {
+        const { error } = await supabase
+            .from("user_oraldef")
+            .update({ verdict: newVerdict })
+            .eq("id", id);
+ 
         if (!error) {
-          setSchedules((prev) => [...prev, data[0]]);
-          MySwal.fire({
-            icon: "success",
-            title: "✓ Schedule Created",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        } else MySwal.fire("Error", "Failed to create schedule", "error");
-      }
-    });
-  };
-
-  // change verdict
-  const handleVerdictChange = async (id, newVerdict) => {
-    const { error } = await supabase
-      .from("user_oraldef")
-      .update({ verdict: newVerdict })
-      .eq("id", id);
-
-    if (!error) {
-      setSchedules((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, verdict: newVerdict } : s))
-      );
-    }
-  };
-
-  // update schedule date & time
-  const handleUpdateSchedule = async (schedule) => {
-    let date = prompt("Enter new date:", schedule.date);
-    if (!date) return;
-    let time = prompt("Enter new time:", schedule.time);
-    if (!time) return;
-
-    const { error } = await supabase
-      .from("user_oraldef")
-      .update({ date, time })
-      .eq("id", schedule.id);
-
-    if (!error) {
-      setSchedules((prev) =>
-        prev.map((s) => (s.id === schedule.id ? { ...s, date, time } : s))
-      );
-      MySwal.fire({
-        icon: "success",
-        title: "Schedule updated",
-        showConfirmButton: false,
-        timer: 1200,
-      });
-    }
-  };
-
-  // search by team
-  const filteredSchedules = schedules.filter((s) =>
-    s.manager?.group_name?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
-        <FaCalendarAlt /> Oral Defense » Scheduled Teams
-      </h1>
-      <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
-
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          onClick={handleCreateSchedule}
-          className="px-4 py-2 bg-[#3B0304] text-white rounded-lg flex items-center gap-1"
-        >
-          <FaPlus /> Create Schedule
-        </button>
-        <input
-          type="text"
-          placeholder="Search Team..."
-          className="border px-2 py-1 rounded-lg"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-300 text-left">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border px-2 py-1">NO</th>
-              <th className="border px-2 py-1">TEAM</th>
-              <th className="border px-2 py-1">TITLE</th>
-              <th className="border px-2 py-1">DATE</th>
-              <th className="border px-2 py-1">TIME</th>
-              <th className="border px-2 py-1">PANELISTS</th>
-              <th className="border px-2 py-1">VERDICT</th>
-              <th className="border px-2 py-1">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSchedules.map((s, idx) => (
-              <tr key={s.id}>
-                <td className="border px-2 py-1">{idx + 1}</td>
-                <td className="border px-2 py-1">{s.manager?.group_name || "-"}</td>
-                <td className="border px-2 py-1">{s.title || "-"}</td>
-                <td className="border px-2 py-1">{s.date}</td>
-                <td className="border px-2 py-1">{s.time}</td>
-                <td className="border px-2 py-1">
-                  {[s.panelist1_id, s.panelist2_id, s.panelist3_id]
-                    .map((pid) => accounts.find((a) => a.id === pid)?.last_name || "")
-                    .filter(Boolean)
-                    .join(", ")}
-                </td>
-                <td className="border px-2 py-1">
-                  <select
-                    value={s.verdict}
-                    onChange={(e) => handleVerdictChange(s.id, parseInt(e.target.value))}
-                    className="border px-1 py-0.5 rounded"
-                  >
-                    {Object.entries(verdictMap).map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="border px-2 py-1">
-                  <button
-                    onClick={() => handleUpdateSchedule(s)}
-                    className="px-2 py-1 bg-yellow-400 text-white rounded text-sm flex items-center gap-1"
-                  >
-                    <FaPen /> Update
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredSchedules.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-center py-4 text-gray-500">
-                  No schedules found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+            setSchedules((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, verdict: newVerdict } : s))
+            );
+ 
+            // Show success message for REVISIONS
+            if (newVerdict === 2) {
+                MySwal.fire({
+                    icon: "success",
+                    title: "Marked as REVISIONS",
+                    text: "The schedule has been marked for revisions and will remain in the list.",
+                    showConfirmButton: false,
+                    timer: 2000,
+                });
+            }
+        } else {
+            MySwal.fire("Error", "Failed to update verdict.", "error");
+        }
+    };
+ 
+    // Get adviser name for display
+    const getAdviserName = (adviserId) => {
+        const adviser = accounts.find(a => a.id === adviserId);
+        return adviser ? `${adviser.last_name}, ${adviser.first_name}` : "N/A";
+    };
+ 
+    return (
+        <div className="p-6">
+            <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
+                <FaCalendarAlt /> Oral Defense » Scheduled Teams
+            </h1>
+            <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
+ 
+            <div className="flex flex-col mb-6">
+                <div className="flex gap-4 mb-4">
+                    <button
+                        className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
+                        onClick={handleCreateSchedule}
+                    >
+                        <FaPlus /> Create Schedule
+                    </button>
+                    <button
+                        className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
+                        onClick={handleExport}
+                    >
+                        <FaFileExport /> Export
+                    </button>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="relative w-full" style={{ maxWidth: '250px' }}>
+                        <input
+                            type="text"
+                            className="w-full px-4 py-2 pl-10 bg-white border border-[#B2B2B2] rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                            placeholder="Search Team..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                        {isDeleteMode && (
+                            <button
+                                className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2"
+                                onClick={() => {
+                                    setIsDeleteMode(false);
+                                    setSelectedSchedules([]);
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button
+                            className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-white"
+                            onClick={() => {
+                                if (isDeleteMode) {
+                                    handleDeleteSelected();
+                                } else {
+                                    setIsDeleteMode(true);
+                                }}
+                            }
+                        >
+                            <FaTrash /> {isDeleteMode ? "Delete Selected" : "Delete"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+ 
+            <div className="bg-white rounded-lg shadow-md">
+                <table className="w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            {isDeleteMode && (
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input
+                                        type="checkbox"
+                                        className="form-checkbox h-4 w-4 bg-white border-[#3B0304] text-[#3B0304] rounded transition duration-150 ease-in-out cursor-pointer focus:ring-0 focus:ring-offset-0"
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedSchedules(filteredSchedules.map(s => s.id));
+                                            } else {
+                                                setSelectedSchedules([]);
+                                            }
+                                        }}
+                                        checked={selectedSchedules.length === filteredSchedules.length && filteredSchedules.length > 0}
+                                    />
+                                </th>
+                            )}
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                NO
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                TEAM
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                TITLE
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                DATE
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                TIME
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ADVISER
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                PANELISTS
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                VERDICT
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ACTION
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredSchedules.map((s, index) => (
+                            <tr 
+                                key={s.id} 
+                                className={`relative ${s.verdict === 2 ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}
+                            >
+                                {isDeleteMode && (
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            className="form-checkbox h-4 w-4 bg-white border-[#3B0304] text-[#3B0304] rounded transition duration-150 ease-in-out cursor-pointer focus:ring-0 focus:ring-offset-0"
+                                            checked={selectedSchedules.includes(s.id)}
+                                            onChange={(e) => handleCheckboxChange(s.id, e.target.checked)}
+                                        />
+                                    </td>
+                                )}
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {index + 1}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {s.manager?.group_name || "-"}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {s.title || "-"}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {s.date}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {s.time}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {getAdviserName(s.adviser_id)}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-gray-500">
+                                    {[s.panelist1_id, s.panelist2_id, s.panelist3_id]
+                                        .map((pid) => {
+                                            const account = accounts.find((a) => a.id === pid);
+                                            return account ? `${account.last_name}, ${account.first_name}` : "";
+                                        })
+                                        .filter(Boolean)
+                                        .join(", ")}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                    <select
+                                        className={`w-32 p-1 border border-[#B2B2B2] rounded-lg bg-white text-[#3B0304] font-semibold text-xs ${
+                                            s.verdict === 2 ? 'bg-red-100 border-red-300' : ''
+                                        }`}
+                                        value={s.verdict}
+                                        onChange={(e) => handleVerdictChange(s.id, parseInt(e.target.value))}
+                                    >
+                                        {Object.entries(verdictMap).map(([key, value]) => (
+                                            <option key={key} value={key}>
+                                                {value}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-center">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenDropdown(openDropdown === index ? null : index);
+                                        }}
+                                        className="bg-transparent border-none focus:outline-none"
+                                    >
+                                        <FaEllipsisV className="text-[#3B0304] text-sm" />
+                                    </button>
+ 
+                                    {/* Dropdown positioned close to the button */}
+                                    {openDropdown === index && (
+                                        <div 
+                                            ref={dropdownRef}
+                                            className="absolute right-4 z-50 mt-1 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                                            style={{ top: 'calc(100% - 10px)' }}
+                                        >
+                                            <div className="py-1">
+                                                <button
+                                                    onClick={() => {
+                                                        handleUpdate(s.id);
+                                                        setOpenDropdown(null);
+                                                    }}
+                                                    className="w-full flex items-center px-3 py-2 text-sm text-[#3B0304] bg-transparent hover:bg-gray-100 border-none"
+                                                >
+                                                    <FaPen className="mr-2" /> Update
+                                                </button> 
+                                                <button
+                                                    onClick={() => {
+                                                        handleDelete(s.id);
+                                                        setOpenDropdown(null);
+                                                    }}
+                                                    className="w-full flex items-center px-3 py-2 text-sm text-[#3B0304] bg-transparent hover:bg-gray-100 border-none"
+                                                >
+                                                    <FaTrash className="mr-2" /> Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                        {filteredSchedules.length === 0 && (
+                            <tr>
+                                <td colSpan={isDeleteMode ? "10" : "9"} className="text-center py-4 text-gray-500">
+                                    No schedules found.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 };
-
+ 
 export default OralDefense;

@@ -370,32 +370,86 @@ const handleImport = (event) => {
  
  
   const handleUpload = async () => {
-    if (importedData.length === 0) {
-      MySwal.fire("No Data", "Please import students first.", "warning");
-      return;
-    }
- 
-    try {
-      const dataToInsert = importedData.map((row) => ({
-        user_id: row.user_id,
-        password: row.password,
-        first_name: row.first_name,
-        last_name: row.last_name,
-        middle_name: row.middle_name,
-        user_roles: 2, 
-      }));
- 
-      const { error } = await supabase.from("user_credentials").insert(dataToInsert);
-      if (error) throw error;
- 
-      MySwal.fire("Success", "Student data uploaded successfully!", "success");
-      setImportedData([]);
-      setSelectedRows([]);
-    } catch (err) {
-      console.error("Upload error:", err.message);
-      MySwal.fire("Error", err.message, "error");
-    }
-  };
+  if (importedData.length === 0) {
+    MySwal.fire("No Data", "Please import students first.", "warning");
+    return;
+  }
+
+  // 1️⃣ Generate year options dynamically
+  const startYear = 2020;
+  const currentYear = new Date().getFullYear();
+  const maxYear = currentYear + 1;
+  const yearOptions = [];
+  for (let y = startYear; y <= maxYear; y++) {
+    yearOptions.push(y);
+  }
+
+  // 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
+  const { value: selectedYear } = await MySwal.fire({
+    title: "Select Academic Year",
+    html: `
+      <div style="max-width: 100%; overflow: hidden;">
+        <select id="year-select" class="swal2-select" style="
+          width: 100%;
+          padding: 10px;
+          border-radius: 6px;
+          border: 1.5px solid #888;
+          font-size: 0.9rem;
+          text-align: center;
+        ">
+          ${yearOptions.map(
+            (y) =>
+              `<option value="${y}" ${y === currentYear ? "selected" : ""}>
+                ${y}-${y + 1}
+              </option>`
+          ).join("")}
+        </select>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonColor: "#3B0304",
+    cancelButtonColor: "#999",
+    confirmButtonText: "Confirm",
+    focusConfirm: false,
+    preConfirm: () => {
+      const year = document.getElementById("year-select").value;
+      if (!year) {
+        MySwal.showValidationMessage("Please select a year first.");
+        return false;
+      }
+      return `${year}-${parseInt(year) + 1}`;
+    },
+  });
+
+  // 3️⃣ Handle cancel
+  if (!selectedYear) {
+    MySwal.fire("Cancelled", "Enrollment was cancelled.", "info");
+    return;
+  }
+
+  try {
+    const dataToInsert = importedData.map((row) => ({
+      user_id: row.user_id,
+      password: row.password,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      middle_name: row.middle_name,
+      user_roles: 2, // Students
+      year: selectedYear, // 🆕 Save academic year
+    }));
+
+    const { error } = await supabase.from("user_credentials").insert(dataToInsert);
+    if (error) throw error;
+
+    MySwal.fire("Success", `Students enrolled for ${selectedYear}!`, "success");
+    setImportedData([]);
+    setSelectedRows([]);
+  } catch (err) {
+    console.error("Upload error:", err.message);
+    MySwal.fire("Error", err.message, "error");
+  }
+};
+
  
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
