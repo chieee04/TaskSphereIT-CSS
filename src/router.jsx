@@ -1,41 +1,89 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App";
 import Signin from "./components/Signin";
 import ForgotPassword from "./components/Instructor/ForgotPassword";
-
 
 import InstructorDashboard from "./components/Instructor/InstructorDashboard";
 import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
 import MemberDashboard from "./components/Member/MemberDashboard";
 import AdviserDashboard from "./components/CapstoneAdviser/AdviserDashboard";
+import ProtectedRoute from "./components/protectedRoute";
 
 export const router = createBrowserRouter([
-
   {
     path: "/",
-    element: <App />,   //Para Static yung Header + Footer
+    element: <App />,
     children: [
-      { index: true, element: <Signin /> }, // ito ang unang lalabas (default)
+      { index: true, element: <Signin /> },
       { path: "/Signin", element: <Signin /> },
+      { path: "/ForgotPassword", element: <ForgotPassword /> },
 
-  //-----------------------------------------------------------
-  //-----------------------------------------------------------
+      // 🔐 PROTECTED DASHBOARDS
+      {
+        path: "/Manager",
+        element: (
+          <ProtectedRoute allowedRoles={[1]}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/Manager/:subPage", element: (
+          <ProtectedRoute allowedRoles={[1]}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        ),
+      },
 
-{ path: "/ForgotPassword", element: <ForgotPassword /> },
-  
-  //dashboard
-  { path: "/Manager", element: <ManagerDashboard /> },
-  { path: "/Manager/:subPage", element: <ManagerDashboard /> },
+      {
+        path: "/Member",
+        element: (
+          <ProtectedRoute allowedRoles={[2]}>
+            <MemberDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/Member/:subPage", element: (
+          <ProtectedRoute allowedRoles={[2]}>
+            <MemberDashboard />
+          </ProtectedRoute>
+        ),
+      },
 
-  { path: "/Member", element: <MemberDashboard /> },
-  { path: "/Member/:subPage", element: <MemberDashboard /> },
+      {
+        path: "/Adviser",
+        element: (
+          <ProtectedRoute allowedRoles={[3]}>
+            <AdviserDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/Adviser/:subPage", element: (
+          <ProtectedRoute allowedRoles={[3]}>
+            <AdviserDashboard />
+          </ProtectedRoute>
+        ),
+      },
 
-  { path: "/Adviser", element: <AdviserDashboard /> },
-  { path: "/Adviser/:subPage", element: <AdviserDashboard /> },
-  
-  { path: "/Instructor", element: <InstructorDashboard /> },
-  { path: "/Instructor/:subPage", element: <InstructorDashboard /> },
+      {
+        path: "/Instructor",
+        element: (
+          <ProtectedRoute allowedRoles={[4]}>
+            <InstructorDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/Instructor/:subPage", element: (
+          <ProtectedRoute allowedRoles={[4]}>
+            <InstructorDashboard />
+          </ProtectedRoute>
+        ),
+      },
 
+      // 🧱 CATCH-ALL: Redirect all invalid routes to /Signin
+      {
+        path: "*",
+        element: <Navigate to="/Signin" replace />,
+      },
     ],
   },
 ]);

@@ -10,6 +10,7 @@ import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
+import { useAuthGuard } from "../../components/hooks/useAuthGuard";
 
 import Footer from "../Footer";
 import Header from "../Header";
@@ -102,6 +103,7 @@ const TeamCard = ({ adviser, teams }) => {
 };
 
 const InstructorDashboard = () => {
+  useAuthGuard();
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarWidth, setSidebarWidth] = useState(70);
   const [isSoloMode, setIsSoloMode] = useState(false);

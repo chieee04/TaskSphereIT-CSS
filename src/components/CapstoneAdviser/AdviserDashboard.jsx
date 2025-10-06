@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation,useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
-
+import { useAuthGuard } from "../../components/hooks/useAuthGuard";
 import AdviserTeamSummary from "./AdviserTeamsSummary";
 import AdviserTask from "./AdviserTask/AdviserTask";
 import AdviserOralDef from "./AdviserTask/AdviserOralDef";
@@ -104,6 +104,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
 
 // Main AdviserDashboard Component
 const AdviserDashboard = ({ activePageFromHeader }) => {
+  useAuthGuard();
   const [sidebarWidth, setSidebarWidth] = useState(70);
   const [isSoloMode, setIsSoloMode] = useState(false);
   const [upcomingTasks, setUpcomingTasks] = useState([]);
@@ -123,6 +124,7 @@ const handlePageChange = (page) => {
 
   navigate(`/Adviser/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
 };
+
 /*useEffect(() => {
     if (subPage) {
       setActivePage(subPage.replace(/([A-Z])/g, " $1").trim());

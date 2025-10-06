@@ -19,6 +19,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { useAuthGuard } from "../../components/hooks/useAuthGuard";
+
 
 // Pages
 import Tasks from "./ManagerTask/ManagerTask";
@@ -130,7 +132,7 @@ const TeamProgressChart = () => {
 };
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
-
+useAuthGuard();
   const location = useLocation();
   const [activePage, setActivePage] = useState(location.state?.activePage || activePageFromHeader || "Dashboard");
   const [upcomingTasks, setUpcomingTasks] = useState([]);

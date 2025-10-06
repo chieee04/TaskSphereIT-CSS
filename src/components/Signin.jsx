@@ -1,6 +1,6 @@
 // src/components/Signin.jsx
-import React, { useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import Swal from "sweetalert2";
 import "../components/Style/Style.css";
 import Logo1 from "../assets/img/Dct-Logo.png";
@@ -16,17 +16,49 @@ const Signin = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { setIsLoggedIn } = useOutletContext();
   const { login } = UserAuth();
 
+  // =====================================================
+  // 🚫 Route Guard (Trap user inside /Signin)
+  // =====================================================
+  useEffect(() => {
+    const storedUser = localStorage.getItem("customUser");
+
+    // 🔹 If user is logged in, redirect to their dashboard
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      const roleRoutes = {
+        1: "/Manager/Dashboard",
+        2: "/Member/Dashboard",
+        3: "/Adviser/Dashboard",
+        4: "/Instructor/Dashboard",
+      };
+      navigate(roleRoutes[user.user_roles] || "/Signin", { replace: true });
+    } else {
+      // 🔹 If user is not logged in, trap them inside /Signin
+      const allowedPaths = ["/", "/Signin", "/signin"];
+      if (!allowedPaths.includes(location.pathname)) {
+        navigate("/Signin", { replace: true });
+      }
+
+      // Disable back/forward navigation
+      window.history.pushState(null, "", window.location.href);
+      window.onpopstate = () => {
+        window.history.pushState(null, "", window.location.href);
+      };
+    }
+  }, [location, navigate]);
+
+  // =====================================================
+  // 🔹 Handle Sign In
+  // =====================================================
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // =====================================================
-      // 🔹 Unified Login for All Roles (Admin / Manager / Member / Adviser)
-      // =====================================================
       const { data: user, error } = await supabase
         .from("user_credentials")
         .select("*")
@@ -47,7 +79,6 @@ const Signin = () => {
       login(user);
       localStorage.setItem("customUser", JSON.stringify(user));
       localStorage.setItem("user_id", user.user_id);
-
       setIsLoggedIn(true);
 
       console.log("✅ User signed in:", {
@@ -56,45 +87,24 @@ const Signin = () => {
         role: user.user_roles,
       });
 
-      // =====================================================
-      // 🔹 Role-based navigation (1=Manager, 2=Member, 3=Adviser, 4=Admin)
-      // =====================================================
-      if (user.user_roles === 1) {
+      // 🔹 Role-based navigation
+      const roleRoutes = {
+        1: { path: "/Manager", label: "Manager" },
+        2: { path: "/Member", label: "Member" },
+        3: { path: "/Adviser", label: "Adviser" },
+        4: { path: "/Instructor", label: "Admin" },
+      };
+
+      const target = roleRoutes[user.user_roles];
+      if (target) {
         Swal.fire({
           icon: "success",
           title: "Login successful",
-          text: "Welcome Manager",
+          text: `Welcome ${target.label}`,
           timer: 1500,
           showConfirmButton: false,
         });
-        navigate("/Manager");
-      } else if (user.user_roles === 2) {
-        Swal.fire({
-          icon: "success",
-          title: "Login successful",
-          text: "Welcome Member",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        navigate("/Member");
-      } else if (user.user_roles === 3) {
-        Swal.fire({
-          icon: "success",
-          title: "Login successful",
-          text: "Welcome Adviser",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        navigate("/Adviser");
-      } else if (user.user_roles === 4) {
-        Swal.fire({
-          icon: "success",
-          title: "Login successful",
-          text: "Welcome Admin",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        navigate("/Instructor");
+        navigate(target.path);
       } else {
         Swal.fire({
           icon: "warning",
@@ -113,15 +123,28 @@ const Signin = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+  const storedUser = localStorage.getItem("customUser");
+  if (storedUser) {
+    const user = JSON.parse(storedUser);
+    const roleRoutes = {
+      1: "/Manager/Dashboard",
+      2: "/Member/Dashboard",
+      3: "/Adviser/Dashboard",
+      4: "/Instructor/Dashboard",
+    };
+    navigate(roleRoutes[user.user_roles] || "/Signin", { replace: true });
+  }
+}, []);
 
+  // =====================================================
+  // 🔹 UI
+  // =====================================================
   return (
     <div className="w-full min-h-screen bg-gray-100 flex flex-col">
-      {/* HEADER */}
       <SigninHead />
 
-      {/* MAIN CONTENT */}
       <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color flex-grow">
-        {/* LEFT: Sign In Form */}
         <div className="w-full md:w-1/2 p-6 flex items-center justify-center b-rd bg-white">
           <form onSubmit={handleSignIn} className="w-full max-w-md text-center">
             <h2 className="text-2xl font-bold mb-4">Welcome to TaskSphere IT</h2>
@@ -140,30 +163,31 @@ const Signin = () => {
                 required
               />
             </div>
+
             <div className="mb-2 text-left">
-  <label htmlFor="password" className="block font-medium mb-1">
-    Password
-  </label>
-  <input
-    onChange={(e) => setPassword(e.target.value)}
-    value={password}
-    className="w-full p-3 border rounded"
-    type="password"
-    id="password"
-    placeholder="Enter your password"
-    required
-  />
-  {/* Forgot Password Button */}
-  <div className="text-right mt-1">
-    <button
-      type="button"
-      onClick={() => navigate("/ForgotPassword")}
-      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-    >
-      Forgot Password?
-    </button>
-  </div>
-</div>
+              <label htmlFor="password" className="block font-medium mb-1">
+                Password
+              </label>
+              <input
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                className="w-full p-3 border rounded"
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                required
+              />
+              <div className="text-right mt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate("/ForgotPassword")}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -174,7 +198,6 @@ const Signin = () => {
           </form>
         </div>
 
-        {/* RIGHT: Info Panel */}
         <div className="w-full md:w-1/2 flex flex-col items-center justify-center main-bg-color text-white rounded-lg p-8 space-y-6">
           <h1 className="text-3xl font-semibold text-center">
             Empowering Collaboration,
@@ -185,7 +208,6 @@ const Signin = () => {
         </div>
       </div>
 
-      {/* FOOTER */}
       <SigninFoot />
     </div>
   );

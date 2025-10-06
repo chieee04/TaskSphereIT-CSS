@@ -10,6 +10,8 @@ import MemberTasksRecord from "./MemberTaskRecord";
 import MemberEvents from "./MemberEvents";
 import Profile from "../Profile";
 import { supabase } from "../../supabaseClient";
+import { useAuthGuard } from "../../components/hooks/useAuthGuard";
+
 
 import {
   Chart as ChartJS,
@@ -85,6 +87,7 @@ const TeamProgressChart = ({ statusCounts }) => {
 };
 
 const MemberDashboard = () => {
+  useAuthGuard();
   const location = useLocation();
   const initialPage = location.state?.activePage || localStorage.getItem("activePage") || "Dashboard";
   const [activePage, setActivePage] = useState(initialPage);
