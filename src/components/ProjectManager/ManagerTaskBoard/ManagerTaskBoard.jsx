@@ -34,7 +34,7 @@ const ManagerTaskBoard = () => {
 
       const currentUser = JSON.parse(storedUser);
 
-      // ✅ Kunin ang buong user record para makuha yung `id`
+      // ✅ Kunin ID ng manager mula user_credentials
       const { data: userData, error: userError } = await supabase
         .from("user_credentials")
         .select("id, user_id")
@@ -46,44 +46,82 @@ const ManagerTaskBoard = () => {
         return;
       }
 
-      if (!userData?.id) {
-        console.error("❌ User ID not found in user_credentials");
+      const managerId = userData?.id;
+      if (!managerId) {
+        console.error("❌ Manager ID not found in user_credentials");
         return;
       }
 
-      const managerId = userData.id;
       console.log("👤 Logged-in Manager ID:", managerId);
 
       let allData = [];
-      const tables = [
+
+      // 🧩 Fetch manager task tables
+      const managerTables = [
         "manager_title_task",
         "manager_oral_task",
         "manager_final_task",
-        "manager_final_redef"
+        "manager_final_redef",
       ];
 
-      for (const table of tables) {
-  const { data, error } = await supabase
-    .from(table)
-    .select("*")
-    .eq("manager_id", managerId);
+      for (const table of managerTables) {
+        const { data, error } = await supabase
+          .from(table)
+          .select(`
+            *,
+            user_credentials:member_id (
+              first_name,
+              last_name
+            )
+          `)
+          .eq("manager_id", managerId);
 
-  if (error) {
-    console.error(`❌ Error fetching tasks from ${table}:`, error);
-    continue;
-  }
+        if (error) {
+          console.error(`❌ Error fetching tasks from ${table}:`, error);
+          continue;
+        }
 
-  // 🔑 Normalize field names
-  const normalized = data.map((t) => ({
-    ...t,
-    task: t.task || t.task_name || "Untitled Task", // ✅ unify field
-    subtask: t.subtask || null,
-  }));
+        const normalized = data.map((t) => ({
+          ...t,
+          task: t.task || t.task_name || "Untitled Task",
+          subtask: t.subtask || null,
+          assigned_to: t.user_credentials
+            ? `${t.user_credentials.first_name} ${t.user_credentials.last_name}`
+            : "No Member",
+          source: "manager",
+        }));
 
-  console.log(`✅ Normalized tasks from ${table}:`, normalized);
+        allData = [...allData, ...normalized];
+      }
 
-  allData = [...allData, ...normalized];
-}
+      // 🧩 Fetch adviser task tables (adviser_final_def + adviser_oral_def)
+      const adviserTables = ["adviser_final_def", "adviser_oral_def"];
+      for (const table of adviserTables) {
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("manager_id", managerId);
+
+        if (error) {
+          console.error(`❌ Error fetching tasks from ${table}:`, error);
+          continue;
+        }
+
+        const normalized = data.map((t) => ({
+          ...t,
+          task: t.task || t.task_name || "Untitled Task",
+          subtask: t.subtask || t.subtasks || null,
+          assigned_to: t.group_name || "Adviser Task",
+          status: t.status || "To Review",
+          due_date: t.due_date || null,
+          due_time: t.time || null,
+          source: "adviser", // 🔹 mark adviser tasks
+        }));
+
+        allData = [...allData, ...normalized];
+      }
+
+      console.log("✅ All combined tasks:", allData);
 
       setAllTasks(allData);
       groupTasksByStatus(allData);
@@ -101,11 +139,17 @@ const ManagerTaskBoard = () => {
     };
 
     tasks.forEach((task) => {
-      if (task.status === "Completed") return; // ✅ skip completed tasks
+      if (task.status === "Completed") return; // skip completed
 
       let status = (task.status || "To Do").trim();
-      if (!grouped[status]) status = "Missed"; // fallback
-      grouped[status].push(task);
+      if (!grouped[status]) status = "Missed";
+
+      // ✅ Adviser tasks go FIRST
+      if (task.source === "adviser") {
+        grouped[status].unshift(task);
+      } else {
+        grouped[status].push(task);
+      }
     });
 
     setTasksByStatus(grouped);
@@ -169,12 +213,17 @@ const ManagerTaskBoard = () => {
                   ) : (
                     items.map((task, index) => {
                       const borderColor = statusColors[status];
+                      const isAdviser = task.source === "adviser";
 
                       return (
                         <div
-                          className="position-relative bg-white mb-3 p-3 rounded shadow-sm"
+                          className={`position-relative bg-white mb-3 p-3 rounded shadow-sm ${
+                            isAdviser ? "border border-primary" : ""
+                          }`}
                           key={index}
-                          style={{ borderLeft: `6px solid ${borderColor}` }}
+                          style={{
+                            borderLeft: `6px solid ${borderColor}`,
+                          }}
                         >
                           <button
                             onClick={() => setViewTask(task)}
@@ -191,6 +240,9 @@ const ManagerTaskBoard = () => {
                           <strong className="fs-6">
                             {task.assigned_to || "No Member"}
                           </strong>
+                          {isAdviser && (
+                            <span className="badge bg-primary ms-2">Adviser</span>
+                          )}
                           <hr
                             style={{
                               margin: "7px 0",
@@ -199,9 +251,7 @@ const ManagerTaskBoard = () => {
                             }}
                           />
                           <p className="mb-1">{task.task}</p>
-                          <p className="mb-1">
-                            {task.subtask || "No Subtask"}
-                          </p>
+                          <p className="mb-1">{task.subtask || "No Subtask"}</p>
                           <hr
                             style={{
                               margin: "4px 0",

@@ -11,6 +11,7 @@ const statusColors = {
   "In Progress": "#809D3C",
   "To Review": "#578FCA",
   "Missed": "#D32F2F",
+  "Completed": "#4CAF50",
 };
 
 const MemberTaskBoard = () => {
@@ -26,79 +27,109 @@ const MemberTaskBoard = () => {
 
   useEffect(() => {
     const fetchTasksForMember = async () => {
-      const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) {
-        console.warn("⚠️ No logged-in user found in localStorage");
-        return;
+      try {
+        const storedUser = localStorage.getItem("customUser");
+        if (!storedUser) {
+          console.warn("⚠️ No logged-in user found in localStorage");
+          return;
+        }
+
+        const currentUser = JSON.parse(storedUser);
+
+        // 1️⃣ Get member info
+        const { data: memberData, error: memberError } = await supabase
+          .from("user_credentials")
+          .select("id, user_id, group_name")
+          .eq("user_id", currentUser.user_id)
+          .single();
+
+        if (memberError || !memberData) throw memberError;
+        const groupName = memberData.group_name;
+
+        // 2️⃣ Find manager of same group
+        const { data: managerData, error: managerError } = await supabase
+          .from("user_credentials")
+          .select("id, user_id")
+          .eq("group_name", groupName)
+          .eq("user_roles", 1)
+          .single();
+
+        if (managerError || !managerData) throw managerError;
+        const managerId = managerData.id;
+
+        let combinedTasks = [];
+
+        // 3️⃣ Fetch MANAGER tasks (4 tables)
+        const managerTables = [
+          "manager_title_task",
+          "manager_oral_task",
+          "manager_final_task",
+          "manager_final_redef",
+        ];
+
+        for (const table of managerTables) {
+          const { data, error } = await supabase
+            .from(table)
+            .select(
+              `
+              *,
+              user_credentials:member_id (
+                first_name,
+                last_name
+              )
+            `
+            )
+            .eq("manager_id", managerId);
+
+          if (error) {
+            console.error(`❌ Error fetching ${table}:`, error);
+            continue;
+          }
+
+          const normalized = data.map((t) => ({
+            ...t,
+            task: t.task || t.task_name || "Untitled Task",
+            subtask: t.subtask || null,
+            assigned_to: t.user_credentials
+              ? `${t.user_credentials.first_name} ${t.user_credentials.last_name}`
+              : "No Member",
+            source: "manager",
+          }));
+
+          combinedTasks = [...combinedTasks, ...normalized];
+        }
+
+        // 4️⃣ Fetch ADVISER tasks (2 tables)
+        const adviserTables = ["adviser_final_def", "adviser_oral_def"];
+
+        for (const table of adviserTables) {
+          const { data, error } = await supabase
+            .from(table)
+            .select("*")
+            .eq("manager_id", managerId);
+
+          if (error) {
+            console.error(`❌ Error fetching ${table}:`, error);
+            continue;
+          }
+
+          const normalized = data.map((t) => ({
+            ...t,
+            task: t.task || "Untitled Task",
+            subtask: t.subtask || null,
+            assigned_to: t.group_name || "Team Task",
+            source: "adviser",
+          }));
+
+          combinedTasks = [...combinedTasks, ...normalized];
+        }
+
+        console.log("✅ Combined Tasks:", combinedTasks);
+        setAllTasks(combinedTasks);
+        groupTasksByStatus(combinedTasks);
+      } catch (err) {
+        console.error("❌ Error fetching tasks:", err.message);
       }
-
-      const currentUser = JSON.parse(storedUser);
-
-      // 1. Get current member record
-      const { data: memberData, error: memberError } = await supabase
-        .from("user_credentials")
-        .select("id, user_id, group_name")
-        .eq("user_id", currentUser.user_id)
-        .single();
-
-      if (memberError || !memberData) {
-        console.error("❌ Error fetching member:", memberError);
-        return;
-      }
-
-      const groupName = memberData.group_name;
-
-      // 2. Find manager of the group (user_roles = 1)
-      const { data: managerData, error: managerError } = await supabase
-        .from("user_credentials")
-        .select("id, user_id")
-        .eq("group_name", groupName)
-        .eq("user_roles", 1) // ✅ Manager
-        .single();
-
-      if (managerError || !managerData) {
-        console.error("❌ Error fetching manager:", managerError);
-        return;
-      }
-
-      const managerId = managerData.id;
-      console.log("👤 Manager ID for this member:", managerId);
-
-      // 3. Fetch manager’s tasks from all 3 tables
-      let allData = [];
-      const tables = [
-        "manager_title_task",
-        "manager_oral_task",
-        "manager_final_task",
-        "manager_final_redef",
-      ];
-
-      for (const table of tables) {
-  const { data, error } = await supabase
-    .from(table)
-    .select("*")
-    .eq("manager_id", managerId);
-
-  if (error) {
-    console.error(`❌ Error fetching tasks from ${table}:`, error);
-    continue;
-  }
-
-  // 🔑 Normalize field names
-  const normalized = data.map((t) => ({
-    ...t,
-    task: t.task || t.task_name || "Untitled Task", // ✅ unify field
-    subtask: t.subtask || null,
-  }));
-
-  console.log(`✅ Normalized tasks from ${table}:`, normalized);
-
-  allData = [...allData, ...normalized];
-}
-      console.log("✅ Tasks fetched for member:", allData);
-
-      setAllTasks(allData);
-      groupTasksByStatus(allData);
     };
 
     fetchTasksForMember();
@@ -114,18 +145,29 @@ const MemberTaskBoard = () => {
 
     tasks.forEach((task) => {
       if (task.status === "Completed") return;
-
-      let status = (task.status || "To Do").trim();
-      if (!grouped[status]) status = "Missed";
+      const status = statusColors[task.status] ? task.status : "Missed";
       grouped[status].push(task);
+    });
+
+    // ✅ Adviser tasks first in each column
+    Object.keys(grouped).forEach((status) => {
+      grouped[status].sort((a, b) => {
+        if (a.source === "adviser" && b.source !== "adviser") return -1;
+        if (a.source !== "adviser" && b.source === "adviser") return 1;
+        return 0;
+      });
     });
 
     setTasksByStatus(grouped);
   };
 
+  // 🔍 Filter by search term
   useEffect(() => {
-    const filtered = allTasks.filter((task) =>
-      task.task?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = allTasks.filter(
+      (task) =>
+        task.task?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.subtask?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.assigned_to?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     groupTasksByStatus(filtered);
   }, [searchTerm, allTasks]);
@@ -180,7 +222,8 @@ const MemberTaskBoard = () => {
                     <p className="fst-italic text-muted small">No tasks</p>
                   ) : (
                     items.map((task, index) => {
-                      const borderColor = statusColors[status];
+                      const borderColor =
+                        statusColors[task.status] || statusColors["Missed"];
 
                       return (
                         <div
@@ -188,6 +231,7 @@ const MemberTaskBoard = () => {
                           key={index}
                           style={{ borderLeft: `6px solid ${borderColor}` }}
                         >
+                          {/* 👁️ View Button */}
                           <button
                             onClick={() => setViewTask(task)}
                             title="View Task"
@@ -199,6 +243,16 @@ const MemberTaskBoard = () => {
                               style={{ width: "18px" }}
                             />
                           </button>
+
+                          {/* 🟦 Adviser badge */}
+                          {task.source === "adviser" && (
+                            <span
+                              className="badge text-bg-primary position-absolute top-0 start-0 m-2"
+                              style={{ fontSize: "0.7rem" }}
+                            >
+                              Adviser
+                            </span>
+                          )}
 
                           <strong className="fs-6">
                             {task.assigned_to || "No Member"}
@@ -233,7 +287,7 @@ const MemberTaskBoard = () => {
                               {task.due_date
                                 ? new Date(task.due_date).toLocaleDateString()
                                 : "No Due Date"}{" "}
-                              {task.due_time ? task.due_time : ""}
+                              {task.due_time || ""}
                             </strong>
                           </div>
                         </div>
@@ -246,6 +300,7 @@ const MemberTaskBoard = () => {
           </div>
         </>
       ) : (
+        // 🔹 View Task Modal
         <div>
           <button
             onClick={() => setViewTask(null)}
@@ -257,6 +312,9 @@ const MemberTaskBoard = () => {
           <p>Assigned to: {viewTask.assigned_to || "No Member"}</p>
           <p>Due: {viewTask.due_date || "No Due Date"}</p>
           <p>Status: {viewTask.status}</p>
+          {viewTask.source === "adviser" && (
+            <span className="badge text-bg-primary">Adviser Task</span>
+          )}
         </div>
       )}
     </div>
