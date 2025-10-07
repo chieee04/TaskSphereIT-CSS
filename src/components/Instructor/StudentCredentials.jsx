@@ -10,11 +10,24 @@ const StudentCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
   const [openHeaderAction, setOpenHeaderAction] = useState(false);
-  const [credentials, setCredentials] = useState([]);
-  const [loading, setLoading] = useState(true);
+//  const [credentials, setCredentials] = useState([]);
+ // const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const MySwal = withReactContent(Swal);
+  const startYear = 2020;
+const currentYear = new Date().getFullYear();
+const maxYear = currentYear + 1;
+const yearOptions = [];
+
+for (let y = startYear; y <= maxYear; y++) {
+  yearOptions.push(y);
+}
+
+const [selectedYear, setSelectedYear] = useState(currentYear);
+const secondYear = parseInt(selectedYear) + 1;
+const [loading, setLoading] = useState(true);
+const [credentials, setCredentials] = useState([]);
  
   // Refs for detecting outside clicks
   const headerKebabRef = useRef(null);
@@ -402,38 +415,35 @@ const StudentCredentials = () => {
  
   useEffect(() => {
     const fetchCredentials = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("user_credentials")
-        .select("id, last_name, first_name, middle_name, user_id, password, user_roles")
-        .in("user_roles", [1, 2]);
- 
-      if (error) {
-        console.error("Error fetching:", error);
-      } else {
-        setCredentials(data);
-      }
-      setLoading(false);
-    };
- 
-    fetchCredentials();
-  }, []);
+    setLoading(true);
 
-  const startYear = 2020; // earliest year you want to show
-const currentYear = new Date().getFullYear();
-const maxYear = currentYear + 1; // optional +1 to include next year
-const yearOptions = [];
+    const academicYear = `${selectedYear}-${secondYear}`;
+    console.log("Fetching credentials for:", academicYear);
 
-for (let y = startYear; y <= maxYear; y++) {
-  yearOptions.push(y);
-}
+    const { data, error } = await supabase
+      .from("user_credentials")
+      .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
+      .eq("year", academicYear) // ✅ filter by selected year
+      .in("user_roles", [1, 2]); // 1=manager, 2=member
 
-const [selectedYear, setSelectedYear] = useState(currentYear);
+    if (error) {
+      console.error("Error fetching:", error);
+      setCredentials([]);
+    } else {
+      setCredentials(data || []);
+    }
+
+    setLoading(false);
+  };
+
+  fetchCredentials();
+}, [selectedYear]);
+
 
 useEffect(() => {
-  console.log(`Selected Academic Year: ${selectedYear}-${selectedYear + 1}`);
+
+  console.log(`Selected Academic Year: ${selectedYear}-${secondYear}`);
 }, [selectedYear]);
- 
   return (
     <div className="container-fluid px-4 py-3">
       {/* Scrollbar Fix for Webkit (Chrome/Safari) */}
@@ -690,7 +700,7 @@ useEffect(() => {
                   borderRadius: "16px",
                 }}
               >
-                <strong>NOTE:</strong> No student credentials found in the system.
+                <strong>NOTE:</strong> No student credentials found in the system {selectedYear}-{secondYear}.
               </div>
             ) : (
               // --- Student Credentials Table Section ---

@@ -15,6 +15,16 @@ const AdviserCredentials = () => {
   const [selectedRows, setSelectedRows] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const MySwal = withReactContent(Swal);
+  const startYear = 2020;
+const currentYear = new Date().getFullYear();
+const maxYear = currentYear + 1;
+const yearOptions = [];
+for (let y = startYear; y <= maxYear; y++) {
+  yearOptions.push(y);
+}
+
+const [selectedYear, setSelectedYear] = useState(currentYear);
+const secondYear = parseInt(selectedYear) + 1;
  
   // Refs for detecting outside clicks
   const headerKebabRef = useRef(null);
@@ -401,23 +411,30 @@ const AdviserCredentials = () => {
   };
  
   useEffect(() => {
-    const fetchCredentials = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("user_credentials")
-        .select("id, last_name, first_name, middle_name, user_id, password, user_roles")
-        .in("user_roles", [3]); // advisers only
- 
-      if (error) {
-        console.error("Error fetching:", error);
-      } else {
-        setCredentials(data);
-      }
-      setLoading(false);
-    };
- 
-    fetchCredentials();
-  }, []);
+  const fetchCredentials = async () => {
+    setLoading(true);
+
+    const academicYear = `${selectedYear}-${secondYear}`;
+    console.log("Fetching advisers for:", academicYear);
+
+    const { data, error } = await supabase
+      .from("user_credentials")
+      .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
+      .eq("year", academicYear) // ✅ filter by selected year
+      .in("user_roles", [3]); // advisers only
+
+    if (error) {
+      console.error("Error fetching:", error);
+      setCredentials([]);
+    } else {
+      setCredentials(data || []);
+    }
+
+    setLoading(false);
+  };
+
+  fetchCredentials();
+}, [selectedYear]);
  
   return (
     <div className="container-fluid px-4 py-3">
@@ -480,30 +497,55 @@ const AdviserCredentials = () => {
             }}
           />
  
-          <div className="col-12 col-md-12 col-lg-12">
-            {/* Export Button */}
-            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <button
-                  className="btn d-flex align-items-center gap-1"
-                  onClick={() => exportAdvisersAsPDF(credentials)}
-                  style={{
-                    border: "1.5px solid #3B0304",
-                    color: "#3B0304",
-                    padding: "6px 12px",
-                    backgroundColor: "white",
-                    fontWeight: "500",
-                    fontSize: "0.85rem",
-                    borderRadius: "6px",
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                >
-                  <FaDownload size={14} /> Export
-                </button>
-              </div>
-            </div>
+<div className="col-12 col-md-12 col-lg-12">
+  {/* Export Button + Academic Year Dropdown */}
+  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div className="d-flex flex-wrap align-items-center gap-2">
+      {/* Export Button */}
+      <button
+        className="btn d-flex align-items-center gap-1"
+        onClick={() => exportAdvisersAsPDF(credentials)}
+        style={{
+          border: "1.5px solid #3B0304",
+          color: "#3B0304",
+          padding: "6px 12px",
+          backgroundColor: "white",
+          fontWeight: "500",
+          fontSize: "0.85rem",
+          borderRadius: "6px",
+          transition: "background-color 0.2s",
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.backgroundColor = "#f0f0f0")
+        }
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+      >
+        <FaDownload size={14} /> Export
+      </button>
+
+      {/* Select Year Dropdown */}
+      <div className="d-flex align-items-center gap-2">
+        <select
+          className="form-select"
+          style={{
+            width: "140px",
+            height: "38px",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            border: "1px solid #ccc",
+          }}
+          onChange={(e) => setSelectedYear(e.target.value)}
+          value={selectedYear}
+        >
+          {yearOptions.map((year) => (
+            <option key={year} value={year}>
+              {year}-{parseInt(year) + 1}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  </div>
  
             {/* Search and Kebab Menu Row */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
@@ -652,7 +694,7 @@ const AdviserCredentials = () => {
                   borderRadius: "16px",
                 }}
               >
-                <strong>NOTE:</strong> No adviser credentials found in the system.
+               <strong>NOTE:</strong> No adviser credentials found for {selectedYear}-{secondYear}.
               </div>
             ) : (
               // --- Adviser Credentials Table Section ---

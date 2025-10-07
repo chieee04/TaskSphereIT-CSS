@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { FaUserCircle, FaSave, FaTimes } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { showChangePasswordModal } from "../services/profile"; // adjust path if needed
+
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
@@ -231,15 +233,23 @@ const Profile = () => {
             />
           </div>
           <div className="mb-3">
-            <label>Password</label>
-            <input
-              type="password"
-              className="form-control"
-              value={isEditing ? (formData.password || "") : "********"}
-              readOnly={!isEditing}
-              onChange={(e) => handleInputChange("password", e.target.value)}
-            />
-          </div>
+  <label>Password</label>
+  <div className="input-group">
+    <input
+      type="password"
+      className="form-control"
+      value="********"
+      disabled
+    />
+    <button
+  className="btn btn-outline-danger"
+  type="button"
+  onClick={showChangePasswordModal}
+>
+  Change Password
+</button>
+  </div>
+</div>
         </div>
       </div>
     </div>
