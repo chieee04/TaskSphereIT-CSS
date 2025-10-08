@@ -272,7 +272,7 @@ const Adviser = () => {
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   saveAs(
     new Blob([wbout], { type: "application/octet-stream" }),
-    "students_template.xlsx"
+    "Adviser_template.xlsx"
   );
 };
  
