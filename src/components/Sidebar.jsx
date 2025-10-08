@@ -5,35 +5,46 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../Contex/AuthContext';
 import './Style/Sidebar.css';
-
+ 
 // ✅ Add isSoloMode to the props
 const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => { 
   const [collapsed, setCollapsed] = useState(false);
   const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
   const [user_roles, setuser_roles] = useState(null);
-
+  const [userData, setUserData] = useState(null);
+ 
   const auth = UserAuth();
   const user = auth?.user || null;
   const logout = auth?.logout || (() => {});
   const navigate = useNavigate();
-
-  // ✅ Load user_roles from AuthContext or localStorage
+ 
+  // ✅ Load user_roles and user data from AuthContext or localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("customUser"));
-    if (storedUser?.user_roles) {
+    if (storedUser) {
       setuser_roles(storedUser.user_roles);
-    } else if (user?.user_roles) {
+      setUserData({
+        first_name: storedUser.first_name,
+        last_name: storedUser.last_name,
+        user_roles: storedUser.user_roles
+      });
+    } else if (user) {
       setuser_roles(user.user_roles);
+      setUserData({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        user_roles: user.user_roles
+      });
     }
   }, [user]);
-
+ 
   useEffect(() => {
     const newWidth = collapsed ? 70 : 250;
     if (onWidthChange) {
       onWidthChange(newWidth);
     }
   }, [collapsed, onWidthChange]);
-
+ 
   const handleSignOut = async (e) => {
     e.preventDefault();
     await logout();
@@ -41,7 +52,7 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
     localStorage.removeItem("user_id");
     navigate("/");
   };
-
+ 
   const renderMenuItem = (icon, label, onClick, isActive = false) => (
     <li className="nav-item mb-1">
       <a
@@ -51,6 +62,11 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
           onClick();
         }}
         className={`nav-link ${isActive ? 'active' : ''}`}
+        style={{
+          backgroundColor: isActive ? '#3B0304' : 'transparent',
+          color: isActive ? 'white' : 'inherit',
+          border: isActive ? '1px solid #3B0304' : 'none'
+        }}
       >
         <i className={`bi ${icon} me-2`} />
         {!collapsed && <span>{label}</span>}
@@ -62,9 +78,20 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
       </a>
     </li>
   );
-
+ 
+  // Get role name based on user_roles
+  const getRoleName = (role) => {
+    switch(role) {
+      case 1: return 'Manager';
+      case 2: return 'Member';
+      case 3: return 'Adviser';
+      case 4: return 'Admin';
+      default: return 'User';
+    }
+  };
+ 
   let sidebarItems;
-
+ 
   // ✅ Add conditional logic to check for solo mode
   if (isSoloMode) {
     sidebarItems = (
@@ -94,7 +121,6 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
             {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
             {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
             {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('RoleTransfer'), activeItem === 'RoleTransfer')}
-            {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>
         );
         break;
@@ -107,7 +133,6 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
             {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('TasksBoard'), activeItem === 'TasksBoard')}
             {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-            {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>
         );
         break;
@@ -121,7 +146,6 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
             {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('TasksBoard'), activeItem === 'TasksBoard')}
             {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-            {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
           </>
         );
         break;
@@ -134,7 +158,7 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
             {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('TeamsBoard'), activeItem === 'TeamsBoard')}
             {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('TasksRecord'), activeItem === 'TasksRecord')}
             {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-            {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}
+             {renderMenuItem('bi-calendar-event', 'Notification', () => onSelect('Notification'), activeItem === 'Notification')}
           </>
         );
         break;
@@ -142,30 +166,81 @@ const Sidebar = ({ activeItem, onSelect, onWidthChange, isSoloMode }) => {
         sidebarItems = null;
     }
   }
-
+ 
   if (sidebarItems === null) return null;
-
+ 
   return (
     <div className={`sidebar ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="btn btn-sm btn-outline-secondary sidebar-toggle"
+        className="btn btn-sm sidebar-toggle"
         title={collapsed ? 'Expand' : 'Collapse'}
+        style={{
+          border: 'none',
+          color: '#3B0304',
+          backgroundColor: 'transparent'
+        }}
       >
         <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} />
       </button>
-      <ul className="nav nav-pills flex-column mb-auto">{sidebarItems}</ul>
-      <div className="mt-auto">
-        <button
-          className="btn btn-outline-danger d-flex align-items-center justify-content-center sidebar-signout"
-          onClick={handleSignOut}
+ 
+      {/* User Profile Section at the top */}
+      {!collapsed && userData && (
+        <div className="user-profile-section mb-3">
+          <div 
+            className="d-flex align-items-center p-3 cursor-pointer"
+            onClick={() => onSelect('Profile')}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="profile-icon me-3">
+              <i className="bi bi-person-circle" style={{ fontSize: '2.5rem', color: '#3B0304' }} />
+            </div>
+            <div className="user-info">
+              <div className="user-name fw-bold" style={{ color: '#3B0304' }}>
+                {userData.first_name} {userData.last_name}
+              </div>
+              <div className="user-role text-muted small">
+                {getRoleName(userData.user_roles)}
+              </div>
+            </div>
+          </div>
+          {/* Divider with reduced thickness */}
+          <div className="w-100" style={{ height: '1px', backgroundColor: '#3B0304' }} />
+        </div>
+      )}
+ 
+      {/* Collapsed profile icon */}
+      {collapsed && (
+        <div 
+          className="d-flex justify-content-center p-3 cursor-pointer"
+          onClick={() => onSelect('Profile')}
+          style={{ cursor: 'pointer' }}
         >
-          <i className="bi bi-box-arrow-right"></i>
-          {!collapsed && <span className="ms-2">Sign Out</span>}
-        </button>
+          <i className="bi bi-person-circle" style={{ fontSize: '1.5rem', color: '#3B0304' }} />
+        </div>
+      )}
+ 
+      <ul className="nav nav-pills flex-column mb-auto">
+        {sidebarItems}
+      </ul>
+ 
+      <div className="mt-auto">
+        {/* Sign Out with same UI as other menu items */}
+        <ul className="nav nav-pills flex-column">
+          <li className="nav-item mb-1">
+            <a
+              href="#"
+              onClick={handleSignOut}
+              className="nav-link"
+            >
+              <i className="bi bi-box-arrow-right me-2" />
+              {!collapsed && <span>Sign Out</span>}
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   );
 };
-
+ 
 export default Sidebar;

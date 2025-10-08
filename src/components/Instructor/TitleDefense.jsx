@@ -46,7 +46,7 @@ const TitleDefense = () => {
                 ];
                 setTeams(uniqueTeams);
                 setAdvisers(accData.filter((a) => a.user_roles === 3 || a.user_roles === 4));
-
+ 
             }
  
             const { data: schedData, error: schedError } = await supabase
@@ -95,6 +95,24 @@ const TitleDefense = () => {
             verdict.toLowerCase().includes(searchText)
         );
     });
+ 
+    // Function to check time conflicts
+    const hasTimeConflict = (date, time, existingSchedules) => {
+        const newDateTime = new Date(`${date}T${time}`);
+ 
+        for (const schedule of existingSchedules) {
+            if (schedule.date === date) {
+                const existingTime = new Date(`${schedule.date}T${schedule.time}`);
+                const timeDiff = Math.abs(newDateTime - existingTime) / (1000 * 60); // difference in minutes
+ 
+                // Check if the time difference is less than 60 minutes (1 hour)
+                if (timeDiff < 60) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
  
     const exportTitleDefenseAsPDF = (data) => {
         const today = new Date().toLocaleDateString();
@@ -336,6 +354,12 @@ const TitleDefense = () => {
                     return false;
                 }
  
+                // Check for time conflicts
+                if (hasTimeConflict(date, time, schedules)) {
+                    MySwal.showValidationMessage("This time conflicts with an existing schedule. Please choose a time with at least 1 hour gap from other schedules.");
+                    return false;
+                }
+ 
                 return { team, date, time, panelists: selectedPanelists };
             },
         }).then(async (result) => {
@@ -430,7 +454,7 @@ const TitleDefense = () => {
                             return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
                         })
                         .join("; ");
-                        
+ 
  
                     return {
                         no: index + 1,
@@ -607,6 +631,13 @@ const TitleDefense = () => {
                 }
                 if (selectedPanelists.length > 3) {
                     MySwal.showValidationMessage("Maximum of 3 panelists can be selected.");
+                    return false;
+                }
+ 
+                // Check for time conflicts (excluding the current schedule being updated)
+                const otherSchedules = schedules.filter(s => s.id !== id);
+                if (hasTimeConflict(date, time, otherSchedules)) {
+                    MySwal.showValidationMessage("This time conflicts with an existing schedule. Please choose a time with at least 1 hour gap from other schedules.");
                     return false;
                 }
  

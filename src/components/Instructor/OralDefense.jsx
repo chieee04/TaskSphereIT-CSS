@@ -1,3 +1,4 @@
+// OralDefense.jsx
 import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
@@ -66,10 +67,66 @@ const OralDefense = () => {
         fetchData();
     }, []);
  
+    // Sort schedules by verdict priority: Pending -> Revisions -> Approved -> Disapproved
+    const sortedSchedules = [...schedules].sort((a, b) => {
+        const priorityOrder = {1: 1, 3: 2, 2: 3, 4: 4}; // Pending -> Revisions -> Approved -> Disapproved
+        return priorityOrder[a.verdict] - priorityOrder[b.verdict];
+    });
+ 
     // search by team
-    const filteredSchedules = schedules.filter((s) =>
+    const filteredSchedules = sortedSchedules.filter((s) =>
         s.manager?.group_name?.toLowerCase().includes(search.toLowerCase())
     );
+ 
+    // Check if team already has a schedule
+    const isTeamAlreadyScheduled = (teamName) => {
+        return schedules.some(schedule => 
+            schedule.manager?.group_name === teamName
+        );
+    };
+ 
+    // Get teams that are already scheduled
+    const getScheduledTeams = () => {
+        return schedules.map(schedule => schedule.manager?.group_name).filter(Boolean);
+    };
+ 
+    // Check if time conflict exists (same time or within 1 hour gap)
+    const hasTimeConflict = (selectedDate, selectedTime, excludeScheduleId = null) => {
+        if (!selectedDate || !selectedTime) return false;
+ 
+        const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
+ 
+        return schedules.some(schedule => {
+            if (schedule.id === excludeScheduleId) return false; // Exclude current schedule when updating
+            if (schedule.date !== selectedDate) return false; // Different dates, no conflict
+ 
+            const scheduleDateTime = new Date(`${schedule.date}T${schedule.time}`);
+            const timeDiff = Math.abs(selectedDateTime - scheduleDateTime) / (1000 * 60 * 60); // Difference in hours
+ 
+            return timeDiff < 1; // Conflict if less than 1 hour gap
+        });
+    };
+ 
+    // Get conflicting times for display
+    const getConflictingTimes = (selectedDate, selectedTime, excludeScheduleId = null) => {
+        if (!selectedDate || !selectedTime) return [];
+ 
+        const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
+ 
+        return schedules
+            .filter(schedule => {
+                if (schedule.id === excludeScheduleId) return false;
+                if (schedule.date !== selectedDate) return false;
+ 
+                const scheduleDateTime = new Date(`${schedule.date}T${schedule.time}`);
+                const timeDiff = Math.abs(selectedDateTime - scheduleDateTime) / (1000 * 60 * 60);
+                return timeDiff < 1;
+            })
+            .map(schedule => ({
+                team: schedule.manager?.group_name || 'Unknown Team',
+                time: schedule.time
+            }));
+    };
  
     const exportOralDefenseAsPDF = (data) => {
         const today = new Date().toLocaleDateString();
@@ -187,6 +244,16 @@ const OralDefense = () => {
                         line-height: 1;
                         padding: 0;
                     }
+                    .disabled-option {
+                        color: #999;
+                        background-color: #f5f5f5;
+                    }
+                    .time-conflict-warning {
+                        color: #d63384;
+                        font-size: 12px;
+                        margin-top: 5px;
+                        font-weight: 500;
+                    }
                 </style>
                 <div class="mb-3">
                     <label style="font-weight:600;">Select Adviser</label>
@@ -222,6 +289,7 @@ const OralDefense = () => {
                 <div class="mb-3">
                     <label style="font-weight:600;">Time</label>
                     <input type="time" id="scheduleTime" class="form-control" style="border-radius:8px;height:42px;"/>
+                    <div id="timeConflictWarning" class="time-conflict-warning" style="display: none;"></div>
                 </div>
             `,
             showCancelButton: true,
@@ -235,6 +303,12 @@ const OralDefense = () => {
                 const teamSelect = document.getElementById("teamSelect");
                 const panelSelect = document.getElementById("panelSelect");
                 const panelList = document.getElementById("panelList");
+                const scheduleDate = document.getElementById("scheduleDate");
+                const scheduleTime = document.getElementById("scheduleTime");
+                const timeConflictWarning = document.getElementById("timeConflictWarning");
+ 
+                // Get already scheduled teams
+                const scheduledTeams = getScheduledTeams();
  
                 // update team options
                 const updateTeamOptions = (adviserId) => {
@@ -250,7 +324,10 @@ const OralDefense = () => {
                     if (teams.length > 0) {
                         teams.forEach((t) => {
                             if (t.group_name) {
-                                teamSelect.innerHTML += `<option value="${t.group_name}">${t.group_name}</option>`;
+                                const isAlreadyScheduled = scheduledTeams.includes(t.group_name);
+                                const disabledAttr = isAlreadyScheduled ? 'disabled class="disabled-option"' : '';
+                                const scheduledText = isAlreadyScheduled ? ' (Already Scheduled)' : '';
+                                teamSelect.innerHTML += `<option value="${t.group_name}" ${disabledAttr}>${t.group_name}${scheduledText}</option>`;
                             }
                         });
                     } else {
@@ -270,6 +347,32 @@ const OralDefense = () => {
                             panelSelect.innerHTML += `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`;
                     });
                 };
+ 
+                // Check for time conflicts
+                const checkTimeConflict = () => {
+                    const date = scheduleDate.value;
+                    const time = scheduleTime.value;
+ 
+                    if (date && time) {
+                        if (hasTimeConflict(date, time)) {
+                            const conflicts = getConflictingTimes(date, time);
+                            const conflictText = conflicts.map(conflict => 
+                                `${conflict.team} at ${conflict.time}`
+                            ).join(', ');
+ 
+                            timeConflictWarning.style.display = 'block';
+                            timeConflictWarning.innerHTML = `⚠️ Time conflict with: ${conflictText}. Please choose a different time with at least 1 hour gap.`;
+                        } else {
+                            timeConflictWarning.style.display = 'none';
+                        }
+                    } else {
+                        timeConflictWarning.style.display = 'none';
+                    }
+                };
+ 
+                // Event listeners for date and time changes
+                scheduleDate.addEventListener('change', checkTimeConflict);
+                scheduleTime.addEventListener('change', checkTimeConflict);
  
                 adviserSelect.addEventListener("change", () => {
                     selectedAdviser = adviserSelect.value;
@@ -315,6 +418,24 @@ const OralDefense = () => {
                 const team = document.getElementById("teamSelect").value;
                 const date = document.getElementById("scheduleDate").value;
                 const time = document.getElementById("scheduleTime").value;
+                const teamSelect = document.getElementById("teamSelect");
+                const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+ 
+                // Check if selected team is already scheduled
+                if (selectedOption.disabled) {
+                    MySwal.showValidationMessage("This team already has a schedule. Please select a different team.");
+                    return false;
+                }
+ 
+                // Check for time conflicts
+                if (hasTimeConflict(date, time)) {
+                    const conflicts = getConflictingTimes(date, time);
+                    const conflictText = conflicts.map(conflict => 
+                        `${conflict.team} at ${conflict.time}`
+                    ).join(', ');
+                    MySwal.showValidationMessage(`Time conflict detected with: ${conflictText}. Please choose a different time with at least 1 hour gap.`);
+                    return false;
+                }
  
                 if (!selectedAdviser || !team || !date || !time || selectedPanelists.length === 0) {
                     MySwal.showValidationMessage("Please fill all fields and select panelists.");
@@ -326,6 +447,22 @@ const OralDefense = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const { adviser, team, date, time, panelists } = result.value;
+ 
+                // Double-check if team is already scheduled (in case of race condition)
+                if (isTeamAlreadyScheduled(team)) {
+                    MySwal.fire("Error", "This team already has a schedule. Please select a different team.", "error");
+                    return;
+                }
+ 
+                // Double-check for time conflicts
+                if (hasTimeConflict(date, time)) {
+                    const conflicts = getConflictingTimes(date, time);
+                    const conflictText = conflicts.map(conflict => 
+                        `${conflict.team} at ${conflict.time}`
+                    ).join(', ');
+                    MySwal.fire("Error", `Time conflict detected with: ${conflictText}. Please choose a different time with at least 1 hour gap.`, "error");
+                    return;
+                }
  
                 const manager = accounts.find((a) => a.user_roles === 1 && a.group_name === team);
                 const [p1, p2, p3] = panelists;
@@ -408,6 +545,16 @@ const OralDefense = () => {
                         margin-bottom: 15px;
                         border-left: 4px solid #3B0304;
                     }
+                    .disabled-option {
+                        color: #999;
+                        background-color: #f5f5f5;
+                    }
+                    .time-conflict-warning {
+                        color: #d63384;
+                        font-size: 12px;
+                        margin-top: 5px;
+                        font-weight: 500;
+                    }
                 </style>
                 <div class="current-selection">
                     <div style="font-weight: 600; color: #3B0304;">Current Selection</div>
@@ -419,7 +566,18 @@ const OralDefense = () => {
                     <select id="panelSelect" class="form-select" style="border-radius:8px;height:42px;">
                         <option disabled selected value="">Select Panelist</option>
                         ${advisers
-                            .map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name}</option>`)
+                            .map((a) => {
+                                // Disable the current adviser and already selected panelists
+                                const isCurrentAdviser = a.id === schedule.adviser_id;
+                                const isAlreadyPanelist = selectedPanelists.includes(a.id);
+                                const isDisabled = isCurrentAdviser || isAlreadyPanelist;
+ 
+                                let disabledReason = '';
+                                if (isCurrentAdviser) disabledReason = ' (Current Adviser)';
+                                if (isAlreadyPanelist) disabledReason = ' (Already Selected)';
+ 
+                                return `<option value="${a.id}" ${isDisabled ? 'disabled class="disabled-option"' : ''}>${a.last_name}, ${a.first_name}${disabledReason}</option>`;
+                            })
                             .join("")}
                     </select>
                 </div>
@@ -446,6 +604,7 @@ const OralDefense = () => {
                 <div class="mb-3">
                     <label style="font-weight:600;">Time</label>
                     <input type="time" id="scheduleTime" class="form-control" style="border-radius:8px;height:42px;" value="${schedule.time}"/>
+                    <div id="timeConflictWarning" class="time-conflict-warning" style="display: none;"></div>
                 </div>
             `,
             showCancelButton: true,
@@ -457,10 +616,74 @@ const OralDefense = () => {
             didOpen: () => {
                 const panelSelect = document.getElementById("panelSelect");
                 const panelList = document.getElementById("panelList");
+                const scheduleDate = document.getElementById("scheduleDate");
+                const scheduleTime = document.getElementById("scheduleTime");
+                const timeConflictWarning = document.getElementById("timeConflictWarning");
+ 
+                // Function to update panelist dropdown options
+                const updatePanelistDropdown = () => {
+                    panelSelect.innerHTML = '<option disabled selected value="">Select Panelist</option>';
+ 
+                    advisers.forEach((a) => {
+                        const isCurrentAdviser = a.id === schedule.adviser_id;
+                        const isAlreadyPanelist = selectedPanelists.includes(a.id);
+                        const isDisabled = isCurrentAdviser || isAlreadyPanelist;
+ 
+                        let disabledReason = '';
+                        if (isCurrentAdviser) disabledReason = ' (Current Adviser)';
+                        if (isAlreadyPanelist) disabledReason = ' (Already Selected)';
+ 
+                        const option = document.createElement("option");
+                        option.value = a.id;
+                        option.textContent = `${a.last_name}, ${a.first_name}${disabledReason}`;
+ 
+                        if (isDisabled) {
+                            option.disabled = true;
+                            option.className = 'disabled-option';
+                        }
+ 
+                        panelSelect.appendChild(option);
+                    });
+                };
+ 
+                // Check for time conflicts (excluding current schedule)
+                const checkTimeConflict = () => {
+                    const date = scheduleDate.value;
+                    const time = scheduleTime.value;
+ 
+                    if (date && time) {
+                        if (hasTimeConflict(date, time, schedule.id)) {
+                            const conflicts = getConflictingTimes(date, time, schedule.id);
+                            const conflictText = conflicts.map(conflict => 
+                                `${conflict.team} at ${conflict.time}`
+                            ).join(', ');
+ 
+                            timeConflictWarning.style.display = 'block';
+                            timeConflictWarning.innerHTML = `⚠️ Time conflict with: ${conflictText}. Please choose a different time with at least 1 hour gap.`;
+                        } else {
+                            timeConflictWarning.style.display = 'none';
+                        }
+                    } else {
+                        timeConflictWarning.style.display = 'none';
+                    }
+                };
+ 
+                // Event listeners for date and time changes
+                scheduleDate.addEventListener('change', checkTimeConflict);
+                scheduleTime.addEventListener('change', checkTimeConflict);
  
                 // add panelist
                 panelSelect.addEventListener("change", () => {
                     const id = panelSelect.value;
+                    const selectedOption = panelSelect.options[panelSelect.selectedIndex];
+ 
+                    // Check if the selected option is disabled
+                    if (selectedOption.disabled) {
+                        MySwal.showValidationMessage("This adviser cannot be selected as a panelist.");
+                        panelSelect.value = "";
+                        return;
+                    }
+ 
                     if (!selectedPanelists.includes(id)) {
                         if (selectedPanelists.length < 3) {
                             selectedPanelists.push(id);
@@ -470,6 +693,9 @@ const OralDefense = () => {
                             tag.className = "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
                             tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${id}">-</button>`;
                             panelList.appendChild(tag);
+ 
+                            // Update dropdown to disable the newly selected panelist
+                            updatePanelistDropdown();
                         } else {
                             MySwal.showValidationMessage("Maximum of 3 panelists.");
                         }
@@ -483,6 +709,10 @@ const OralDefense = () => {
                         const idToRemove = e.target.dataset.id;
                         selectedPanelists = selectedPanelists.filter((pid) => pid !== idToRemove);
                         e.target.parentElement.remove();
+ 
+                        // Update dropdown to re-enable the removed panelist
+                        updatePanelistDropdown();
+ 
                         if (selectedPanelists.length === 0)
                             panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
                     }
@@ -491,6 +721,16 @@ const OralDefense = () => {
             preConfirm: () => {
                 const date = document.getElementById("scheduleDate").value;
                 const time = document.getElementById("scheduleTime").value;
+ 
+                // Check for time conflicts (excluding current schedule)
+                if (hasTimeConflict(date, time, schedule.id)) {
+                    const conflicts = getConflictingTimes(date, time, schedule.id);
+                    const conflictText = conflicts.map(conflict => 
+                        `${conflict.team} at ${conflict.time}`
+                    ).join(', ');
+                    MySwal.showValidationMessage(`Time conflict detected with: ${conflictText}. Please choose a different time with at least 1 hour gap.`);
+                    return false;
+                }
  
                 if (!date || !time || selectedPanelists.length === 0) {
                     MySwal.showValidationMessage("Please fill all fields and select panelists.");
@@ -548,10 +788,10 @@ const OralDefense = () => {
                     <p style="margin-bottom: 15px; font-weight: 500;">Select which schedules to export:</p>
                     <select id="exportFilter" class="form-select" style="border-radius: 8px; height: 42px; width: 100%;">
                         <option value="all">All Schedules</option>
-                        <option value="4">Pending Only</option>
-                        <option value="1">Approved Only</option>
-                        <option value="2">Revisions Only</option>
-                        <option value="3">Disapproved Only</option>
+                        <option value="1">Pending Only</option>
+                        <option value="3">Revisions Only</option>
+                        <option value="2">Approved Only</option>
+                        <option value="4">Disapproved Only</option>
                     </select>
                 </div>
             `,
@@ -606,9 +846,9 @@ const OralDefense = () => {
  
                 if (exportData.length === 0) {
                     const filterText = exportFilter === 'all' ? 'schedules' : 
-                                    exportFilter === '4' ? 'APPROVED schedules' : 
                                     exportFilter === '1' ? 'PENDING schedules' : 
-                                    exportFilter === '2' ? 'REVISIONS schedules' : 'DISAPPROVED schedules';
+                                    exportFilter === '3' ? 'REVISIONS schedules' : 
+                                    exportFilter === '2' ? 'APPROVED schedules' : 'DISAPPROVED schedules';
  
                     MySwal.fire({
                         title: "No Data to Export",
@@ -623,9 +863,9 @@ const OralDefense = () => {
                 exportOralDefenseAsPDF(exportData);
  
                 const filterText = exportFilter === 'all' ? 'data' : 
-                                exportFilter === '4' ? 'APPROVED schedules' : 
                                 exportFilter === '1' ? 'PENDING schedules' : 
-                                exportFilter === '2' ? 'REVISIONS schedules' : 'DISAPPROVED schedules';
+                                exportFilter === '3' ? 'REVISIONS schedules' : 
+                                exportFilter === '2' ? 'APPROVED schedules' : 'DISAPPROVED schedules';
  
                 MySwal.fire({
                     title: "Export Successful!",
@@ -721,7 +961,7 @@ const OralDefense = () => {
             );
  
             // Show success message for REVISIONS
-            if (newVerdict === 2) {
+            if (newVerdict === 3) {
                 MySwal.fire({
                     icon: "success",
                     title: "Marked as REVISIONS",
@@ -739,6 +979,22 @@ const OralDefense = () => {
     const getAdviserName = (adviserId) => {
         const adviser = accounts.find(a => a.id === adviserId);
         return adviser ? `${adviser.last_name}, ${adviser.first_name}` : "N/A";
+    };
+ 
+    // Get select styling based on verdict - Only style the selected value
+    const getSelectStyle = (verdict) => {
+        switch (verdict) {
+            case 1: // Pending - Default styling
+                return 'text-gray-700 bg-white border-gray-300';
+            case 2: // Approved - Green
+                return 'text-white bg-[#809D3C] border-[#809D3C] font-semibold';
+            case 3: // Revisions - Red
+                return 'text-white bg-[#3B0304] border-[#3B0304] font-semibold';
+            case 4: // Disapproved - Gray
+                return 'text-white bg-gray-600 border-gray-600 font-semibold';
+            default: // Default
+                return 'text-gray-700 bg-white border-gray-300';
+        }
     };
  
     return (
@@ -855,7 +1111,7 @@ const OralDefense = () => {
                         {filteredSchedules.map((s, index) => (
                             <tr 
                                 key={s.id} 
-                                className={`relative ${s.verdict === 2 ? 'bg-red-50 border-l-4 border-l-red-500' : ''}`}
+                                className="relative"
                             >
                                 {isDeleteMode && (
                                     <td className="px-4 py-4 whitespace-nowrap">
@@ -867,25 +1123,25 @@ const OralDefense = () => {
                                         />
                                     </td>
                                 )}
-                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
                                     {index + 1}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {s.manager?.group_name || "-"}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {s.title || "-"}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {s.date}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {s.time}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {getAdviserName(s.adviser_id)}
                                 </td>
-                                <td className="px-4 py-4 text-sm text-gray-500">
+                                <td className="px-4 py-4 text-sm text-gray-600">
                                     {[s.panelist1_id, s.panelist2_id, s.panelist3_id]
                                         .map((pid) => {
                                             const account = accounts.find((a) => a.id === pid);
@@ -894,16 +1150,14 @@ const OralDefense = () => {
                                         .filter(Boolean)
                                         .join(", ")}
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                                     <select
-                                        className={`w-32 p-1 border border-[#B2B2B2] rounded-lg bg-white text-[#3B0304] font-semibold text-xs ${
-                                            s.verdict === 2 ? 'bg-red-100 border-red-300' : ''
-                                        }`}
+                                        className={`w-32 p-1 border rounded-lg text-xs transition-colors ${getSelectStyle(s.verdict)}`}
                                         value={s.verdict}
                                         onChange={(e) => handleVerdictChange(s.id, parseInt(e.target.value))}
                                     >
                                         {Object.entries(verdictMap).map(([key, value]) => (
-                                            <option key={key} value={key}>
+                                            <option key={key} value={key} className="bg-white text-gray-700">
                                                 {value}
                                             </option>
                                         ))}
@@ -933,7 +1187,7 @@ const OralDefense = () => {
                                                         handleUpdate(s.id);
                                                         setOpenDropdown(null);
                                                     }}
-                                                    className="w-full flex items-center px-3 py-2 text-sm text-[#3B0304] bg-transparent hover:bg-gray-100 border-none"
+                                                    className="w-full flex items-center px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-100 border-none"
                                                 >
                                                     <FaPen className="mr-2" /> Update
                                                 </button> 
@@ -942,7 +1196,7 @@ const OralDefense = () => {
                                                         handleDelete(s.id);
                                                         setOpenDropdown(null);
                                                     }}
-                                                    className="w-full flex items-center px-3 py-2 text-sm text-[#3B0304] bg-transparent hover:bg-gray-100 border-none"
+                                                    className="w-full flex items-center px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-100 border-none"
                                                 >
                                                     <FaTrash className="mr-2" /> Delete
                                                 </button>
