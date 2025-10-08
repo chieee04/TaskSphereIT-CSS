@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaDownload, FaUserGraduate, FaEllipsisV, FaEdit, FaTrash, FaSearch, FaKey, FaTrashAlt } from "react-icons/fa";
+import { FaDownload, FaUserGraduate, FaEllipsisV, FaEdit, FaTrash, FaSearch, FaKey, FaTrashAlt, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
@@ -14,28 +14,121 @@ const AdviserCredentials = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  
+  // Sorting state
+  const [sortField, setSortField] = useState("last_name");
+  const [sortDirection, setSortDirection] = useState("asc");
+  
+  // Year selection state
+  const [availableYears, setAvailableYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState("");
+  const secondYear = selectedYear ? parseInt(selectedYear) + 1 : "";
+  
   const MySwal = withReactContent(Swal);
-  const startYear = 2020;
-const currentYear = new Date().getFullYear();
-const maxYear = currentYear + 1;
-const yearOptions = [];
-for (let y = startYear; y <= maxYear; y++) {
-  yearOptions.push(y);
-}
-
-const [selectedYear, setSelectedYear] = useState(currentYear);
-const secondYear = parseInt(selectedYear) + 1;
  
   // Refs for detecting outside clicks
   const headerKebabRef = useRef(null);
   const tableKebabRefs = useRef([]);
  
-  const filteredData = credentials.filter((row) =>
+  // Fetch available years from database
+  const fetchAvailableYears = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_credentials")
+        .select("year")
+        .in("user_roles", [3]); // advisers only
+
+      if (error) {
+        console.error("Error fetching years:", error);
+        return [];
+      }
+
+      // Extract unique years and sort them in descending order
+      const uniqueYears = [...new Set(data.map(item => {
+        // Extract the first part of the year format (e.g., "2024" from "2024-2025")
+        return item.year ? item.year.split('-')[0] : null;
+      }))].filter(year => year !== null).sort((a, b) => b - a);
+
+      return uniqueYears;
+    } catch (error) {
+      console.error("Error in fetchAvailableYears:", error);
+      return [];
+    }
+  };
+
+  // Fetch credentials based on selected year
+  const fetchCredentials = async (year) => {
+    setLoading(true);
+    
+    try {
+      if (!year) {
+        setCredentials([]);
+        setLoading(false);
+        return;
+      }
+
+      const academicYear = `${year}-${parseInt(year) + 1}`;
+      console.log("Fetching advisers for:", academicYear);
+
+      const { data, error } = await supabase
+        .from("user_credentials")
+        .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
+        .eq("year", academicYear)
+        .in("user_roles", [3]) // advisers only
+        .order("last_name", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching credentials:", error);
+        MySwal.fire("Error", "Failed to load adviser credentials", "error");
+        setCredentials([]);
+      } else {
+        setCredentials(data || []);
+        console.log(`Loaded ${data?.length || 0} advisers for ${academicYear}`);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      MySwal.fire("Error", "An unexpected error occurred", "error");
+      setCredentials([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+ 
+  // Sorting function
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  // Sort the filtered data
+  const sortedData = [...credentials].filter((row) =>
     Object.values(row)
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    let aValue = a[sortField] || "";
+    let bValue = b[sortField] || "";
+    
+    // Handle empty values
+    if (!aValue && !bValue) return 0;
+    if (!aValue) return 1;
+    if (!bValue) return -1;
+    
+    // Convert to string for comparison
+    aValue = String(aValue).toLowerCase();
+    bValue = String(bValue).toLowerCase();
+    
+    if (sortDirection === "asc") {
+      return aValue.localeCompare(bValue, undefined, { numeric: true });
+    } else {
+      return bValue.localeCompare(aValue, undefined, { numeric: true });
+    }
+  });
  
   // Function to generate random password
   const generateRandomPassword = () => {
@@ -57,7 +150,7 @@ const secondYear = parseInt(selectedYear) + 1;
  
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      const allIds = filteredData.map((row) => row.id);
+      const allIds = sortedData.map((row) => row.id);
       setSelectedRows(allIds);
     } else {
       setSelectedRows([]);
@@ -120,7 +213,7 @@ const secondYear = parseInt(selectedYear) + 1;
     }
   };
  
-  const isAllSelected = filteredData.length > 0 && filteredData.every((row) => selectedRows.includes(row.id));
+  const isAllSelected = sortedData.length > 0 && sortedData.every((row) => selectedRows.includes(row.id));
  
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -144,6 +237,30 @@ const secondYear = parseInt(selectedYear) + 1;
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdown]);
+ 
+  // Initialize available years and set default selected year
+  useEffect(() => {
+    const initializeYears = async () => {
+      const years = await fetchAvailableYears();
+      setAvailableYears(years);
+      
+      // Set the most recent year as default if available
+      if (years.length > 0) {
+        setSelectedYear(years[0]);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initializeYears();
+  }, []);
+
+  // Fetch credentials when selected year changes
+  useEffect(() => {
+    if (selectedYear) {
+      fetchCredentials(selectedYear);
+    }
+  }, [selectedYear]);
  
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
@@ -410,32 +527,6 @@ const secondYear = parseInt(selectedYear) + 1;
     });
   };
  
-  useEffect(() => {
-  const fetchCredentials = async () => {
-    setLoading(true);
-
-    const academicYear = `${selectedYear}-${secondYear}`;
-    console.log("Fetching advisers for:", academicYear);
-
-    const { data, error } = await supabase
-      .from("user_credentials")
-      .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
-      .eq("year", academicYear) // ✅ filter by selected year
-      .in("user_roles", [3]); // advisers only
-
-    if (error) {
-      console.error("Error fetching:", error);
-      setCredentials([]);
-    } else {
-      setCredentials(data || []);
-    }
-
-    setLoading(false);
-  };
-
-  fetchCredentials();
-}, [selectedYear]);
- 
   return (
     <div className="container-fluid px-4 py-3">
       {/* Scrollbar Fix for Webkit (Chrome/Safari) */}
@@ -497,55 +588,60 @@ const secondYear = parseInt(selectedYear) + 1;
             }}
           />
  
-<div className="col-12 col-md-12 col-lg-12">
-  {/* Export Button + Academic Year Dropdown */}
-  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div className="d-flex flex-wrap align-items-center gap-2">
-      {/* Export Button */}
-      <button
-        className="btn d-flex align-items-center gap-1"
-        onClick={() => exportAdvisersAsPDF(credentials)}
-        style={{
-          border: "1.5px solid #3B0304",
-          color: "#3B0304",
-          padding: "6px 12px",
-          backgroundColor: "white",
-          fontWeight: "500",
-          fontSize: "0.85rem",
-          borderRadius: "6px",
-          transition: "background-color 0.2s",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "#f0f0f0")
-        }
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-      >
-        <FaDownload size={14} /> Export
-      </button>
+          <div className="col-12 col-md-12 col-lg-12">
+            {/* Export Button + Academic Year Dropdown */}
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                {/* Export Button */}
+                <button
+                  className="btn d-flex align-items-center gap-1"
+                  onClick={() => exportAdvisersAsPDF(credentials)}
+                  style={{
+                    border: "1.5px solid #3B0304",
+                    color: "#3B0304",
+                    padding: "6px 12px",
+                    backgroundColor: "white",
+                    fontWeight: "500",
+                    fontSize: "0.85rem",
+                    borderRadius: "6px",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                  }
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                >
+                  <FaDownload size={14} /> Export
+                </button>
 
-      {/* Select Year Dropdown */}
-      <div className="d-flex align-items-center gap-2">
-        <select
-          className="form-select"
-          style={{
-            width: "140px",
-            height: "38px",
-            borderRadius: "6px",
-            fontSize: "0.85rem",
-            border: "1px solid #ccc",
-          }}
-          onChange={(e) => setSelectedYear(e.target.value)}
-          value={selectedYear}
-        >
-          {yearOptions.map((year) => (
-            <option key={year} value={year}>
-              {year}-{parseInt(year) + 1}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  </div>
+                {/* Select Year Dropdown - Only shows years that exist in database */}
+                <div className="d-flex align-items-center gap-2">
+                  <select
+                    className="form-select"
+                    style={{
+                      width: "140px",
+                      height: "38px",
+                      borderRadius: "6px",
+                      fontSize: "0.85rem",
+                      border: "1px solid #ccc",
+                    }}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    value={selectedYear}
+                    disabled={availableYears.length === 0}
+                  >
+                    {availableYears.length === 0 ? (
+                      <option value="">No years available</option>
+                    ) : (
+                      availableYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}-{parseInt(year) + 1}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+            </div>
  
             {/* Search and Kebab Menu Row */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
@@ -684,7 +780,7 @@ const secondYear = parseInt(selectedYear) + 1;
               )}
             </div>
  
-            {credentials.length === 0 && !loading ? (
+            {availableYears.length === 0 && !loading ? (
               <div
                 className="text-center p-4 border"
                 style={{
@@ -694,7 +790,19 @@ const secondYear = parseInt(selectedYear) + 1;
                   borderRadius: "16px",
                 }}
               >
-               <strong>NOTE:</strong> No adviser credentials found for {selectedYear}-{secondYear}.
+                <strong>NOTE:</strong> No adviser credentials found in the system.
+              </div>
+            ) : credentials.length === 0 && !loading ? (
+              <div
+                className="text-center p-4 border"
+                style={{
+                  fontSize: "0.9rem",
+                  color: "#3B0304",
+                  border: "1px solid #B2B2B2",
+                  borderRadius: "16px",
+                }}
+              >
+                <strong>NOTE:</strong> No adviser credentials found for {selectedYear}-{secondYear}.
               </div>
             ) : (
               // --- Adviser Credentials Table Section ---
@@ -719,10 +827,68 @@ const secondYear = parseInt(selectedYear) + 1;
                           </th>
                         )}
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adviser ID</th>
+                        
+                        {/* Sortable Headers */}
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort("last_name")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Last Name
+                            {sortField === "last_name" ? (
+                              sortDirection === "asc" ? <FaSortUp size={12} /> : <FaSortDown size={12} />
+                            ) : (
+                              <FaSort size={12} className="text-gray-400" />
+                            )}
+                          </div>
+                        </th>
+                        
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort("first_name")}
+                        >
+                          <div className="flex items-center gap-1">
+                            First Name
+                            {sortField === "first_name" ? (
+                              sortDirection === "asc" ? <FaSortUp size={12} /> : <FaSortDown size={12} />
+                            ) : (
+                              <FaSort size={12} className="text-gray-400" />
+                            )}
+                          </div>
+                        </th>
+                        
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort("middle_name")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Middle Name
+                            {sortField === "middle_name" ? (
+                              sortDirection === "asc" ? <FaSortUp size={12} /> : <FaSortDown size={12} />
+                            ) : (
+                              <FaSort size={12} className="text-gray-400" />
+                            )}
+                          </div>
+                        </th>
+                        
+                        <th 
+                          scope="col" 
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort("user_id")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Adviser ID
+                            {sortField === "user_id" ? (
+                              sortDirection === "asc" ? <FaSortUp size={12} /> : <FaSortDown size={12} />
+                            ) : (
+                              <FaSort size={12} className="text-gray-400" />
+                            )}
+                          </div>
+                        </th>
+                        
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px' }}>Action</th>
                       </tr>
@@ -734,14 +900,14 @@ const secondYear = parseInt(selectedYear) + 1;
                             Loading...
                           </td>
                         </tr>
-                      ) : filteredData.length === 0 ? (
+                      ) : sortedData.length === 0 ? (
                         <tr>
                           <td colSpan={isSelectionMode ? "8" : "7"} className="text-center py-4 text-gray-500">
                             No advisers match your search.
                           </td>
                         </tr>
                       ) : (
-                        filteredData.map((row, index) => {
+                        sortedData.map((row, index) => {
                           const isSelected = selectedRows.includes(row.id);
                           return (
                             <tr key={row.id} className={isSelected ? "bg-gray-50" : "hover:bg-gray-50 transition duration-150"}>

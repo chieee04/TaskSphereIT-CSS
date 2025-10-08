@@ -165,7 +165,39 @@ const handleAddStudent = async () => {
     },
     didOpen: () => {
       const popup = Swal.getPopup();
- 
+ const studentIdInput = popup.querySelector("#user_id");
+studentIdInput.setAttribute("maxlength", "9");
+
+// 🔹 Create inline validation message element
+const validationMessage = document.createElement("div");
+validationMessage.style.color = "red";
+validationMessage.style.fontSize = "0.8rem";
+validationMessage.style.marginTop = "0.4rem";
+validationMessage.style.textAlign = "left";
+validationMessage.style.display = "none";
+studentIdInput.parentNode.appendChild(validationMessage);
+
+studentIdInput.addEventListener("input", (e) => {
+  let value = e.target.value;
+
+  // Auto-remove non-numeric characters
+  const cleanedValue = value.replace(/[^0-9]/g, "");
+  if (value !== cleanedValue) {
+    e.target.value = cleanedValue;
+    validationMessage.textContent = "Only numbers are allowed for Student ID.";
+    validationMessage.style.display = "block";
+  } else {
+    validationMessage.style.display = "none";
+  }
+
+  // Enforce max length of 9 digits
+  if (cleanedValue.length > 9) {
+    e.target.value = cleanedValue.slice(0, 9);
+    validationMessage.textContent = "Student ID can only be 9 digits long.";
+    validationMessage.style.display = "block";
+  }
+});
+
       // Cancel button functionality
       popup.querySelector('#cancel-btn').onclick = () => {
         Swal.close();
@@ -375,79 +407,86 @@ const handleImport = (event) => {
     return;
   }
 
-  // 1️⃣ Generate year options dynamically
-  const startYear = 2020;
-  const currentYear = new Date().getFullYear();
-  const maxYear = currentYear + 1;
-  const yearOptions = [];
-  for (let y = startYear; y <= maxYear; y++) {
-    yearOptions.push(y);
-  }
+ // 1️⃣ Generate year options dynamically — current and future only
+const currentYear = new Date().getFullYear();
+const maxFutureYears = 1; // You can adjust how many future years to include
+const yearOptions = [];
 
-  // 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
-  const { value: selectedYear } = await MySwal.fire({
-    title: "Select Academic Year",
-    html: `
-      <div style="max-width: 100%; overflow: hidden;">
-        <select id="year-select" class="swal2-select" style="
-          width: 100%;
-          padding: 10px;
-          border-radius: 6px;
-          border: 1.5px solid #888;
-          font-size: 0.9rem;
-          text-align: center;
-        ">
-          ${yearOptions.map(
-            (y) =>
-              `<option value="${y}" ${y === currentYear ? "selected" : ""}>
-                ${y}-${y + 1}
+for (let i = 0; i <= maxFutureYears; i++) {
+  const startYear = currentYear + i;
+  const endYear = startYear + 1;
+  yearOptions.push(`${startYear}-${endYear}`);
+}
+
+// 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
+const { value: selectedYear } = await MySwal.fire({
+  title: "Select Academic Year",
+  html: `
+    <div style="max-width: 100%; overflow: hidden;">
+      <select id="year-select" class="swal2-select" style="
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1.5px solid #888;
+        font-size: 0.9rem;
+        text-align: center;
+      ">
+        ${yearOptions
+          .map(
+            (year) => `
+              <option value="${year}" ${
+                year.startsWith(currentYear.toString()) ? "selected" : ""
+              }>
+                ${year}
               </option>`
-          ).join("")}
-        </select>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonColor: "#3B0304",
-    cancelButtonColor: "#999",
-    confirmButtonText: "Confirm",
-    focusConfirm: false,
-    preConfirm: () => {
-      const year = document.getElementById("year-select").value;
-      if (!year) {
-        MySwal.showValidationMessage("Please select a year first.");
-        return false;
-      }
-      return `${year}-${parseInt(year) + 1}`;
-    },
-  });
+          )
+          .join("")}
+      </select>
+    </div>
+  `,
+  showCancelButton: true,
+  confirmButtonColor: "#3B0304",
+  cancelButtonColor: "#999",
+  confirmButtonText: "Confirm",
+  focusConfirm: false,
+  preConfirm: () => {
+    const year = document.getElementById("year-select").value;
+    if (!year) {
+      MySwal.showValidationMessage("Please select a year first.");
+      return false;
+    }
+    return year; // Return the full year string (e.g. "2025-2026")
+  },
+});
 
-  // 3️⃣ Handle cancel
-  if (!selectedYear) {
-    MySwal.fire("Cancelled", "Enrollment was cancelled.", "info");
-    return;
-  }
+// 3️⃣ Handle cancel
+if (!selectedYear) {
+  MySwal.fire("Cancelled", "Enrollment was cancelled.", "info");
+  return;
+}
 
-  try {
-    const dataToInsert = importedData.map((row) => ({
-      user_id: row.user_id,
-      password: row.password,
-      first_name: row.first_name,
-      last_name: row.last_name,
-      middle_name: row.middle_name,
-      user_roles: 2, // Students
-      year: selectedYear, // 🆕 Save academic year
-    }));
+try {
+  const dataToInsert = importedData.map((row) => ({
+    user_id: row.user_id,
+    password: row.password,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    middle_name: row.middle_name,
+    user_roles: 2, // Students
+    year: selectedYear, // 🆕 Save academic year
+  }));
 
-    const { error } = await supabase.from("user_credentials").insert(dataToInsert);
-    if (error) throw error;
+  const { error } = await supabase.from("user_credentials").insert(dataToInsert);
+  if (error) throw error;
 
-    MySwal.fire("Success", `Students enrolled for ${selectedYear}!`, "success");
-    setImportedData([]);
-    setSelectedRows([]);
-  } catch (err) {
-    console.error("Upload error:", err.message);
-    MySwal.fire("Error", err.message, "error");
-  }
+  MySwal.fire("Success", `Students enrolled for ${selectedYear}!`, "success");
+  setImportedData([]);
+  setSelectedRows([]);
+} catch (err) {
+  console.error("Upload error:", err.message);
+  MySwal.fire("Error", err.message, "error");
+}
+
 };
 
  
@@ -524,6 +563,39 @@ const handleImport = (event) => {
       },
       didOpen: () => {
         const popup = Swal.getPopup();
+        const studentIdInput = popup.querySelector("#user_id");
+studentIdInput.setAttribute("maxlength", "9");
+
+// 🔹 Create inline validation message element
+const validationMessage = document.createElement("div");
+validationMessage.style.color = "red";
+validationMessage.style.fontSize = "0.8rem";
+validationMessage.style.marginTop = "0.4rem";
+validationMessage.style.textAlign = "left";
+validationMessage.style.display = "none";
+studentIdInput.parentNode.appendChild(validationMessage);
+
+studentIdInput.addEventListener("input", (e) => {
+  let value = e.target.value;
+
+  // Auto-remove non-numeric characters
+  const cleanedValue = value.replace(/[^0-9]/g, "");
+  if (value !== cleanedValue) {
+    e.target.value = cleanedValue;
+    validationMessage.textContent = "Only numbers are allowed for Student ID.";
+    validationMessage.style.display = "block";
+  } else {
+    validationMessage.style.display = "none";
+  }
+
+  // Enforce max length of 9 digits
+  if (cleanedValue.length > 9) {
+    e.target.value = cleanedValue.slice(0, 9);
+    validationMessage.textContent = "Student ID can only be 9 digits long.";
+    validationMessage.style.display = "block";
+  }
+});
+
  
         // Cancel button functionality
         popup.querySelector('#cancel-btn').onclick = () => {

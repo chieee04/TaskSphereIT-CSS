@@ -45,7 +45,8 @@ const TitleDefense = () => {
                     ),
                 ];
                 setTeams(uniqueTeams);
-                setAdvisers(accData.filter((a) => a.user_roles === 3));
+                setAdvisers(accData.filter((a) => a.user_roles === 3 || a.user_roles === 4));
+
             }
  
             const { data: schedData, error: schedError } = await supabase
@@ -62,6 +63,14 @@ const TitleDefense = () => {
  
         fetchData();
     }, []);
+    const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    const [hour, minute] = timeString.split(":");
+    let h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12; // Convert to 12-hour format
+    return `${h}:${minute} ${ampm}`;
+    };
  
     // Move filteredSchedules calculation here, before handleExport function
     const filteredSchedules = schedules
@@ -421,6 +430,7 @@ const TitleDefense = () => {
                             return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
                         })
                         .join("; ");
+                        
  
                     return {
                         no: index + 1,
@@ -861,7 +871,7 @@ const TitleDefense = () => {
                                         })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {sched.time}
+                                        {formatTime(sched.time)}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-500">
                                         {panelists}

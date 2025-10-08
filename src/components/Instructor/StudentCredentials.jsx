@@ -5,33 +5,90 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import "../Style/Instructor/StudentCredentials.css";
 import { exportStudentsAsPDF } from "../../services/Adviser/StudentExport";
- 
+
 const StudentCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
   const [openHeaderAction, setOpenHeaderAction] = useState(false);
-//  const [credentials, setCredentials] = useState([]);
- // const [loading, setLoading] = useState(true);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const MySwal = withReactContent(Swal);
-  const startYear = 2020;
-const currentYear = new Date().getFullYear();
-const maxYear = currentYear + 1;
-const yearOptions = [];
 
-for (let y = startYear; y <= maxYear; y++) {
-  yearOptions.push(y);
-}
-
-const [selectedYear, setSelectedYear] = useState(currentYear);
-const secondYear = parseInt(selectedYear) + 1;
-const [loading, setLoading] = useState(true);
-const [credentials, setCredentials] = useState([]);
+  // State for available years from database
+  const [availableYears, setAvailableYears] = useState([]);
+  const [selectedYear, setSelectedYear] = useState("");
+  const secondYear = selectedYear ? parseInt(selectedYear) + 1 : "";
+  const [loading, setLoading] = useState(true);
+  const [credentials, setCredentials] = useState([]);
  
   // Refs for detecting outside clicks
   const headerKebabRef = useRef(null);
   const tableKebabRefs = useRef([]);
+
+  // Fetch available years from database
+  const fetchAvailableYears = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("user_credentials")
+        .select("year")
+        .in("user_roles", [1, 2]);
+
+      if (error) {
+        console.error("Error fetching years:", error);
+        return [];
+      }
+
+      // Extract unique years and sort them in descending order
+      const uniqueYears = [...new Set(data.map(item => {
+        // Extract the first part of the year format (e.g., "2024" from "2024-2025")
+        return item.year ? item.year.split('-')[0] : null;
+      }))].filter(year => year !== null).sort((a, b) => b - a);
+
+      return uniqueYears;
+    } catch (error) {
+      console.error("Error in fetchAvailableYears:", error);
+      return [];
+    }
+  };
+
+  // Fetch credentials based on selected year
+  const fetchCredentials = async (year) => {
+    setLoading(true);
+    
+    try {
+      if (!year) {
+        setCredentials([]);
+        setLoading(false);
+        return;
+      }
+
+      const academicYear = `${year}-${parseInt(year) + 1}`;
+      console.log("Fetching credentials for:", academicYear);
+
+      const { data, error } = await supabase
+        .from("user_credentials")
+        .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
+        .eq("year", academicYear)
+        .in("user_roles", [1, 2])
+        .order("last_name", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching credentials:", error);
+        MySwal.fire("Error", "Failed to load student credentials", "error");
+        setCredentials([]);
+      } else {
+        setCredentials(data || []);
+        console.log(`Loaded ${data?.length || 0} students for ${academicYear}`);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      MySwal.fire("Error", "An unexpected error occurred", "error");
+      setCredentials([]);
+    } finally {
+      setLoading(false);
+    }
+  };
  
   const filteredData = credentials.filter((row) =>
     Object.values(row)
@@ -147,6 +204,48 @@ const [credentials, setCredentials] = useState([]);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdown]);
+
+  // Get current user
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getCurrentUser();
+  }, []);
+ 
+  // Initialize available years and set default selected year
+  useEffect(() => {
+    const initializeYears = async () => {
+      const years = await fetchAvailableYears();
+      setAvailableYears(years);
+      
+      // Set the most recent year as default if available
+      if (years.length > 0) {
+        setSelectedYear(years[0]);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initializeYears();
+  }, []);
+
+  // Fetch credentials when selected year changes
+  useEffect(() => {
+    if (selectedYear) {
+      fetchCredentials(selectedYear);
+    }
+  }, [selectedYear]);
+
+  // Log year changes for debugging
+  useEffect(() => {
+    if (selectedYear) {
+      console.log(`Selected Academic Year: ${selectedYear}-${secondYear}`);
+    }
+    console.log(`Available years:`, availableYears);
+    console.log(`Current user:`, currentUser);
+  }, [selectedYear, availableYears, currentUser]);
  
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
@@ -204,7 +303,7 @@ const [credentials, setCredentials] = useState([]);
           </div>
  
           <!-- First Name -->
-          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+          <div style="display: flex; flex-direction; column; margin-bottom: 1rem;">
             <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
             <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
@@ -412,38 +511,7 @@ const [credentials, setCredentials] = useState([]);
       }
     });
   };
- 
-  useEffect(() => {
-    const fetchCredentials = async () => {
-    setLoading(true);
 
-    const academicYear = `${selectedYear}-${secondYear}`;
-    console.log("Fetching credentials for:", academicYear);
-
-    const { data, error } = await supabase
-      .from("user_credentials")
-      .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
-      .eq("year", academicYear) // ✅ filter by selected year
-      .in("user_roles", [1, 2]); // 1=manager, 2=member
-
-    if (error) {
-      console.error("Error fetching:", error);
-      setCredentials([]);
-    } else {
-      setCredentials(data || []);
-    }
-
-    setLoading(false);
-  };
-
-  fetchCredentials();
-}, [selectedYear]);
-
-
-useEffect(() => {
-
-  console.log(`Selected Academic Year: ${selectedYear}-${secondYear}`);
-}, [selectedYear]);
   return (
     <div className="container-fluid px-4 py-3">
       {/* Scrollbar Fix for Webkit (Chrome/Safari) */}
@@ -509,48 +577,53 @@ useEffect(() => {
             {/* Export Button */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div className="d-flex flex-wrap align-items-center gap-2">
-  {/* Export Button */}
-  <button
-    className="btn d-flex align-items-center gap-1"
-    onClick={() => exportStudentsAsPDF(credentials)}
-    style={{
-      border: "1.5px solid #3B0304",
-      color: "#3B0304",
-      padding: "6px 12px",
-      backgroundColor: "white",
-      fontWeight: "500",
-      fontSize: "0.85rem",
-      borderRadius: "6px",
-      transition: "background-color 0.2s",
-    }}
-    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-  >
-    <FaDownload size={14} /> Export
-  </button>
+                {/* Export Button */}
+                <button
+                  className="btn d-flex align-items-center gap-1"
+                  onClick={() => exportStudentsAsPDF(credentials)}
+                  style={{
+                    border: "1.5px solid #3B0304",
+                    color: "#3B0304",
+                    padding: "6px 12px",
+                    backgroundColor: "white",
+                    fontWeight: "500",
+                    fontSize: "0.85rem",
+                    borderRadius: "6px",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                >
+                  <FaDownload size={14} /> Export
+                </button>
 
-  {/* Select Year Dropdown */}
-  <div className="d-flex align-items-center gap-2">
-    <select
-      className="form-select"
-      style={{
-        width: "140px",
-        height: "38px",
-        borderRadius: "6px",
-        fontSize: "0.85rem",
-        border: "1px solid #ccc",
-      }}
-      onChange={(e) => setSelectedYear(e.target.value)}
-      value={selectedYear}
-    >
-      {yearOptions.map((year) => (
-        <option key={year} value={year}>
-          {year}-{parseInt(year) + 1}
-        </option>
-      ))}
-    </select>
-  </div>
-</div>
+                {/* Select Year Dropdown - Only shows years that exist in database */}
+                <div className="d-flex align-items-center gap-2">
+                  <select
+                    className="form-select"
+                    style={{
+                      width: "140px",
+                      height: "38px",
+                      borderRadius: "6px",
+                      fontSize: "0.85rem",
+                      border: "1px solid #ccc",
+                    }}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    value={selectedYear}
+                    disabled={availableYears.length === 0}
+                  >
+                    {availableYears.length === 0 ? (
+                      <option value="">No years available</option>
+                    ) : (
+                      availableYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}-{parseInt(year) + 1}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
             </div>
  
             {/* Search and Kebab Menu Row */}
@@ -690,7 +763,7 @@ useEffect(() => {
               )}
             </div>
  
-            {credentials.length === 0 && !loading ? (
+            {availableYears.length === 0 && !loading ? (
               <div
                 className="text-center p-4 border"
                 style={{
@@ -700,7 +773,19 @@ useEffect(() => {
                   borderRadius: "16px",
                 }}
               >
-                <strong>NOTE:</strong> No student credentials found in the system {selectedYear}-{secondYear}.
+                <strong>NOTE:</strong> No student credentials found in the system.
+              </div>
+            ) : credentials.length === 0 && !loading ? (
+              <div
+                className="text-center p-4 border"
+                style={{
+                  fontSize: "0.9rem",
+                  color: "#3B0304",
+                  border: "1px solid #B2B2B2",
+                  borderRadius: "16px",
+                }}
+              >
+                <strong>NOTE:</strong> No student credentials found for {selectedYear}-{secondYear}.
               </div>
             ) : (
               // --- Student Credentials Table Section ---
