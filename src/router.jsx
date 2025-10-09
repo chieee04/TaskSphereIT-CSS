@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "./App";
 import Signin from "./components/Signin";
+import NewPassword from "./components/Instructor/newPassword";
 import ForgotPassword from "./components/Instructor/ForgotPassword";
 
 import InstructorDashboard from "./components/Instructor/InstructorDashboard";
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Signin /> },
       { path: "/Signin", element: <Signin /> },
+      { path: "/NewPassword", element: <NewPassword /> },
       { path: "/ForgotPassword", element: <ForgotPassword /> },
 
       // 🔐 PROTECTED DASHBOARDS
@@ -27,7 +29,9 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/Manager/:subPage", element: (
+      {
+        path: "/Manager/:subPage",
+        element: (
           <ProtectedRoute allowedRoles={[1]}>
             <ManagerDashboard />
           </ProtectedRoute>
@@ -42,7 +46,9 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/Member/:subPage", element: (
+      {
+        path: "/Member/:subPage",
+        element: (
           <ProtectedRoute allowedRoles={[2]}>
             <MemberDashboard />
           </ProtectedRoute>
@@ -57,7 +63,9 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/Adviser/:subPage", element: (
+      {
+        path: "/Adviser/:subPage",
+        element: (
           <ProtectedRoute allowedRoles={[3]}>
             <AdviserDashboard />
           </ProtectedRoute>
@@ -72,7 +80,9 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/Instructor/:subPage", element: (
+      {
+        path: "/Instructor/:subPage",
+        element: (
           <ProtectedRoute allowedRoles={[4]}>
             <InstructorDashboard />
           </ProtectedRoute>
