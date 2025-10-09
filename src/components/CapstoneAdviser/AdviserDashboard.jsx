@@ -825,5 +825,4 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     </div>
   );
 };
-
 export default AdviserDashboard;
