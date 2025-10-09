@@ -1,118 +1,116 @@
 import React, { useState } from "react";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
+import { useNavigate } from "react-router-dom";
 import Logo1 from "../../assets/img/Dct-Logo.png";
+
+import Swal from "sweetalert2";
+import { showOTP, fetchAdminEmail } from "../../assets/scripts/forgotPassword";
+import { sendOtpEmail } from "../../assets/scripts/email";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
-  const MySwal = withReactContent(Swal);
+  const [sending, setSending] = useState(false);
 
-  const handleResetPassword = (e) => {
+  const navigate = useNavigate();
+
+  // 6-digit OTP helper (000000–999999, always 6 chars)
+  const generateOtp = () =>
+    String(Math.floor(Math.random() * 1_000_000)).padStart(6, "0");
+
+  const handleResetPassword = async (e) => {
     e.preventDefault();
 
-    if (!email) return;
+    const entered = (email || "").trim();
+    if (!entered) {
+      Swal.fire({
+        icon: "warning",
+        title: "Enter your email",
+        text: "Please provide the email you registered with.",
+        confirmButtonColor: "#3B0304",
+      });
+      return;
+    }
 
-    // 🔹 Trigger the SweetAlert OTP popup
-    MySwal.fire({
-      title: "",
-      html: `
-        <div style="text-align: center;">
-          <p style="font-size: 0.9rem; color: #333; margin-bottom: 1rem;">
-            We've sent a One-Time Password (OTP) to your registered email.<br/>
-            Please check your inbox (and spam folder) and enter it below.
-          </p>
+    try {
+      setSending(true);
 
-          <div id="otp-inputs" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px;">
-            ${Array(6)
-              .fill(0)
-              .map(
-                (_, i) =>
-                  `<input id="otp-${i}" type="text" maxlength="1" 
-                    style="width: 38px; height: 38px; text-align: center; font-size: 18px;
-                    border: 1.5px solid #ccc; border-radius: 6px; outline: none;"
-                    oninput="if(this.value.length===1) document.getElementById('otp-${i + 1}')?.focus()" />`
-              )
-              .join("")}
-          </div>
-
-          <a id="resend" href="#" style="color: #800000; font-size: 0.85rem; text-decoration: none;">Resend</a>
-        </div>
-      `,
-      showConfirmButton: true,
-      confirmButtonText: "Confirm",
-      confirmButtonColor: "#3B0304",
-      focusConfirm: false,
-      customClass: {
-        confirmButton: "rounded-md py-2 px-4 font-medium",
-      },
-      didOpen: () => {
-        // auto focus first input
-        const firstInput = Swal.getPopup().querySelector("#otp-0");
-        if (firstInput) firstInput.focus();
-
-        // Handle Resend click
-        const resendLink = Swal.getPopup().querySelector("#resend");
-        resendLink.onclick = (e) => {
-          e.preventDefault();
-          Swal.showLoading();
-          setTimeout(() => {
-            Swal.hideLoading();
-            Swal.showValidationMessage("✅ New OTP sent to your email!");
-            setTimeout(() => Swal.resetValidationMessage(), 2000);
-          }, 1500);
-        };
-      },
-      preConfirm: () => {
-        const otp = Array.from({ length: 6 })
-          .map((_, i) => document.getElementById(`otp-${i}`).value)
-          .join("");
-
-        if (otp.length < 6) {
-          Swal.showValidationMessage("Please enter the complete 6-digit OTP.");
-          return false;
-        }
-
-        return otp;
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const enteredOtp = result.value;
-        console.log("Entered OTP:", enteredOtp);
-
-        // 🔹 Simulate OTP verification
-        MySwal.fire({
-          icon: "success",
-          title: "OTP Verified!",
-          text: "You can now reset your password.",
+      // 1) Check if admin
+      const isAdminEmail = await fetchAdminEmail(entered);
+      if (!isAdminEmail) {
+        await Swal.fire({
+          icon: "error",
+          title: "Not an admin email",
+          text: "Only admin accounts can reset a password here.",
           confirmButtonColor: "#3B0304",
         });
+        return;
       }
-    });
+
+      // 2) Generate OTP
+      const otp = generateOtp();
+      const fullName = ""; // fill if you have it (optional)
+
+      // 3) Send OTP email
+      await sendOtpEmail({ email: entered, fullName, otp });
+
+      // 4) Notify
+      await Swal.fire({
+        icon: "success",
+        title: "OTP sent",
+        html: `We've sent a 6-digit code to <b>${entered}</b>.`,
+        confirmButtonColor: "#3B0304",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+
+      // 5) Open your 6-box OTP modal and verify there
+      showOTP({
+        email: entered,
+        expectedOtp: otp,
+        onConfirm: async (code, { expected }) => {
+          if (String(code) === String(expected)) {
+            //alert("success");
+            navigate("/NewPassword", { state: { email: entered } });
+            return true; // ✅ close the Swal
+          }
+          alert("failed");
+          return false; // ❌ keep it open for retry
+        },
+        onResend: async () => {
+          const newOtp = generateOtp();
+          await sendOtpEmail({ email: entered, fullName: "", otp: newOtp });
+          return newOtp; // updates expected code inside the Swal
+        },
+      });
+    } catch (err) {
+      console.error("ForgotPassword error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Something went wrong",
+        text: err?.message || "Please try again in a moment.",
+        confirmButtonColor: "#3B0304",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-[#f8f8f8] px-4">
       <div className="bg-white border-4 border-[#3B0304] rounded-2xl shadow-md p-8 w-full max-w-md text-center">
-        {/* LOGO */}
         <img
           src={Logo1}
           alt="DCT Logo"
           className="w-24 h-24 mx-auto mb-4 object-contain"
         />
-
-        {/* HEADING */}
         <h1 className="text-2xl font-bold text-[#3B0304] mb-2">
           Forgot Password?
         </h1>
-
-        {/* INSTRUCTION */}
         <p className="text-gray-700 text-sm mb-6 leading-relaxed">
-          No worries! To reset your password, we'll send a one-time password
+          No worries! To reset your password, we’ll send a one-time password
           (OTP) to your registered email address. Please check your inbox and
           follow the instructions to continue.
         </p>
 
-        {/* FORM */}
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div className="text-left">
             <label
@@ -128,15 +126,19 @@ const ForgotPassword = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin1@gmail.com"
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#3B0304] focus:outline-none"
-              required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 bg-[#3B0304] text-white font-medium rounded-md hover:bg-[#2a0203] transition-all"
+            disabled={sending}
+            className={`w-full py-2 text-white font-medium rounded-md transition-all ${
+              sending
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#3B0304] hover:bg-[#2a0203]"
+            }`}
           >
-            Reset Password
+            {sending ? "Sending OTP..." : "Reset Password"}
           </button>
         </form>
       </div>
