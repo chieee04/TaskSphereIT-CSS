@@ -279,124 +279,142 @@ studentIdInput.addEventListener("input", (e) => {
  
   // --- Core Functionality (No change to import/upload logic) ---
  
- const handleDownload = () => {
-  const sampleData = [
-    {
-      "ID Number": "20250001",
-      "Password": "password123",
-      "Full Name": "Juan Dela Cruz, Santos",
-    },
+const handleDownload = () => {
+  const wsData = [
+    [
+      "PASTE HERE : FULL NAME (LAST NAME, FIRST NAME, MIDDLE INITIAL)",
+      "", // Spacer column B
+      "ID Number",
+      "Password",
+      "Last Name",
+      "First Name",
+      "Middle Initial",
+    ],
+    ["", "", "", "", "", "", ""],
   ];
 
-  const ws = XLSX.utils.json_to_sheet(sampleData);
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // ✅ Auto width adjustment (based on max content per column)
-  const data = [Object.keys(sampleData[0]), ...sampleData.map(obj => Object.values(obj))];
-  const colWidths = data[0].map((_, colIndex) =>
-    ({
-      wch: Math.max(...data.map(row => (row[colIndex] ? row[colIndex].toString().length : 0)))
-    })
-  );
+  // ✅ Column width setup
+  ws["!cols"] = [
+    { wch: 45 }, // A - Full Name
+    { wch: 5 },  // B - spacer
+    { wch: 15 }, // C - ID Number
+    { wch: 15 }, // D - Password
+    { wch: 18 }, // E - Last Name
+    { wch: 18 }, // F - First Name
+    { wch: 15 }, // G - Middle Initial
+  ];
 
-  ws['!cols'] = colWidths;
+  // ✅ Apply formulas for rows 2–500
+  for (let row = 2; row <= 500; row++) {
+    // 🔹 Last Name (E)
+    ws[`E${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",TRIM(LEFT(A${row},FIND(",",A${row})-1)))`,
+    };
 
+    // 🔹 First Name (F) — fixed version, excludes middle initial
+    ws[`F${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",
+        TRIM(
+          IF(
+            ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
+            IF(
+              ISERROR(FIND(" ",TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))))),
+              TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))),
+              TRIM(LEFT(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))),FIND("☀",SUBSTITUTE(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row})))," ","☀",LEN(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))))-LEN(SUBSTITUTE(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row})))," ",""))))-1))
+            ),
+            TRIM(MID(A${row},FIND(",",A${row})+1,FIND(",",A${row},FIND(",",A${row})+1)-FIND(",",A${row})-1))
+          )
+        )
+      )`,
+    };
+
+    // 🔹 Middle Initial (G)
+    ws[`G${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",
+        IF(
+          ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
+          IF(
+            LEN(TRIM(RIGHT(A${row},LEN(A${row})-FIND("☀",SUBSTITUTE(A${row}," ","☀",LEN(A${row})-LEN(SUBSTITUTE(A${row}," ","")))))))<=3,
+            TRIM(SUBSTITUTE(TRIM(RIGHT(A${row},LEN(A${row})-FIND("☀",SUBSTITUTE(A${row}," ","☀",LEN(A${row})-LEN(SUBSTITUTE(A${row}," ","")))))),".","")),
+            ""
+          ),
+          TRIM(SUBSTITUTE(MID(A${row},FIND(",",A${row},FIND(",",A${row})+1)+1,LEN(A${row})),".",""))
+        )
+      )`,
+    };
+  }
+
+  // ✅ Create workbook
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
+  XLSX.utils.book_append_sheet(wb, ws, "Students_Template");
+
+  // ✅ Define used range and force Excel recalculation
+  ws["!ref"] = "A1:G500";
+  wb.Workbook = { CalcPr: { fullCalcOnLoad: true } };
+
+  // ✅ Write and download
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  saveAs(
-    new Blob([wbout], { type: "application/octet-stream" }),
-    "students_template.xlsx"
-  );
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "students_template.xlsx");
 };
+
+
+
+
+
+
+
+
+
 
  
 const handleImport = (event) => {
   const file = event.target.files[0];
   if (!file) return;
- 
+
   const reader = new FileReader();
   reader.onload = (e) => {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: "array" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
- 
-    // 1️⃣ Check for numbers in first or last name
-    const invalidRow = jsonData.find(
-      (row) => /\d/.test(row.first_name || "") || /\d/.test(row.last_name || "")
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    // ✅ Process imported Excel rows
+    const processedData = jsonData
+      .filter((row) => row["ID Number"] || row["Last Name"]) // skip empty rows
+      .map((row) => ({
+        id: uuidv4(),
+        user_id: row["ID Number"] ? String(row["ID Number"]).trim() : "",
+        password: row["Password"] ? String(row["Password"]).trim() : "",
+        first_name: row["First Name"] ? String(row["First Name"]).trim() : "",
+        last_name: row["Last Name"] ? String(row["Last Name"]).trim() : "",
+        middle_name: row["Middle Initial"] ? String(row["Middle Initial"]).trim() : "",
+      }));
+
+    // ✅ Validation (optional)
+    const invalidRow = processedData.find(
+      (r) => /\d/.test(r.first_name) || /\d/.test(r.last_name)
     );
- 
     if (invalidRow) {
       MySwal.fire({
-        title: "Invalid Name",
-        text: "Numbers in First Name or Last Name are not allowed. Import cancelled.",
+        title: "Invalid Name Format",
+        text: "Names cannot contain numbers.",
         icon: "warning",
         confirmButtonColor: "#3B0304",
       });
-      return; // Stop import
+      return;
     }
- 
-    // 2️⃣ Check for duplicate user_id in the imported file
-    const idCounts = jsonData.reduce((acc, row) => {
-      const id = row.user_id ? String(row.user_id).trim() : "";
-      if (id) acc[id] = (acc[id] || 0) + 1;
-      return acc;
-    }, {});
- 
-    const duplicateId = Object.keys(idCounts).find((id) => idCounts[id] > 1);
- 
-    if (duplicateId) {
-      MySwal.fire({
-        title: "Duplicate ID",
-        text: `Student ID "${duplicateId}" is duplicated. Import cancelled.`,
-        icon: "warning",
-        confirmButtonColor: "#3B0304",
-      });
-      return; // Stop import
-    }
- 
-    // If all valid, process data
-    const processedData = jsonData.map((row) => {
-  let firstName = "";
-  let lastName = "";
-  let middleName = "";
 
-  if (row["Full Name"]) {
-    const parts = row["Full Name"].split(",");
-    if (parts.length === 3) {
-      // Format: First, Last, Middle
-      firstName = parts[0].trim();
-      lastName = parts[1].trim();
-      middleName = parts[2].trim();
-    } else if (parts.length === 2) {
-      // Format: First, Last
-      firstName = parts[0].trim();
-      lastName = parts[1].trim();
-    } else {
-      // Format: First Last Middle
-      const words = row["Full Name"].trim().split(" ");
-      firstName = words[0] || "";
-      lastName = words.length > 1 ? words[words.length - 1] : "";
-      middleName = words.length > 2 ? words.slice(1, -1).join(" ") : "";
-    }
-  }
-
-  return {
-    id: uuidv4(),
-    user_id: row["ID Number"] ? String(row["ID Number"]).replace(/\D/g, "") : "",
-    password: row["Password"] || "",
-    first_name: firstName,
-    last_name: lastName,
-    middle_name: middleName,
-  };
-});
- 
     setImportedData(processedData);
     setSelectedRows([]);
     setSearchTerm("");
   };
- 
+
   reader.readAsArrayBuffer(file);
 };
  

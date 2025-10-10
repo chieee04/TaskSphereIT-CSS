@@ -37,6 +37,7 @@ import {
   ArcElement
 } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
+import Notification from "./Notification";
 
 ChartJS.register(Tooltip, Legend, ArcElement);
 
@@ -384,6 +385,8 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         return <Profile />;
       case "Final Re Defense":
         return <AdviserFinalRedefTask />;
+        case "Notification":
+          return <Notification/>
 
       case "SoloModeDashboard":
         return <SoloModeDashboard />;

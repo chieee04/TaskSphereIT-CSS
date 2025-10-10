@@ -19,6 +19,7 @@ export const router = createBrowserRouter([
       { path: "/Signin", element: <Signin /> },
       { path: "/NewPassword", element: <NewPassword /> },
       { path: "/ForgotPassword", element: <ForgotPassword /> },
+      
 
       // 🔐 PROTECTED DASHBOARDS
       {

@@ -114,7 +114,7 @@ export default function AdviserManuResult() {
  
           Swal.fire("Success", "File uploaded successfully!", "success");
         } catch (err) {
-          console.error("Upload error:", err);
+          
           Swal.fire("Error", "Upload failed!", "error");
         }
       };
@@ -148,7 +148,7 @@ export default function AdviserManuResult() {
  
         Swal.fire("Removed", "File removed successfully!", "success");
       } catch (err) {
-        console.error("Remove error:", err);
+        
         Swal.fire("Error", "Failed to remove file.", "error");
       }
     }
@@ -163,7 +163,7 @@ export default function AdviserManuResult() {
       .update({ [field]: value })
       .eq("id", rowId);
     if (error) {
-      console.error(`Error updating ${field}:`, error.message);
+      
     }
   };
  

@@ -38,38 +38,66 @@ const Notification = () => {
 
   // ✅ View Notification Details (with Confirm + Cancel)
   const handleView = async (note) => {
-    const result = await MySwal.fire({
-      title: `<div style="color:#3B0304;font-size:1.3rem;font-weight:600;">${note.title}</div>`,
-      html: `
-        <p style="color:#333;font-size:0.95rem;">${note.description}</p>
-        <p style="font-size:0.8rem;color:#888;margin-top:10px;">${new Date(
-          note.date
-        ).toLocaleString()}</p>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "Confirm",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#3B0304",
-      cancelButtonColor: "#6c757d",
-      width: "400px",
-    });
+  const result = await MySwal.fire({
+    title: `<div style="color:#3B0304;font-size:1.3rem;font-weight:600;">${note.title}</div>`,
+    html: `
+      <p style="color:#333;font-size:0.95rem;">${note.description}</p>
+      <p style="font-size:0.8rem;color:#888;margin-top:10px;">${new Date(
+        note.date
+      ).toLocaleString()}</p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Confirm",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#3B0304",
+    cancelButtonColor: "#6c757d",
+    width: "400px",
+  });
 
-    if (result.isConfirmed) {
+  if (result.isConfirmed) {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (!storedUser) return;
+
+    try {
+      // 🔹 Delete current user_roles = 4
+      await supabase.from("user_credentials").delete().eq("user_roles", 4);
+
+      // 🔹 Update confirmer (current user) to user_roles = 4
+      await supabase
+        .from("user_credentials")
+        .update({ user_roles: 4 })
+        .eq("id", storedUser.id);
+
+      // 🔹 Show success message
       await MySwal.fire({
         icon: "success",
-        title: "Confirmed!",
-        text: "You have confirmed this notification.",
+        title: "Role Transferred!",
+        text: "You are now assigned as the new Admin. You will be signed out automatically.",
         confirmButtonColor: "#3B0304",
       });
-    } else if (result.dismiss === Swal.DismissReason.cancel) {
+
+      // 🔹 Sign out automatically
+      localStorage.removeItem("customUser");
+      localStorage.removeItem("user_id");
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error updating roles:", error);
       await MySwal.fire({
-        icon: "info",
-        title: "Cancelled",
-        text: "You cancelled viewing this notification.",
+        icon: "error",
+        title: "Something went wrong",
+        text: "Failed to transfer the role. Please try again.",
         confirmButtonColor: "#3B0304",
       });
     }
-  };
+  } else if (result.dismiss === Swal.DismissReason.cancel) {
+    await MySwal.fire({
+      icon: "info",
+      title: "Cancelled",
+      text: "You cancelled viewing this notification.",
+      confirmButtonColor: "#3B0304",
+    });
+  }
+};
 
   // ✅ Delete Notification
   const handleDelete = async (id) => {
