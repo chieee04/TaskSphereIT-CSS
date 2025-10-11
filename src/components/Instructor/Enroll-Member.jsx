@@ -137,9 +137,9 @@ const handleAddStudent = async () => {
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
  
-        <!-- Middle Name -->
+        <!-- Middle Initial -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-          <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+          <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
           <input id="middle_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
@@ -276,13 +276,10 @@ studentIdInput.addEventListener("input", (e) => {
   });
 };
  
- 
-  // --- Core Functionality (No change to import/upload logic) ---
- 
 const handleDownload = () => {
   const wsData = [
     [
-      "PASTE HERE : FULL NAME (LAST NAME, FIRST NAME, MIDDLE INITIAL)",
+      "PASTE HERE : FULL NAME (LastN, FirstN, MiddleI)",
       "", // Spacer column B
       "ID Number",
       "Password",
@@ -365,12 +362,6 @@ const handleDownload = () => {
 
 
 
-
-
-
-
-
-
  
 const handleImport = (event) => {
   const file = event.target.files[0];
@@ -441,13 +432,15 @@ const { value: selectedYear } = await MySwal.fire({
   title: "Select Academic Year",
   html: `
     <div style="max-width: 100%; overflow: hidden;">
-      <select id="year-select" class="swal2-select" style="
+      <select id="year-select" style="
         width: 100%;
         padding: 10px;
         border-radius: 6px;
         border: 1.5px solid #888;
         font-size: 0.9rem;
         text-align: center;
+        background-color: #fff;
+        appearance: none;
       ">
         ${yearOptions
           .map(
@@ -467,13 +460,25 @@ const { value: selectedYear } = await MySwal.fire({
   cancelButtonColor: "#999",
   confirmButtonText: "Confirm",
   focusConfirm: false,
+  width: "350px",
+  customClass: {
+    popup: "custom-swal-popup",
+  },
+  didOpen: () => {
+    // Force select to full width (SweetAlert2 overrides width by default)
+    const select = document.getElementById("year-select");
+    if (select) {
+      select.style.width = "100%";
+      select.style.display = "block";
+    }
+  },
   preConfirm: () => {
     const year = document.getElementById("year-select").value;
     if (!year) {
       MySwal.showValidationMessage("Please select a year first.");
       return false;
     }
-    return year; // Return the full year string (e.g. "2025-2026")
+    return year;
   },
 });
 
@@ -553,9 +558,9 @@ try {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Middle Name -->
+          <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
             <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
@@ -1057,7 +1062,7 @@ studentIdInput.addEventListener("input", (e) => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Initial</th>
                       <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px' }}>Action</th>
                     </tr>
                   </thead>

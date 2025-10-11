@@ -697,7 +697,7 @@ const InstructorDashboard = () => {
             )}
 
             {/* CSS Styles */}
-            <style jsx>{`
+            <style>{`
               .adviser-dashboard-content {
                 display: flex;
                 flex-direction: column;

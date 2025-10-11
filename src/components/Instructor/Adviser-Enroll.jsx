@@ -138,9 +138,9 @@ const Adviser = () => {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Middle Name -->
+          <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
             <input id="middle_name" class="swal2-input" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
@@ -278,124 +278,153 @@ const Adviser = () => {
  
   // --- Core Functionality (Import/Download/Upload) ---
   const handleDownload = () => {
-  const sampleData = [
-    {
-      "ID Number": "20250001",
-      "Password": "password123",
-      "Full Name": "Juan Dela Cruz, Santos",
-    },
+  const wsData = [
+    [
+      "PASTE HERE : FULL NAME (LastN, FirstN, MiddleI)",
+      "", // Spacer
+      "ID Number",
+      "Password",
+      "Last Name",
+      "First Name",
+      "Middle Initial",
+    ],
+    ["", "", "", "", "", "", ""],
   ];
 
-  const ws = XLSX.utils.json_to_sheet(sampleData);
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // ✅ Auto width adjustment (based on max content per column)
-  const data = [Object.keys(sampleData[0]), ...sampleData.map(obj => Object.values(obj))];
-  const colWidths = data[0].map((_, colIndex) =>
-    ({
-      wch: Math.max(...data.map(row => (row[colIndex] ? row[colIndex].toString().length : 0)))
-    })
-  );
+  // ✅ Column width setup
+  ws["!cols"] = [
+    { wch: 45 }, // A - Full Name
+    { wch: 5 },  // B - Spacer
+    { wch: 15 }, // C - ID
+    { wch: 15 }, // D - Password
+    { wch: 18 }, // E - Last Name
+    { wch: 18 }, // F - First Name
+    { wch: 15 }, // G - Middle Initial
+  ];
 
-  ws['!cols'] = colWidths;
+  // ✅ Apply parsing formulas (rows 2–500)
+  for (let row = 2; row <= 500; row++) {
+    // Last Name (E)
+    ws[`E${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",TRIM(LEFT(A${row},FIND(",",A${row})-1)))`,
+    };
 
+    // First Name (F)
+    ws[`F${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",
+        TRIM(
+          IF(
+            ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
+            IF(
+              ISERROR(FIND(" ",TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))))),
+              TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))),
+              TRIM(LEFT(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))),FIND("☀",SUBSTITUTE(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row})))," ","☀",LEN(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row}))))-LEN(SUBSTITUTE(TRIM(MID(A${row},FIND(",",A${row})+1,LEN(A${row})))," ",""))))-1))
+            ),
+            TRIM(MID(A${row},FIND(",",A${row})+1,FIND(",",A${row},FIND(",",A${row})+1)-FIND(",",A${row})-1))
+          )
+        )
+      )`,
+    };
+
+    // Middle Initial (G)
+    ws[`G${row}`] = {
+      t: "s",
+      f: `=IF(A${row}="","",
+        IF(
+          ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
+          IF(
+            LEN(TRIM(RIGHT(A${row},LEN(A${row})-FIND("☀",SUBSTITUTE(A${row}," ","☀",LEN(A${row})-LEN(SUBSTITUTE(A${row}," ","")))))))<=3,
+            TRIM(SUBSTITUTE(TRIM(RIGHT(A${row},LEN(A${row})-FIND("☀",SUBSTITUTE(A${row}," ","☀",LEN(A${row})-LEN(SUBSTITUTE(A${row}," ","")))))),".","")),
+            ""
+          ),
+          TRIM(SUBSTITUTE(MID(A${row},FIND(",",A${row},FIND(",",A${row})+1)+1,LEN(A${row})),".",""))
+        )
+      )`,
+    };
+  }
+
+  // ✅ Workbook setup
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
+  XLSX.utils.book_append_sheet(wb, ws, "Adviser_Template");
+  ws["!ref"] = "A1:G500";
+  wb.Workbook = { CalcPr: { fullCalcOnLoad: true } };
+
+  // ✅ Save file
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   saveAs(
     new Blob([wbout], { type: "application/octet-stream" }),
-    "Adviser_template.xlsx"
+    "adviser_template.xlsx"
   );
 };
- 
-  const handleImport = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
- 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
- 
-      // 1️⃣ Check for numbers in first or last name
-      const invalidRow = jsonData.find(
-        (row) => /\d/.test(row.first_name || "") || /\d/.test(row.last_name || "")
-      );
- 
-      if (invalidRow) {
-        MySwal.fire({
-          title: "Invalid Name",
-          text: "Numbers in First Name or Last Name are not allowed. Import cancelled.",
-          icon: "warning",
-          confirmButtonColor: "#3B0304",
-        });
-        return; // Stop import
-      }
- 
-      // 2️⃣ Check for duplicate user_id in the imported file
-      const idCounts = jsonData.reduce((acc, row) => {
-        const id = row.user_id ? String(row.user_id).trim() : "";
-        if (id) acc[id] = (acc[id] || 0) + 1;
-        return acc;
-      }, {});
- 
-      const duplicateId = Object.keys(idCounts).find((id) => idCounts[id] > 1);
- 
-      if (duplicateId) {
-        MySwal.fire({
-          title: "Duplicate ID",
-          text: `Adviser ID "${duplicateId}" is duplicated. Import cancelled.`,
-          icon: "warning",
-          confirmButtonColor: "#3B0304",
-        });
-        return; // Stop import
-      }
- 
-      // If all valid, process data
-      const processedData = jsonData.map((row) => {
-  let firstName = "";
-  let lastName = "";
-  let middleName = "";
 
-  if (row["Full Name"]) {
-    const parts = row["Full Name"].split(",");
-    if (parts.length === 3) {
-      // Format: First, Last, Middle
-      firstName = parts[0].trim();
-      lastName = parts[1].trim();
-      middleName = parts[2].trim();
-    } else if (parts.length === 2) {
-      // Format: First, Last
-      firstName = parts[0].trim();
-      lastName = parts[1].trim();
-    } else {
-      // Format: First Last Middle
-      const words = row["Full Name"].trim().split(" ");
-      firstName = words[0] || "";
-      lastName = words.length > 1 ? words[words.length - 1] : "";
-      middleName = words.length > 2 ? words.slice(1, -1).join(" ") : "";
+const handleImport = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    // ✅ Process imported Excel rows
+    const processedData = jsonData
+      .filter((row) => row["ID Number"] || row["Last Name"]) // skip empty
+      .map((row) => ({
+        id: uuidv4(),
+        user_id: row["ID Number"] ? String(row["ID Number"]).trim() : "",
+        password: row["Password"] ? String(row["Password"]).trim() : "",
+        first_name: row["First Name"] ? String(row["First Name"]).trim() : "",
+        last_name: row["Last Name"] ? String(row["Last Name"]).trim() : "",
+        middle_name: row["Middle Initial"] ? String(row["Middle Initial"]).trim() : "",
+      }));
+
+    // ✅ Validation: numeric characters in names
+    const invalidRow = processedData.find(
+      (r) => /\d/.test(r.first_name) || /\d/.test(r.last_name)
+    );
+    if (invalidRow) {
+      MySwal.fire({
+        title: "Invalid Name Format",
+        text: "Names cannot contain numbers.",
+        icon: "warning",
+        confirmButtonColor: "#3B0304",
+      });
+      return;
     }
-  }
 
-  return {
-    id: uuidv4(),
-    user_id: row["ID Number"] ? String(row["ID Number"]).replace(/\D/g, "") : "",
-    password: row["Password"] || "",
-    first_name: firstName,
-    last_name: lastName,
-    middle_name: middleName,
+    // ✅ Validation: duplicate IDs
+    const idCounts = processedData.reduce((acc, r) => {
+      const id = r.user_id;
+      if (id) acc[id] = (acc[id] || 0) + 1;
+      return acc;
+    }, {});
+    const duplicateId = Object.keys(idCounts).find((id) => idCounts[id] > 1);
+    if (duplicateId) {
+      MySwal.fire({
+        title: "Duplicate ID",
+        text: `Adviser ID "${duplicateId}" is duplicated. Import cancelled.`,
+        icon: "warning",
+        confirmButtonColor: "#3B0304",
+      });
+      return;
+    }
+
+    // ✅ Import ready
+    setImportedData(processedData);
+    setSelectedRows([]);
+    setSearchTerm("");
   };
-});
- 
-      setImportedData(processedData);
-      setSelectedRows([]);
-      setSearchTerm("");
-    };
- 
-    reader.readAsArrayBuffer(file);
-  };
+
+  reader.readAsArrayBuffer(file);
+};
+
  
  const handleUpload = async () => {
   if (importedData.length === 0) {
@@ -416,17 +445,27 @@ for (let i = 0; i <= maxFutureYears; i++) {
 
 // 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
 const { value: selectedYear } = await MySwal.fire({
-  title: "Select Academic Year",
+  title: `
+    <div style="color:#3B0304; font-weight:600; font-size:1.1rem;">
+      Select Academic Year
+    </div>
+  `,
   html: `
-    <div style="max-width: 100%; overflow: hidden;">
-      <select id="year-select" class="swal2-select" style="
+    <div style="max-width: 100%; margin-top: 1rem;">
+      <select id="year-select" style="
         width: 100%;
-        padding: 10px;
+        padding: 10px 12px;
         border-radius: 6px;
         border: 1.5px solid #888;
         font-size: 0.9rem;
         text-align: center;
-      ">
+        background-color: #fff;
+        color: #333;
+        appearance: none;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      " onfocus="this.style.borderColor='#3B0304'; this.style.boxShadow='0 0 0 2px rgba(59,3,4,0.15)';"
+        onblur="this.style.borderColor='#888'; this.style.boxShadow='none';">
         ${yearOptions
           .map(
             (year) => `
@@ -444,7 +483,20 @@ const { value: selectedYear } = await MySwal.fire({
   confirmButtonColor: "#3B0304",
   cancelButtonColor: "#999",
   confirmButtonText: "Confirm",
+  cancelButtonText: "Cancel",
   focusConfirm: false,
+  width: "350px",
+  background: "#fff",
+  customClass: {
+    popup: "custom-swal-popup",
+  },
+  didOpen: () => {
+    const select = document.getElementById("year-select");
+    if (select) {
+      select.style.width = "100%";
+      select.style.display = "block";
+    }
+  },
   preConfirm: () => {
     const year = document.getElementById("year-select").value;
     if (!year) {
@@ -454,6 +506,7 @@ const { value: selectedYear } = await MySwal.fire({
     return year; // Returns selected full string (e.g. "2025-2026")
   },
 });
+
 
 // 3️⃣ Handle cancel
 if (!selectedYear) {
@@ -530,9 +583,9 @@ try {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Middle Name -->
+          <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
             <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
@@ -1003,7 +1056,7 @@ try {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Initial</th>
                       <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: "100px" }}>Action</th>
                     </tr>
                   </thead>

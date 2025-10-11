@@ -324,9 +324,9 @@ const AdviserCredentials = () => {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Middle Name -->
+          <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
-            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Name</label>
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
             <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
@@ -865,7 +865,7 @@ const AdviserCredentials = () => {
                           onClick={() => handleSort("middle_name")}
                         >
                           <div className="flex items-center gap-1">
-                            Middle Name
+                            Middle Initial
                             {sortField === "middle_name" ? (
                               sortDirection === "asc" ? <FaSortUp size={12} /> : <FaSortDown size={12} />
                             ) : (
