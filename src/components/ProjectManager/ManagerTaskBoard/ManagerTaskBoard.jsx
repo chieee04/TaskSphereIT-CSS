@@ -27,101 +27,56 @@ const ManagerTaskBoard = () => {
   useEffect(() => {
     const fetchTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) {
-        console.warn("⚠️ No logged-in user found in localStorage");
-        return;
-      }
-
+      if (!storedUser) return;
       const currentUser = JSON.parse(storedUser);
 
-      // ✅ Kunin ID ng manager mula user_credentials
       const { data: userData, error: userError } = await supabase
         .from("user_credentials")
         .select("id, user_id")
         .eq("user_id", currentUser.user_id)
         .single();
-
-      if (userError) {
-        console.error("❌ Error fetching user:", userError);
-        return;
-      }
+      if (userError) return;
 
       const managerId = userData?.id;
-      if (!managerId) {
-        console.error("❌ Manager ID not found in user_credentials");
-        return;
-      }
-
-      console.log("👤 Logged-in Manager ID:", managerId);
+      if (!managerId) return;
 
       let allData = [];
-
-      // 🧩 Fetch manager task tables
-      const managerTables = [
-        "manager_title_task",
-        "manager_oral_task",
-        "manager_final_task",
-        "manager_final_redef",
-      ];
-
-      for (const table of managerTables) {
-        const { data, error } = await supabase
+      for (const table of ["manager_title_task", "manager_oral_task", "manager_final_task", "manager_final_redef"]) {
+        const { data } = await supabase
           .from(table)
-          .select(`
-            *,
-            user_credentials:member_id (
-              first_name,
-              last_name
-            )
-          `)
+          .select(`*, user_credentials:member_id(first_name,last_name)`)
           .eq("manager_id", managerId);
-
-        if (error) {
-          console.error(`❌ Error fetching tasks from ${table}:`, error);
-          continue;
+        if (data) {
+          allData = allData.concat(
+            data.map((t) => ({
+              ...t,
+              task: t.task || t.task_name || "Untitled Task",
+              subtask: t.subtask || null,
+              assigned_to: t.user_credentials
+                ? `${t.user_credentials.first_name} ${t.user_credentials.last_name}`
+                : "No Member",
+              source: "manager",
+            }))
+          );
         }
-
-        const normalized = data.map((t) => ({
-          ...t,
-          task: t.task || t.task_name || "Untitled Task",
-          subtask: t.subtask || null,
-          assigned_to: t.user_credentials
-            ? `${t.user_credentials.first_name} ${t.user_credentials.last_name}`
-            : "No Member",
-          source: "manager",
-        }));
-
-        allData = [...allData, ...normalized];
       }
-
-      // 🧩 Fetch adviser task tables (adviser_final_def + adviser_oral_def)
-      const adviserTables = ["adviser_final_def", "adviser_oral_def"];
-      for (const table of adviserTables) {
-        const { data, error } = await supabase
-          .from(table)
-          .select("*")
-          .eq("manager_id", managerId);
-
-        if (error) {
-          console.error(`❌ Error fetching tasks from ${table}:`, error);
-          continue;
+      for (const table of ["adviser_final_def", "adviser_oral_def"]) {
+        const { data } = await supabase.from(table).select("*").eq("manager_id", managerId);
+        if (data) {
+          allData = allData.concat(
+            data.map((t) => ({
+              ...t,
+              task: t.task || t.task_name || "Untitled Task",
+              subtask: t.subtask || t.subtasks || null,
+              assigned_to: t.group_name || "Adviser Task",
+              status: (t.status || "To Review").trim(),
+              due_date: t.due_date || null,
+              due_time: t.time || null,
+              source: "adviser",
+            }))
+          );
         }
-
-        const normalized = data.map((t) => ({
-          ...t,
-          task: t.task || t.task_name || "Untitled Task",
-          subtask: t.subtask || t.subtasks || null,
-          assigned_to: t.group_name || "Adviser Task",
-          status: t.status || "To Review",
-          due_date: t.due_date || null,
-          due_time: t.time || null,
-          source: "adviser", // 🔹 mark adviser tasks
-        }));
-
-        allData = [...allData, ...normalized];
       }
-
-      console.log("✅ All combined tasks:", allData);
 
       setAllTasks(allData);
       groupTasksByStatus(allData);
@@ -131,56 +86,44 @@ const ManagerTaskBoard = () => {
   }, []);
 
   const groupTasksByStatus = (tasks) => {
-    const grouped = {
-      "To Do": [],
-      "In Progress": [],
-      "To Review": [],
-      "Missed": [],
-    };
-
+    const grouped = { "To Do": [], "In Progress": [], "To Review": [], "Missed": [] };
     tasks.forEach((task) => {
-      if (task.status === "Completed") return; // skip completed
-
+      if (task.status === "Completed") return;
       let status = (task.status || "To Do").trim();
       if (!grouped[status]) status = "Missed";
-
-      // ✅ Adviser tasks go FIRST
-      if (task.source === "adviser") {
-        grouped[status].unshift(task);
-      } else {
-        grouped[status].push(task);
-      }
+      if (task.source === "adviser") grouped[status].unshift(task);
+      else grouped[status].push(task);
     });
-
     setTasksByStatus(grouped);
   };
 
   useEffect(() => {
-    const filtered = allTasks.filter((task) =>
-      task.task?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = allTasks.filter((t) => (t.task || "").toLowerCase().includes(searchTerm.toLowerCase()));
     groupTasksByStatus(filtered);
   }, [searchTerm, allTasks]);
 
   return (
-    <div className="container mt-4 adviser-board">
+    <div className="container-fluid px-3 adviser-board">
+      {/* widen columns (and thus cards) with a tiny scoped override */}
+      <style>{`
+        .board-wrap{ grid-template-columns: repeat(4, minmax(340px, 1fr)); }
+        @media (max-width: 1200px){ .board-wrap{ grid-template-columns: repeat(2, minmax(320px, 1fr)); } }
+        @media (max-width: 768px){ .board-wrap{ grid-template-columns: 1fr; } }
+      `}</style>
+
       {!viewTask ? (
         <>
           <div className="d-flex align-items-center mb-3">
-            <img
-              src={boardIcon}
-              alt="Board Icon"
-              style={{ width: "24px", marginRight: "10px" }}
-            />
+            <img src={boardIcon} alt="Board Icon" style={{ width: 24, marginRight: 10 }} />
             <h2 className="m-0 fs-5 fw-bold">Manager Task Board</h2>
           </div>
-          <hr />
+          <hr className="mt-2 mb-4" />
 
-          {/* 🔍 Search Box */}
+          {/* Search */}
           <div className="mb-4">
-            <div className="input-group" style={{ maxWidth: "300px" }}>
+            <div className="input-group" style={{ maxWidth: 480, width: "100%" }}>
               <span className="input-group-text">
-                <img src={searchIcon} alt="Search" style={{ width: "18px" }} />
+                <img src={searchIcon} alt="Search" style={{ width: 18 }} />
               </span>
               <input
                 type="text"
@@ -192,24 +135,20 @@ const ManagerTaskBoard = () => {
             </div>
           </div>
 
-          {/* 🗂️ Task Columns */}
-          <div className="d-flex gap-3 overflow-auto">
+          {/* Columns */}
+          <div className="board-wrap">
             {Object.entries(tasksByStatus).map(([status, items]) => (
-              <div
-                className="flex-shrink-0"
-                style={{ width: "280px" }}
-                key={status}
-              >
+              <div className="board-col" key={status}>
                 <div
-                  className="text-white px-3 py-2 rounded-top fs-6 fw-bold"
+                  className="board-col-header text-white px-3 py-2 fs-6 fw-bold"
                   style={{ backgroundColor: statusColors[status] }}
                 >
                   {status}
                 </div>
 
-                <div className="bg-light p-2 rounded-bottom">
+                <div className="board-col-body rounded-bottom">
                   {items.length === 0 ? (
-                    <p className="fst-italic text-muted small">No tasks</p>
+                    <p className="fst-italic text-muted small m-2">No tasks</p>
                   ) : (
                     items.map((task, index) => {
                       const borderColor = statusColors[status];
@@ -217,63 +156,40 @@ const ManagerTaskBoard = () => {
 
                       return (
                         <div
-                          className={`position-relative bg-white mb-3 p-3 rounded shadow-sm ${
-                            isAdviser ? "border border-primary" : ""
-                          }`}
-                          key={index}
-                          style={{
-                            borderLeft: `6px solid ${borderColor}`,
-                          }}
+                          key={`${status}-${index}`}
+                          className={`task-card position-relative bg-white mb-3 p-3 rounded shadow-sm w-100`}
+                          /* keep only ONE border (left status strip), kill any default outer border */
+                          style={{ borderLeft: `6px solid ${borderColor}`, border: "none" }}
                         >
                           <button
                             onClick={() => setViewTask(task)}
                             title="View Task"
                             className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light p-1 border-0"
                           >
-                            <img
-                              src={viewTaskIcon}
-                              alt="View Task"
-                              style={{ width: "18px" }}
-                            />
+                            <img src={viewTaskIcon} alt="View Task" style={{ width: 18 }} />
                           </button>
 
-                          <strong className="fs-6">
-                            {task.assigned_to || "No Member"}
-                          </strong>
-                          {isAdviser && (
-                            <span className="badge bg-primary ms-2">Adviser</span>
-                          )}
-                          <hr
-                            style={{
-                              margin: "7px 0",
-                              borderColor: "maroon",
-                              borderWidth: "2px",
-                            }}
-                          />
+                          <strong className="fs-6">{task.assigned_to || "No Member"}</strong>
+                          {isAdviser && <span className="badge bg-primary ms-2">Adviser</span>}
+
+                          <hr className="my-2" style={{ borderColor: "maroon", borderWidth: 2 }} />
                           <p className="mb-1">{task.task}</p>
                           <p className="mb-1">{task.subtask || "No Subtask"}</p>
-                          <hr
-                            style={{
-                              margin: "4px 0",
-                              borderColor: "maroon",
-                              borderWidth: "2px",
-                            }}
-                          />
+                          <hr className="my-1" style={{ borderColor: "maroon", borderWidth: 2 }} />
+
                           <div className="d-flex align-items-center gap-2 small">
                             <span
                               style={{
                                 display: "inline-block",
-                                width: "12px",
-                                height: "12px",
+                                width: 12,
+                                height: 12,
                                 backgroundColor: "red",
                                 borderRadius: "50%",
                               }}
-                            ></span>
+                            />
                             <strong>
-                              {task.due_date
-                                ? new Date(task.due_date).toLocaleDateString()
-                                : "No Due Date"}{" "}
-                              {task.due_time ? task.due_time : ""}
+                              {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No Due Date"}{" "}
+                              {task.due_time || ""}
                             </strong>
                           </div>
                         </div>
@@ -287,10 +203,7 @@ const ManagerTaskBoard = () => {
         </>
       ) : (
         <div>
-          <button
-            onClick={() => setViewTask(null)}
-            className="btn btn-secondary mb-3"
-          >
+          <button onClick={() => setViewTask(null)} className="btn btn-secondary mb-3">
             ← Back
           </button>
           <h4>{viewTask.task}</h4>
