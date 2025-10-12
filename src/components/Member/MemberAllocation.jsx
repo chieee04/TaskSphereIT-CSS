@@ -2,7 +2,14 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import taskIcon from "../../assets/tasks-allocation.png";
+
+// Reuse your existing page-level styles
 import "../Style/Member/MemberAllocation.css";
+
+// (Optional) If your StudentCredentials table styles live here and you want
+// them verbatim, you can also import them. Otherwise, the CSS below already
+// mimics that flat, squared style.
+// import "../Style/Instructor/StudentCredentials.css";
 
 const MemberAllocation = () => {
   const [members, setMembers] = useState([]);
@@ -39,7 +46,7 @@ const MemberAllocation = () => {
 
         // 3. For each member, compute tasks
         const enrichedMembers = await Promise.all(
-          groupMembers.map(async (m) => {
+          (groupMembers || []).map(async (m) => {
             let assignedCount = 0;
             let completedCount = 0;
 
@@ -69,7 +76,7 @@ const MemberAllocation = () => {
                 ...(titleTasks || []),
                 ...(oralTasks || []),
                 ...(finalTasks || []),
-                ...(redefTasks || []), // ✅ kasama na re-defense tasks
+                ...(redefTasks || []), // ✅ include re-defense tasks
               ];
               assignedCount = allTasks.length;
               completedCount = allTasks.filter(
@@ -101,7 +108,7 @@ const MemberAllocation = () => {
                 ...(titleTasks || []),
                 ...(oralTasks || []),
                 ...(finalTasks || []),
-                ...(redefTasks || []), // ✅ kasama na re-defense tasks
+                ...(redefTasks || []), // ✅ include re-defense tasks
               ];
               assignedCount = allTasks.length;
               completedCount = allTasks.filter(
@@ -140,40 +147,42 @@ const MemberAllocation = () => {
 
   return (
     <div className="page-wrapper">
-      <h2 className="section-title">
-        <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
+      <h2 className="section-title sc-title">
+        <img src={taskIcon} alt="Tasks Icon" className="icon-image sc-icon" />
         Tasks Allocation
       </h2>
-      <hr className="divider" />
+      <hr className="divider sc-divider" />
 
-      <div className="allocation-container">
-        <table className="allocation-table">
-          <thead>
+      <div className="sc-table-wrap">
+        <table className="sc-table">
+          <thead className="sc-thead">
             <tr>
-              <th className="center-text">NO</th>
-              <th className="center-text">Name</th>
-              <th className="center-text">Role</th>
-              <th className="center-text">Assigned Tasks</th>
-              <th className="center-text">Completed Tasks</th>
+              <th className="sc-th center-text">NO</th>
+              <th className="sc-th center-text">Name</th>
+              <th className="sc-th center-text">Role</th>
+              <th className="sc-th center-text">Assigned Tasks</th>
+              <th className="sc-th center-text">Completed Tasks</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="sc-tbody">
             {members.length === 0 ? (
               <tr>
-                <td colSpan="5" className="center-text">
+                <td colSpan="5" className="center-text sc-empty">
                   No members found in your group.
                 </td>
               </tr>
             ) : (
               members.map((m, idx) => (
-                <tr key={m.id || idx}>
-                  <td className="center-text">{idx + 1}</td>
-                  <td className="center-text">
+                <tr key={m.id || idx} className="sc-tr">
+                  <td className="sc-td center-text">{idx + 1}</td>
+                  <td className="sc-td center-text">
                     {m.first_name} {m.last_name}
                   </td>
-                  <td className="center-text">{getRoleName(m.user_roles)}</td>
-                  <td className="center-text">{m.assignedCount}</td>
-                  <td className="center-text">{m.completedCount}</td>
+                  <td className="sc-td center-text">
+                    {getRoleName(m.user_roles)}
+                  </td>
+                  <td className="sc-td center-text">{m.assignedCount}</td>
+                  <td className="sc-td center-text">{m.completedCount}</td>
                 </tr>
               ))
             )}
