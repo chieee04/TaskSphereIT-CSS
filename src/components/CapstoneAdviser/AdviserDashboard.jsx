@@ -394,8 +394,6 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     switch (activePage) {
       case "TeamsSummary":
         return <AdviserTeamSummary />;
-      case "TermsOfService":
-        return <TermsOfService />;
       case "Tasks":
         return <AdviserTask setActivePage={setActivePage} />;
       case "OralDefense":

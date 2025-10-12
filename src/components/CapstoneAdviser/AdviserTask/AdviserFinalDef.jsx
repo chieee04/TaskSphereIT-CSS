@@ -1,1119 +1,394 @@
-import React, { useState, useEffect, useRef } from "react";
-import taskIcon from "../../../assets/tasks-icon.png";
-import createTasksIcon from "../../../assets/create-tasks-icon.png";
-import searchIcon from "../../../assets/search-icon.png";
-import Swal from 'sweetalert2';
-
-// Import logic functions
+// src/components/CapstoneAdviser/AdviserFinalDef.jsx
+import React, { useEffect, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import {
-  handleCreateTask,
-  fetchTasksFromDB,
-  handleUpdateStatus,
-} from "../../../services/Adviser/AdviserFinalTask";
-import { FaCalendarAlt, FaClock, FaChevronDown, FaEllipsisV, FaEdit, FaEye, FaTrash, FaSearch, FaFilter, FaPlus, FaTasks, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+  FaCalendarAlt, FaClock, FaChevronDown, FaChevronLeft, FaChevronRight,
+  FaEdit, FaEllipsisV, FaEye, FaFilter, FaPlus, FaSearch, FaTasks, FaTrash
+} from "react-icons/fa";
+import { fetchTasksFromDB } from "../../../services/Adviser/AdviserFinalTask";
+
+const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed", "Missed"];
+const FILTER_OPTIONS = ["All", "To Do", "In Progress", "To Review", "Missed"]; // exclude Completed
+const REVISION_OPTIONS = ["No Revision", ...Array.from({ length: 10 }, (_, i) => {
+  const n = i + 1; return n === 1 ? "1st Revision" : n === 2 ? "2nd Revision" : n === 3 ? "3rd Revision" : `${n}th Revision`;
+})];
+const METHODOLOGY_OPTIONS = ["Agile", "Extreme Programming", "Prototyping", "Scrum", "Waterfall"];
+const PHASE_OPTIONS = ["Planning", "Design", "Development", "Testing", "Deployment"];
+const color = (s) => ({ "To Do": "#FABC3F", "In Progress": "#809D3C", "To Review": "#578FCA", "Completed": "#AA60C8", "Missed": "#D60606" }[s] || "#ccc");
+const clean = (v) => (v || "").replace(/^\d+\.\s*/, "");
+const revCount = (txt) => (!txt || txt === "No Revision" ? 0 : parseInt(txt, 10) || 0);
+const nextRev = (txt) => {
+  const n = Math.min(10, revCount(txt) + 1);
+  if (n === 0) return "No Revision";
+  if (n === 1) return "1st Revision";
+  if (n === 2) return "2nd Revision";
+  if (n === 3) return "3rd Revision";
+  return `${n}th Revision`;
+};
+const fmtTime = (t) => {
+  if (!t) return "N/A";
+  const time = t.split("+")[0];
+  const [h, m] = time.split(":");
+  let hh = parseInt(h, 10);
+  const ampm = hh >= 12 ? "PM" : "AM";
+  hh = hh % 12 || 12;
+  return `${hh}:${m} ${ampm}`;
+};
 
 const AdviserFinalDef = () => {
   const [tasks, setTasks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("All");
-  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [openKebabMenu, setOpenKebabMenu] = useState(null);
-  const [currentView, setCurrentView] = useState(0); // 0 = first view, 1 = second view
-
+  const [searchTerm, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [selected, setSelected] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [openMenu, setOpenMenu] = useState(null);
+  const [view, setView] = useState(0);
   const kebabRefs = useRef({});
 
-  const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
-  const FILTER_OPTIONS = ["All", "To Do", "In Progress", "To Review", "Completed", "Missed"];
-  const REVISION_OPTIONS = ["No Revision", ...Array.from({ length: 10 }, (_, i) => {
-    const num = i + 1;
-    if (num === 1) return "1st Revision";
-    if (num === 2) return "2nd Revision";
-    if (num === 3) return "3rd Revision";
-    return `${num}th Revision`;
-  })];
+  useEffect(() => { fetchTasksFromDB(setTasks); }, []);
 
-   const formatTime = (timeString) => {
-    if (!timeString) return "N/A";
-    const [hour, minute] = timeString.split(":");
-    let h = parseInt(hour, 10);
-    const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12; // Convert to 12-hour format
-    return `${h}:${minute} ${ampm}`;
-    };
-
-  // ✅ Function to get the correct color code
-  const getStatusColor = (value) => {
-    switch (value) {
-      case "To Do": return "#FABC3F";
-      case "In Progress": return "#809D3C";
-      case "To Review": return "#578FCA";
-      case "Completed": return "#AA60C8";
-      case "Missed": return "#D60606";
-      default: return "#ccc";
-    }
-  };
-
-  // ✅ fetch tasks
-  useEffect(() => {
-    fetchTasksFromDB(setTasks);
-  }, []);
-
-  // Close kebab menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.kebab-menu-container') && !event.target.closest('.kebab-menu')) {
-        setOpenKebabMenu(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Function to remove numbers from task names
-  const cleanTaskName = (taskName) => {
-    if (!taskName) return "";
-    // Remove numbers and dots at the beginning of the task name
-    return taskName.replace(/^\d+\.\s*/, "");
-  };
-
-  // Navigation handlers
-  const handleNextView = () => {
-    setCurrentView(1);
-  };
-
-  const handlePrevView = () => {
-    setCurrentView(0);
-  };
-
-  // --- Selection and Deletion Handlers ---
-  const handleSelectTask = (taskId, isChecked) => {
-    setSelectedTaskIds(prev => 
-      isChecked ? [...prev, taskId] : prev.filter(id => id !== taskId)
-    );
-  };
-
-  const handleSelectAllTasks = (isChecked) => {
-    if (isChecked) {
-      const allTaskIds = filteredAndSearchedTasks.map(task => task.id);
-      setSelectedTaskIds(allTaskIds);
-    } else {
-      setSelectedTaskIds([]);
-    }
-  };
-
-  const handleToggleSelectionMode = (enable) => {
-    setIsSelectionMode(enable);
-    if (!enable) {
-      setSelectedTaskIds([]);
-    }
-  };
-
-  const handleDeleteSelectedTasks = async () => {
-    if (selectedTaskIds.length === 0) return;
-    
-    // Show confirmation alert for multiple tasks
-    const result = await Swal.fire({
-      title: 'Delete Selected Tasks?',
-      text: `You are about to delete ${selectedTaskIds.length} task(s). This action cannot be undone.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Delete Them',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#D60606',
-      cancelButtonColor: '#6c757d',
-    });
-
-    if (result.isConfirmed) {
-      // Add your delete logic here
-      console.log("Delete tasks:", selectedTaskIds);
-      setTasks(prev => prev.filter(t => !selectedTaskIds.includes(t.id)));
-      setIsSelectionMode(false);
-      setSelectedTaskIds([]);
-      
-      Swal.fire({
-        title: 'Deleted!',
-        text: `${selectedTaskIds.length} task(s) have been deleted.`,
-        icon: 'success',
-        confirmButtonColor: '#3B0304'
-      });
-    }
-  };
-
-  const handleSingleTaskDelete = async (taskId, taskName) => {
-    // Show confirmation alert for single task
-    const result = await Swal.fire({
-      title: 'Delete Task?',
-      text: `You are about to delete "${taskName}". This action cannot be undone.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Delete It',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#D60606',
-      cancelButtonColor: '#6c757d',
-    });
-
-    if (result.isConfirmed) {
-      // Add your single delete logic here
-      console.log("Delete task:", taskId, taskName);
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      setSelectedTaskIds(prev => prev.filter(id => id !== taskId));
-      
-      Swal.fire({
-        title: 'Deleted!',
-        text: `"${taskName}" has been deleted.`,
-        icon: 'success',
-        confirmButtonColor: '#3B0304'
-      });
-    }
-  };
-
-  // Kebab menu handlers
-  const toggleKebabMenu = (taskId) => {
-    setOpenKebabMenu(openKebabMenu === taskId ? null : taskId);
-  };
-
-  // Update task handler with SweetAlert2 modal
-  const handleUpdateTask = (taskId) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      // Format dates for the input fields
-      const dueDate = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : "2025-10-17";
-      const timeValue = task.time ? task.time.split('+')[0] : "03:06:00";
-      const teamName = task.group_name || "CS001, Et Al.";
-      const taskName = cleanTaskName(task.task) || "Final Defense Review Meeting";
-      const subtask = task.subtask || "-";
-      const elements = task.elements || "-";
-      const taskType = task.task_type || "-";
-      
-      Swal.fire({
-        title: `<div style="color: #3B0304; font-size: 1.5rem; font-weight: 600;">Update Task Details</div>`,
-        html: `
-          <div style="text-align: left;">
-            <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3B0304;">
-              <div style="font-weight: 600; color: #3B0304; margin-bottom: 8px; font-size: 1.1rem;">Team: ${teamName}</div>
-              <div style="color: #495057; margin-bottom: 6px; font-size: 0.95rem;">
-                <strong>Task:</strong> ${taskName}
-              </div>
-              <div style="color: #495057; margin-bottom: 6px; font-size: 0.95rem;">
-                <strong>Task Type:</strong> ${taskType}
-              </div>
-              <div style="color: #495057; margin-bottom: 6px; font-size: 0.95rem;">
-                <strong>SubTask:</strong> ${subtask}
-              </div>
-              <div style="color: #495057; font-size: 0.95rem;">
-                <strong>Elements:</strong> ${elements}
-              </div>
-            </div>
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Due Date</label>
-              <input 
-                type="date" 
-                id="due-date" 
-                value="${dueDate}"
-                style="width: 100%; padding: 10px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; color: #333; background: white; transition: border-color 0.2s;"
-                onfocus="this.style.borderColor='#3B0304'"
-                onblur="this.style.borderColor='#ddd'"
-              >
-            </div>
-            <div>
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Time</label>
-              <input 
-                type="time" 
-                id="due-time" 
-                value="${timeValue}"
-                style="width: 100%; padding: 10px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 14px; color: #333; background: white; transition: border-color 0.2s;"
-                onfocus="this.style.borderColor='#3B0304'"
-                onblur="this.style.borderColor='#ddd'"
-              >
-            </div>
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Save Changes',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#3B0304',
-        cancelButtonColor: '#6c757d',
-        focusConfirm: false,
-        width: '500px',
-        customClass: {
-          popup: 'custom-swal-popup'
-        },
-        preConfirm: () => {
-          const dueDateInput = document.getElementById('due-date');
-          const dueTimeInput = document.getElementById('due-time');
-          
-          if (!dueDateInput.value || !dueTimeInput.value) {
-            Swal.showValidationMessage('Please fill in both date and time');
-            return false;
-          }
-          
-          return {
-            due_date: dueDateInput.value,
-            due_time: dueTimeInput.value
-          };
-        }
-      }).then((result) => {
-        if (result.isConfirmed) {
-          const { due_date, due_time } = result.value;
-          
-          // Update the task in the state
-          setTasks(prev =>
-            prev.map(t =>
-              t.id === taskId
-                ? {
-                    ...t,
-                    due_date: due_date,
-                    time: due_time
-                  }
-                : t
-            )
-          );
-          
-          Swal.fire({
-            title: 'Success!',
-            text: `Task details for ${teamName} updated successfully`,
-            icon: 'success',
-            confirmButtonColor: '#3B0304'
-          });
-        }
-      });
-    }
-    setOpenKebabMenu(null);
-  };
-
-  const handleViewTask = (taskId) => {
-    setOpenKebabMenu(null);
-    console.log("View task:", taskId);
-  };
-
-  const handleDeleteTask = (taskId, taskName) => {
-    setOpenKebabMenu(null);
-    handleSingleTaskDelete(taskId, taskName);
-  };
-
-  // Get menu position
-  const getMenuPosition = (taskId) => {
-    const button = kebabRefs.current[taskId];
-    if (!button) return { top: 0, left: 0 };
-
-    const rect = button.getBoundingClientRect();
-    return {
-      top: rect.bottom + window.scrollY,
-      left: rect.right + window.scrollX - 120
-    };
-  };
-
-  // --- Update Handlers ---
-  const handleRevisionChange = async (taskId, revisionText) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, revision_no: revisionText } : t
-      )
-    );
-  };
-
-  // ✅ Updated handleStatusChange to set date_completed when status is "Completed"
-  const handleStatusChange = async (taskId, newStatus) => {
-  const task = tasks.find((t) => t.id === taskId);
-
-  if (newStatus === "Completed") {
-    // Ask for confirmation first
-    const result = await Swal.fire({
-      title: "Mark as Completed?",
-      text: `Are you sure you want to mark "${cleanTaskName(task.task)}" as completed?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, Complete It",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#3B0304",
-      cancelButtonColor: "#6c757d",
-      reverseButtons: true,
-      customClass: {
-        popup: "custom-swal-popup-center",
-      },
-    });
-
-    if (!result.isConfirmed) return; // Stop if user cancels
-
-    const currentDate = new Date().toISOString().split("T")[0];
-
-    // Update state after confirmation
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              status: newStatus,
-              date_completed: currentDate,
-            }
-          : t
-      )
-    );
-
-    // Centered success alert
-    await Swal.fire({
-      title: "Task Completed!",
-      text: "The task has been marked as completed and moved to records.",
-      icon: "success",
-      confirmButtonColor: "#3B0304",
-      position: "center",
-      customClass: {
-        popup: "custom-swal-popup-center",
-      },
-    });
-  } else {
-    // For other status changes, just update the status normally
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, status: newStatus } : t
-      )
-    );
-  }
-
-  // Update status in database
-  handleUpdateStatus(taskId, newStatus, setTasks);
-};
-  // ✅ filtered tasks - exclude completed tasks from main view
-  const filteredAndSearchedTasks = (tasks || [])
+  const filtered = (tasks || [])
     .filter((t) => t.group_name && t.group_name.trim() !== "")
-    .filter((t) => t.status !== "Completed") // Exclude completed tasks from main view
-    .filter((t) =>
-      (t.task_type || "").toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .filter((t) => {
-      if (selectedFilter === "All") return true;
-      return t.status === selectedFilter;
+    .filter((t) => (filter === "All" ? true : t.status === filter))
+    .filter((t) => (t.task_type || "").toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((t) => t.status !== "Completed"); // main view excludes Completed
+
+  const allSelected = filtered.length && selected.length === filtered.length;
+
+  const setTask = (id, up) => setTasks((p) => p.map((t) => (t.id === id ? up(t) : t)));
+  const missed = (t) => t.status === "Missed";
+
+  const onStatus = async (id, s) => {
+    const t = tasks.find((x) => x.id === id);
+    if (!t || missed(t)) return;
+    if (s === "Completed") {
+      const ok = await Swal.fire({ icon: "question", title: "Mark as Completed?", showCancelButton: true, confirmButtonColor: "#3B0304" });
+      if (!ok.isConfirmed) return;
+      setTask(id, (cur) => ({ ...cur, status: "Completed", date_completed: new Date().toISOString().slice(0, 10) }));
+      return;
+    }
+    setTask(id, (cur) => ({ ...cur, status: s }));
+  };
+
+  const onUpdate = (id) => {
+    const t = tasks.find((x) => x.id === id);
+    if (!t) return;
+
+    if (missed(t)) {
+      const next = nextRev(t.revision_no);
+      const capped = revCount(next) >= 10;
+      setTask(id, (cur) => ({ ...cur, revision_no: next, status: capped ? "Missed" : "To Do" }));
+      Swal.fire({
+        icon: "success",
+        title: capped ? "Revision maxed (10)" : "Revision +1 & Status reset",
+        text: capped ? "Task remains Missed." : "Status returned to To Do.",
+        confirmButtonColor: "#3B0304",
+      });
+      setOpenMenu(null);
+      return;
+    }
+
+    Swal.fire({
+      title: `<div style="color:#3B0304;font-weight:700;">Update Task</div>`,
+      html: `
+        <div style="text-align:left">
+          <label style="font-weight:600">Revision No.</label>
+          <select id="u-rev" class="swal2-input" style="width:100%;margin:4px 0 10px;">
+            ${REVISION_OPTIONS.map((o) => `<option value="${o}" ${o === (t.revision_no || "No Revision") ? "selected" : ""}>${o}</option>`).join("")}
+          </select>
+          <label style="font-weight:600">Status</label>
+          <select id="u-stat" class="swal2-input" style="width:100%;margin:4px 0 10px;">
+            ${STATUS_OPTIONS.map((s) => `<option value="${s}" ${s === (t.status || "To Do") ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+          <label style="font-weight:600">Methodology</label>
+          <select id="u-meth" class="swal2-input" style="width:100%;margin:4px 0 10px;">
+            ${METHODOLOGY_OPTIONS.map((m) => `<option value="${m}" ${m === (t.methodology || "Agile") ? "selected" : ""}>${m}</option>`).join("")}
+          </select>
+          <label style="font-weight:600">Project Phase</label>
+          <select id="u-phase" class="swal2-input" style="width:100%;">
+            ${PHASE_OPTIONS.map((p) => `<option value="${p}" ${p === (t.project_phase || "Planning") ? "selected" : ""}>${p}</option>`).join("")}
+          </select>
+        </div>
+      `,
+      confirmButtonText: "Save",
+      showCancelButton: true,
+      confirmButtonColor: "#3B0304",
+      preConfirm: () => ({
+        revision_no: document.getElementById("u-rev").value,
+        status: document.getElementById("u-stat").value,
+        methodology: document.getElementById("u-meth").value,
+        project_phase: document.getElementById("u-phase").value,
+      }),
+    }).then((res) => {
+      if (!res.isConfirmed) return;
+      const v = res.value;
+      const capped = revCount(v.revision_no) >= 10 && v.status !== "Completed";
+      setTask(id, (cur) => ({ ...cur, ...v, status: capped ? "Missed" : v.status }));
+      Swal.fire({ icon: "success", title: capped ? "Revision maxed (10): set to Missed" : "Saved", confirmButtonColor: "#3B0304" });
     });
 
-  const allTasksSelected = filteredAndSearchedTasks.length > 0 && selectedTaskIds.length === filteredAndSearchedTasks.length;
+    setOpenMenu(null);
+  };
 
-  // Render table based on current view
-  const renderTable = () => {
-  if (currentView === 0) {
-    // --- FIRST VIEW: Task overview ---
-    return (
-      <table className="tasks-table">
-        <thead className="bg-gray-50">
-          <tr>
-            {isSelectionMode && (
-              <th className="center-text" style={{ width: "40px" }}>
-                <input
-                  type="checkbox"
-                  checked={allTasksSelected}
-                  onChange={(e) => handleSelectAllTasks(e.target.checked)}
-                  disabled={filteredAndSearchedTasks.length === 0}
-                />
-              </th>
-            )}
-            <th className="center-text">NO</th>
-            <th className="center-text">Assigned</th>
-            <th className="center-text">Tasks</th>
-            <th className="center-text">SubTasks</th>
-            <th className="center-text">Elements</th>
-            <th className="center-text">Date Created</th>
-            <th className="center-text">Due Date</th>
-          </tr>
-        </thead>
-
-        <tbody className="bg-white divide-y divide-gray-200">
-          {filteredAndSearchedTasks.length > 0 ? (
-            filteredAndSearchedTasks.map((task, idx) => (
-              <tr
-                key={task.id}
-                className="hover:bg-gray-50 transition duration-150"
-              >
-                {isSelectionMode && (
-                  <td className="center-text">
-                    <input
-                      type="checkbox"
-                      checked={selectedTaskIds.includes(task.id)}
-                      onChange={(e) =>
-                        handleSelectTask(task.id, e.target.checked)
-                      }
-                    />
-                  </td>
-                )}
-                <td className="center-text">{idx + 1}.</td>
-                <td className="center-text">{task.group_name || "Unnamed Group"}</td>
-                <td className="center-text">{cleanTaskName(task.task) || "Untitled Task"}</td>
-                <td className="center-text">{task.subtask || "-"}</td>
-                <td className="center-text">{task.elements || "-"}</td>
-                <td className="center-text">
-                  {task.date_created
-                    ? new Date(task.date_created).toLocaleDateString("en-US")
-                    : "-"}
-                </td>
-                <td className="center-text">
-                  <div className="center-content-flex">
-                    <FaCalendarAlt size={14} style={{ color: "#3B0304" }} />
-                    {task.due_date
-                      ? new Date(task.due_date).toLocaleDateString("en-US")
-                      : "-"}
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan={isSelectionMode ? 8 : 7}
-                className="center-text"
-                style={{
-                  color: "#6c757d",
-                  padding: "20px",
-                  fontStyle: "italic",
-                }}
-              >
-                No tasks found for this filter.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    );
-  } else {
-    // --- SECOND VIEW: Status and additional details ---
-    return (
-      <table className="tasks-table">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="center-text">NO</th>
-            <th className="center-text">Time</th>
-            <th className="center-text">Revision No.</th>
-            <th className="center-text">Status</th>
-            <th className="center-text">Methodology</th>
-            <th className="center-text">Project Phase</th>
-            <th className="center-text">Action</th>
-          </tr>
-        </thead>
-
-        <tbody className="bg-white divide-y divide-gray-200">
-          {filteredAndSearchedTasks.length > 0 ? (
-            filteredAndSearchedTasks.map((task, idx) => {
-              const statusColor = getStatusColor(task.status);
-              const isMissed = task.status === "Missed";
-
-              return (
-                <tr
-                  key={task.id}
-                  className="hover:bg-gray-50 transition duration-150"
-                >
-                  <td className="center-text">{idx + 1}.</td>
-
-                  {/* Time */}
-                  <td className="center-text">
-                    <div className="center-content-flex">
-                      <FaClock size={14} style={{ color: "#3B0304" }} />
-                      {formatTime(task.time) || "-"}
-                    </div>
-                  </td>
-
-                  {/* Revision */}
-                  <td className="center-text">
-                    <div
-                      className="dropdown-control-wrapper"
-                      style={{ minWidth: "100px" }}
-                    >
-                      <select
-                        value={task.revision_no || "No Revision"}
-                        onChange={(e) =>
-                          handleRevisionChange(task.id, e.target.value)
-                        }
-                        className="revision-select"
-                      >
-                        {REVISION_OPTIONS.map((label, i) => (
-                          <option key={i} value={label}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                      <FaChevronDown
-                        className="dropdown-icon-chevron"
-                        style={{ color: "#3B0304" }}
-                      />
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="center-text">
-                    {isMissed ? (
-                      <div
-                        className="status-container"
-                        style={{ backgroundColor: statusColor }}
-                      >
-                        <span
-                          style={{
-                            padding: "4px 6px",
-                            color: "white",
-                            fontWeight: "500",
-                            fontSize: "0.85rem",
-                            minWidth: "90px",
-                          }}
-                        >
-                          Missed
-                        </span>
-                      </div>
-                    ) : (
-                      <div
-                        className="dropdown-control-wrapper"
-                        style={{
-                          backgroundColor: statusColor,
-                          borderRadius: "4px",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                        }}
-                      >
-                        <select
-                          value={task.status || "To Do"}
-                          onChange={(e) =>
-                            handleStatusChange(task.id, e.target.value)
-                          }
-                          className="status-select"
-                          style={{ backgroundColor: statusColor }}
-                        >
-                          {STATUS_OPTIONS.filter(
-                            (s) => s !== "Missed"
-                          ).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                        <FaChevronDown
-                          className="dropdown-icon-chevron"
-                          style={{ color: "white" }}
-                        />
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Other columns */}
-                  <td className="center-text">{task.methodology || "Extreme Programming"}</td>
-                  <td className="center-text">{task.project_phase || "Planning"}</td>
-
-                  {/* Actions */}
-                  <td className="center-text">
-                    <div className="kebab-menu-container">
-                      <button
-                        ref={(el) => (kebabRefs.current[task.id] = el)}
-                        className="kebab-button"
-                        onClick={() => toggleKebabMenu(task.id)}
-                        title="More options"
-                      >
-                        <FaEllipsisV size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td
-                colSpan="8"
-                className="center-text"
-                style={{
-                  color: "#6c757d",
-                  padding: "20px",
-                  fontStyle: "italic",
-                }}
-              >
-                No tasks found for this filter.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    );
-  }
-};
-
+  const menuPos = (id) => {
+    const el = kebabRefs.current[id]; if (!el) return { top: 0, left: 0 };
+    const r = el.getBoundingClientRect(); return { top: r.bottom + window.scrollY, left: r.right + window.scrollX - 140 };
+  };
 
   return (
     <div className="container-fluid px-4 py-3">
       <style>{`
-        /* --- General Styles --- */
-        .table-scroll-area::-webkit-scrollbar {
-          display: none;
-        }
-        .section-title {
-          font-weight: 600;
-          color: #3B0304;
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.5rem;
-        }
-        .divider {
-          height: 1.5px;
-          background-color: #3B0304;
-          width: calc(100% + 50px);
-          margin-left: -16px;
-          border-radius: 50px;
-          margin-bottom: 1.5rem;
-          border: none;
-        }
-
-        /* --- Button Styles --- */
-        .primary-button {
-          font-size: 0.85rem !important;
-          padding: 6px 12px !important;
-          border-radius: 6px !important;
-          border: 1.5px solid #3B0304 !important;
-          background-color: white !important;
-          color: #3B0304 !important;
-          font-weight: 500 !important;
-          cursor: pointer !important;
-          transition: background-color 0.2s !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 6px !important;
-          white-space: nowrap;
-        }
-        .primary-button:hover {
-          background-color: #f0f0f0 !important;
-        }
-        .delete-selected-button-white {
-             background-color: white !important;
-             color: #3B0304 !important;
-             border-color: #3B0304 !important;
-        }
-        .delete-selected-button-white:hover {
-            background-color: #f0f0f0 !important;
-        }
-
-        /* --- Search Bar Styles --- */
-        .search-input-container {
-            position: relative;
-            width: 100%; 
-            max-width: 200px; 
-        }
-        .search-input {
-            width: 100%;
-            padding: 7px 12px 7px 35px; 
-            border: 1px solid #B2B2B2;
-            border-radius: 6px;
-            background-color: white;
-            color: #3B0304;
-            font-size: 0.85rem;
-            box-shadow: none;
-            transition: border-color 0.2s;
-            height: 34px; 
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: #3B0304;
-        }
-        .search-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #B2B2B2;
-            font-size: 0.85rem;
-        }
-
-        /* --- Filter Styles --- */
-        .filter-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            border: 1px solid #B2B2B2; 
-            border-radius: 6px;
-            background-color: white;
-            color: #3B0304;
-            font-size: 0.85rem;
-            font-weight: 500;
-            padding: 6px 8px; 
-            gap: 6px;
-            cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-        .filter-wrapper:hover {
-            background-color: #f0f0f0;
-            border-color: #3B0304; 
-        }
-        .filter-select {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0; 
-            cursor: pointer;
-            z-index: 10;
-        }
-        .filter-select option {
-            background-color: white !important; 
-            color: black !important; 
-        }
-        .filter-content {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            pointer-events: none;
-        }
-
-        /* --- Table/Dropdown Styles --- */
-        .tasks-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .tasks-table th {
-          background-color: #f8f9fa !important;
-          font-weight: 600 !important;
-          color: #3B0304 !important;
-          text-transform: uppercase;
-          font-size: 0.75rem;
-          padding: 12px 6px !important;
-          white-space: nowrap;
-          border-bottom: 1px solid #dee2e6;
-        }
-        .tasks-table td {
-          padding: 8px 6px !important;
-          font-size: 0.875rem;
-          color: #495057;
-          border-bottom: 1px solid #dee2e6;
-          vertical-align: middle; 
-        }
-        .tasks-table tbody tr:hover {
-          background-color: #f8f9fa;
-        }
-
-        .dropdown-control-wrapper {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            vertical-align: middle;
-            min-width: 90px;
-        }
-        .dropdown-icon-chevron { 
-            position: absolute;
-            right: 6px;
-            pointer-events: none; 
-            font-size: 0.75rem;
-            z-index: 2;
-        }
-
-        .revision-select {
-            border: 1px solid #ccc !important;
-            background-color: white !important;
-            color: #3B0304 !important;
-            border-radius: 4px !important;
-            padding: 4px 20px 4px 6px !important; 
-            font-size: 0.85rem !important;
-            appearance: none !important; 
-            cursor: pointer;
-            width: 100%;
-        }
-        .revision-select:focus {
-             outline: 1px solid #3B0304;
-        }
-
-        .status-select {
-          min-width: 90px;
-          padding: 4px 20px 4px 6px !important; 
-          border-radius: 4px;
-          font-weight: 500;
-          color: white;
-          border: none;
-          appearance: none; 
-          cursor: pointer;
-          font-size: 0.85rem;
-          text-align: center;
-          width: 100%;
-        }
-
-        .status-select option {
-            color: black !important; 
-            background-color: white !important; 
-            padding: 4px 8px;
-        }
-
-        .status-container {
-            display: inline-flex;
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
-            min-width: 90px;
-        }
-
-        .center-content-flex {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            height: 100%;
-        }
-
-        /* Kebab Menu Styles - Fixed outside table */
-        .kebab-menu-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .kebab-button {
-            border: none;
-            background: none;
-            color: #3B0304;
-            cursor: pointer;
-            padding: 6px 8px;
-            border-radius: 4px;
-            transition: background-color 0.15s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .kebab-button:hover {
-            background-color: #f0f0f0;
-        }
-
-        .kebab-menu {
-            position: fixed;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 9999;
-            min-width: 120px;
-            padding: 4px 0;
-        }
-
-        .kebab-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: 0.85rem;
-            color: #495057;
-            transition: background-color 0.15s;
-            white-space: nowrap;
-        }
-
-        .kebab-menu-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .kebab-menu-item.update {
-            color: #3B0304;
-        }
-
-        .kebab-menu-item.view {
-            color: #578FCA;
-        }
-
-        .kebab-menu-item.delete {
-            color: #D60606;
-        }
-
-        /* Table Container */
-        .table-container {
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          overflow: hidden;
-          margin-bottom: 20px;
-        }
-
-        .table-content {
-          overflow-x: auto;
-          overflow-y: auto;
-          max-height: 500px;
-          width: 100%;
-        }
-
-        /* Navigation Controls */
-        .navigation-controls {
-          background: #f8f9fa;
-          border-top: 1px solid #dee2e6;
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-        }
-
-        .nav-buttons {
-          display: flex;
-          gap: 8px;
-        }
-
-        .nav-button {
-          padding: 8px 16px;
-          border: 1px solid #3B0304;
-          background: white;
-          color: #3B0304;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 0.85rem;
-          font-weight: 500;
-        }
-
-        .nav-button:hover {
-          background: #3B0304;
-          color: white;
-        }
-
-        .nav-button:disabled {
-          border-color: #ccc;
-          color: #ccc;
-          cursor: not-allowed;
-        }
-
-        .nav-button:disabled:hover {
-          background: white;
-          color: #ccc;
-        }
-
-        /* SweetAlert2 Custom Styles */
-        .custom-swal-popup {
-          border-radius: 12px;
-        }
+        .section-title{font-weight:600;color:#3B0304;display:flex;align-items:center;margin-bottom:.5rem}
+        .divider{height:1.5px;background:#3B0304;width:calc(100% + 50px);margin-left:-16px;border-radius:50px;margin-bottom:1.5rem;border:none}
+        .primary-button{font-size:.85rem;padding:6px 12px;border-radius:6px;border:1.5px solid #3B0304;background:#fff;color:#3B0304;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .primary-button:hover{background:#f0f0f0}
+        .tasks-table{width:100%;border-collapse:collapse}
+        .tasks-table th{background:#f8f9fa;font-weight:600;color:#3B0304;text-transform:uppercase;font-size:.75rem;padding:12px 6px;border-bottom:1px solid #dee2e6}
+        .tasks-table td{padding:8px 6px;font-size:.875rem;border-bottom:1px solid #dee2e6;vertical-align:middle}
+        .kebab-menu{position:fixed;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:9999;min-width:140px;padding:6px 0}
+        .kebab-menu-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;background:none;border:none;width:100%;text-align:left}
+        .kebab-menu-item:hover{background:#f8f9fa}
       `}</style>
 
       <div className="row">
         <div className="col-12">
           <h2 className="section-title">
-            <FaTasks className="me-2" size={18} />
-            Final Defense Tasks
+            <FaTasks className="me-2" size={18} /> Final Defense Tasks
           </h2>
           <hr className="divider" />
         </div>
 
-        <div className="col-12 col-md-12 col-lg-12">
-
-          {/* Top Control Buttons */}
-          <div className="d-flex align-items-center gap-2 mb-3">
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => handleCreateTask(setTasks)}
-            >
-              <FaPlus size={14} /> Create Task
-            </button>
-          </div>
-
-          {/* Search, Delete Selected, and Filter */}
-          <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-            <div className="search-input-container">
-                <FaSearch className="search-icon" />
+        <div className="col-12">
+          {/* Top bar */}
+          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
+            <div className="d-flex align-items-center gap-2">
+              <div className="position-relative">
+                <FaSearch className="position-absolute" style={{ left: 10, top: 10, color: "#aaa" }} />
                 <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Search task type..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                  className="form-control"
+                  style={{ paddingLeft: 32, width: 220 }}
+                  placeholder="Search task type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
+              </div>
+
+              <div className="position-relative">
+                <button className="primary-button"><FaFilter /> Filter: {filter}</button>
+                <select
+                  className="position-absolute w-100 h-100"
+                  style={{ left: 0, top: 0, opacity: 0, cursor: "pointer" }}
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                >
+                  {FILTER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="d-flex align-items-center gap-2">
-                {isSelectionMode && (
-                    <button
-                        type="button"
-                        className="primary-button"
-                        onClick={() => handleToggleSelectionMode(false)}
-                    >
-                        Cancel
-                    </button>
-                )}
-
-                <button
-                    type="button"
-                    className={`primary-button ${isSelectionMode ? 'delete-selected-button-white' : ''}`}
-                    onClick={() => {
-                        if (isSelectionMode) {
-                            handleDeleteSelectedTasks();
-                        } else {
-                            handleToggleSelectionMode(true);
-                        }
-                    }}
-                    disabled={isSelectionMode && selectedTaskIds.length === 0}
-                >
-                    <FaTrash size={14} /> 
-                    {isSelectionMode ? `Delete Selected` : 'Delete'}
+              {selectMode && (
+                <button className="primary-button" onClick={() => { setSelectMode(false); setSelected([]); }}>
+                  Cancel
                 </button>
-
-                <div className="filter-wrapper">
-                    <span className="filter-content">
-                        <FaFilter size={14} /> Filter: {selectedFilter} 
-                    </span>
-                    <select
-                        className="filter-select"
-                        value={selectedFilter}
-                        onChange={(e) => setSelectedFilter(e.target.value)}
-                    >
-                        {FILTER_OPTIONS.map((option) => (
-                            <option key={option} value={option}>{option}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-          </div>
-
-          {/* TABLE THAT CHANGES BETWEEN VIEWS */}
-          <div className="table-container">
-            <div className="table-content">
-              {renderTable()}
-            </div>
-
-            {/* NAVIGATION CONTROLS - RIGHT SIDE ONLY */}
-            <div className="navigation-controls">
-              <div className="nav-buttons">
-                <button 
-                  className="nav-button"
-                  onClick={handlePrevView}
-                  disabled={currentView === 0}
-                >
-                  <FaChevronLeft size={12} /> Previous
-                </button>
-                <button 
-                  className="nav-button"
-                  onClick={handleNextView}
-                  disabled={currentView === 1}
-                >
-                  Next <FaChevronRight size={12} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Kebab Menu Portal - Rendered outside the table */}
-          {openKebabMenu && (
-            <div 
-              className="kebab-menu"
-              style={{
-                top: getMenuPosition(openKebabMenu).top,
-                left: getMenuPosition(openKebabMenu).left
-              }}
-            >
+              )}
               <button
-                className="kebab-menu-item update"
-                onClick={() => handleUpdateTask(openKebabMenu)}
+                className="primary-button"
+                onClick={() => {
+                  if (!selectMode) { setSelectMode(true); return; }
+                  if (!selected.length) return;
+                  Swal.fire({
+                    icon: "warning", title: "Delete selected?", text: `${selected.length} task(s)`,
+                    showCancelButton: true, confirmButtonColor: "#D60606"
+                  }).then((ok) => { if (ok.isConfirmed) setTasks((p) => p.filter((t) => !selected.includes(t.id))); });
+                }}
+                disabled={selectMode && !selected.length}
               >
+                <FaTrash /> {selectMode ? "Delete Selected" : "Delete"}
+              </button>
+              <button className="primary-button" onClick={() => Swal.fire("Tip", "Use Oral screen’s Create modal to generate tasks per methodology/teams. (Same rules apply.)", "info")}>
+                <FaPlus /> Create Task
+              </button>
+            </div>
+          </div>
+
+          {/* Table container */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              {view === 0 ? (
+                <table className="tasks-table">
+                  <thead>
+                    <tr>
+                      {selectMode && (
+                        <th className="text-center" style={{ width: 40 }}>
+                          <input
+                            type="checkbox"
+                            checked={!!allSelected}
+                            onChange={(e) => setSelected(e.target.checked ? filtered.map((t) => t.id) : [])}
+                            disabled={!filtered.length}
+                          />
+                        </th>
+                      )}
+                      <th className="text-center">NO</th>
+                      <th className="text-center">Assigned</th>
+                      <th className="text-center">Tasks</th>
+                      <th className="text-center">SubTasks</th>
+                      <th className="text-center">Elements</th>
+                      <th className="text-center">Date Created</th>
+                      <th className="text-center">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length ? (
+                      filtered.map((t, idx) => (
+                        <tr key={t.id}>
+                          {selectMode && (
+                            <td className="text-center">
+                              <input
+                                type="checkbox"
+                                checked={selected.includes(t.id)}
+                                onChange={(e) =>
+                                  setSelected((p) => (e.target.checked ? [...p, t.id] : p.filter((x) => x !== t.id)))
+                                }
+                              />
+                            </td>
+                          )}
+                          <td className="text-center">{idx + 1}.</td>
+                          <td className="text-center">{t.group_name}</td>
+                          <td className="text-center">{clean(t.task) || "-"}</td>
+                          <td className="text-center">{t.subtask || "-"}</td>
+                          <td className="text-center">{t.elements || "-"}</td>
+                          <td className="text-center">
+                            {t.date_created ? new Date(t.date_created).toLocaleDateString("en-US") : "-"}
+                          </td>
+                          <td className="text-center">
+                            <FaCalendarAlt className="me-1" /> {t.due_date ? new Date(t.due_date).toLocaleDateString("en-US") : "-"}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={selectMode ? 8 : 7} className="text-center italic text-gray-500 py-8">
+                          No tasks found for this filter.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="tasks-table">
+                  <thead>
+                    <tr>
+                      <th className="text-center">NO</th>
+                      <th className="text-center">Time</th>
+                      <th className="text-center">Revision No.</th>
+                      <th className="text-center">Status</th>
+                      <th className="text-center">Methodology</th>
+                      <th className="text-center">Project Phase</th>
+                      <th className="text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length ? (
+                      filtered.map((t, idx) => {
+                        const frozen = t.status === "Missed";
+                        return (
+                          <tr key={t.id}>
+                            <td className="text-center">{idx + 1}.</td>
+                            <td className="text-center"><FaClock className="me-1" /> {fmtTime(t.time)}</td>
+                            <td className="text-center">
+                              {frozen ? (
+                                t.revision_no || "No Revision"
+                              ) : (
+                                <div className="position-relative d-inline-flex" style={{ minWidth: 120 }}>
+                                  <select
+                                    className="form-select"
+                                    value={t.revision_no || "No Revision"}
+                                    onChange={(e) => setTask(t.id, (cur) => ({ ...cur, revision_no: e.target.value }))}
+                                  >
+                                    {REVISION_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+                                  </select>
+                                  <FaChevronDown className="position-absolute" style={{ right: 8, top: 10 }} />
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-center">
+                              {frozen ? (
+                                <span className="px-2 py-1 rounded text-white" style={{ background: color(t.status) }}>{t.status}</span>
+                              ) : (
+                                <div className="position-relative d-inline-flex" style={{ minWidth: 120 }}>
+                                  <select
+                                    className="form-select text-white"
+                                    style={{ background: color(t.status) }}
+                                    value={t.status || "To Do"}
+                                    onChange={(e) => onStatus(t.id, e.target.value)}
+                                  >
+                                    {STATUS_OPTIONS.filter((s) => s !== "Missed").map((s) => (
+                                      <option key={s} value={s} style={{ color: "black" }}>{s}</option>
+                                    ))}
+                                  </select>
+                                  <FaChevronDown className="position-absolute text-white" style={{ right: 8, top: 10 }} />
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-center">{t.methodology || "-"}</td>
+                            <td className="text-center">{t.project_phase || "-"}</td>
+                            <td className="text-center">
+                              <button
+                                ref={(el) => (kebabRefs.current[t.id] = el)}
+                                className="p-1 rounded hover:bg-gray-100"
+                                onClick={() => setOpenMenu(openMenu === t.id ? null : t.id)}
+                              >
+                                <FaEllipsisV />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="text-center italic text-gray-500 py-8">No tasks found for this filter.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* nav controls */}
+            <div className="d-flex justify-content-end gap-2 border-top px-3 py-2 bg-light">
+              <button className="primary-button" onClick={() => setView(0)} disabled={view === 0}>
+                <FaChevronLeft /> Previous
+              </button>
+              <button className="primary-button" onClick={() => setView(1)} disabled={view === 1}>
+                Next <FaChevronRight />
+              </button>
+            </div>
+          </div>
+
+          {openMenu && (
+            <div className="kebab-menu" style={{ top: menuPos(openMenu).top, left: menuPos(openMenu).left }}>
+              <button className="kebab-menu-item" onClick={() => onUpdate(openMenu)}>
                 <FaEdit size={12} /> Update
               </button>
               <button
-                className="kebab-menu-item view"
-                onClick={() => handleViewTask(openKebabMenu)}
-              >
-                <FaEye size={12} /> View
-              </button>
-              <button
-                className="kebab-menu-item delete"
-                onClick={() => handleDeleteTask(openKebabMenu, tasks.find(t => t.id === openKebabMenu)?.task_name)}
+                className="kebab-menu-item"
+                onClick={() => {
+                  const it = tasks.find((x) => x.id === openMenu);
+                  setOpenMenu(null);
+                  Swal.fire({
+                    icon: "warning",
+                    title: "Delete task?",
+                    text: clean(it?.task || ""),
+                    showCancelButton: true,
+                    confirmButtonColor: "#D60606",
+                  }).then((ok) => ok.isConfirmed && setTasks((p) => p.filter((x) => x.id !== it.id)));
+                }}
               >
                 <FaTrash size={12} /> Delete
+              </button>
+              <button className="kebab-menu-item" onClick={() => { setOpenMenu(null); window.location.assign("/TeamsBoard/Task"); }}>
+                <FaEye size={12} /> View
               </button>
             </div>
           )}
