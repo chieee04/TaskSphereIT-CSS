@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+// src/pages/Instructor/InstructorDashboard.jsx
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
@@ -23,94 +24,107 @@ import FinalDefense from "./FinalDefense";
 import RoleTransfer from "./RolesTransfer";
 import { supabase } from "../../supabaseClient";
 
-// ADDED FULLCALENDAR IMPORTS
+// ToS modal + auth context
+import TermsOfService from "../../components/TermsOfService";
+import { UserAuth } from "../../Contex/AuthContext";
+
+// FullCalendar
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-// ADDED CHARTJS IMPORTS
-import {
-  Chart as ChartJS,
-  Tooltip,
-  Legend,
-  ArcElement
-} from "chart.js";
+// Chart.js
+import { Chart as ChartJS, Tooltip, Legend, ArcElement } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-
 ChartJS.register(Tooltip, Legend, ArcElement);
 
-// Define the primary color constants for consistency
-const TASKSPHERE_DARK_RED = "#5B0A0A";
-const PENDING_TEXT_BROWN = "#795548";
 const TASKSPHERE_PURPLE = "#805ad5";
 
-// Enhanced Team Progress Component with detailed stats
-const AdviserTeamProgress = ({ teamsProgress }) => {
-  const calculateCompletionPercentage = (counts) => {
-    const totalTasks = Object.values(counts).reduce((sum, count) => sum + count, 0);
-    const completedTasks = counts["Completed"] || 0;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  };
+// Version your ToS so you can reprompt after changes
+const TOS_VERSION = "2025-05-09"; // bump to re-prompt
 
-  const getStatusColor = (status) => {
-    const colors = {
-      "Completed": "#4BC0C0",
-      "To Do": "#FABC3F",
-      "In Progress": "#809D3C",
-      "To Review": "#578FCA",
-      "Missed": "#FF6384"
-    };
-    return colors[status] || "#999999";
+// ---------- Helpers for ToS ----------
+const getUserKey = (u) =>
+  u?.email ||
+  u?.user_email ||
+  u?.username ||
+  u?.user_key ||
+  u?.userId ||
+  u?.user_id ||
+  u?.id ||
+  null;
+
+async function fetchTosAcceptance(userKey, role) {
+  const { data, error } = await supabase
+    .from("tos_acceptance")
+    .select("user_key")
+    .eq("user_key", userKey)
+    .eq("role", Number(role || 0))
+    .eq("version", TOS_VERSION)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  return !!data;
+}
+
+async function acceptTos(userKey, role) {
+  // insert; if you later add a UNIQUE constraint on (user_key, role, version),
+  // you can switch this to upsert.
+  const { error } = await supabase.from("tos_acceptance").insert({
+    user_key: userKey,
+    role: Number(role || 0),
+    version: TOS_VERSION,
+  });
+  // Ignore duplicate-key error if you add a unique constraint later
+  if (error && error.code !== "23505") throw error;
+}
+
+// -------- Team Progress ----------
+const AdviserTeamProgress = ({ teamsProgress }) => {
+  const completion = (counts) => {
+    const total = Object.values(counts).reduce((s, c) => s + c, 0);
+    const done = counts["Completed"] || 0;
+    return total > 0 ? Math.round((done / total) * 100) : 0;
   };
 
   return (
     <div className="team-progress-container">
       {teamsProgress.length > 0 ? (
         <div className="progress-grid">
-          {teamsProgress.map((team, index) => {
-            const completionPercentage = calculateCompletionPercentage(team.counts);
-            const totalTasks = Object.values(team.counts).reduce((sum, count) => sum + count, 0);
-            
+          {teamsProgress.map((team, idx) => {
+            const totalTasks = Object.values(team.counts).reduce((s, c) => s + c, 0);
+            const pct = completion(team.counts);
+
             const chartData = {
               labels: ["Completed", "Remaining"],
               datasets: [
                 {
                   label: "Tasks",
-                  data: [team.counts["Completed"] || 0, 
-                         (totalTasks - (team.counts["Completed"] || 0))],
+                  data: [team.counts["Completed"] || 0, totalTasks - (team.counts["Completed"] || 0)],
                   backgroundColor: ["#AA60C8", "#e9ecef"],
                   borderColor: "#ffffff",
                   borderWidth: 2,
-                  cutout: '70%',
+                  cutout: "70%",
                 },
               ],
             };
-
             const chartOptions = {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: false
-                },
-                tooltip: {
-                  enabled: false
-                }
-              },
+              plugins: { legend: { display: false }, tooltip: { enabled: false } },
             };
 
             return (
-              <div key={index} className="progress-card">
+              <div key={idx} className="progress-card">
                 <div className="progress-card-header">
                   <h5>{team.group_name}</h5>
                   <span className="total-tasks">Total: {totalTasks} tasks</span>
                 </div>
                 <div className="chart-container">
-                  <div style={{ width: "200px", height: "200px", margin: "auto", position: "relative" }}>
+                  <div style={{ width: 200, height: 200, margin: "auto", position: "relative" }}>
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="chart-center-percentage">
-                      <span className="percentage-value">{completionPercentage}%</span>
+                      <span className="percentage-value">{pct}%</span>
                       <span className="percentage-label">Completed</span>
                     </div>
                   </div>
@@ -118,19 +132,27 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                 <div className="progress-stats">
                   <div className="stat-item">
                     <span className="stat-label">Completed:</span>
-                    <span className="stat-value" style={{color: '#4BC0C0'}}>{team.counts["Completed"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#4BC0C0" }}>
+                      {team.counts["Completed"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">In Progress:</span>
-                    <span className="stat-value" style={{color: '#809D3C'}}>{team.counts["In Progress"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#809D3C" }}>
+                      {team.counts["In Progress"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">To Do:</span>
-                    <span className="stat-value" style={{color: '#FABC3F'}}>{team.counts["To Do"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#FABC3F" }}>
+                      {team.counts["To Do"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">To Review:</span>
-                    <span className="stat-value" style={{color: '#578FCA'}}>{team.counts["To Review"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#578FCA" }}>
+                      {team.counts["To Review"] || 0}
+                    </span>
                   </div>
                   {team.task_breakdown && (
                     <div className="task-breakdown">
@@ -156,54 +178,28 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
   );
 };
 
-// New Component: Group teams by adviser
-const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
-  const calculateGroupStats = (teams) => {
-    const totalTeams = teams.length;
-    const totalTasks = teams.reduce((sum, team) => sum + Object.values(team.counts).reduce((a, b) => a + b, 0), 0);
-    const completedTasks = teams.reduce((sum, team) => sum + (team.counts["Completed"] || 0), 0);
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
-    return { totalTeams, totalTasks, completedTasks, completionRate };
-  };
-
-  const groupStats = calculateGroupStats(teams);
-
-  return (
-    <div className="adviser-group-section">
-      <div className="adviser-group-header">
-        <div className="adviser-info">
-          <i className="fas fa-user-tie"></i>
-          <div>
-            <h4>{adviserName || `Adviser Group: ${adviserGroup}`}</h4>
-            <small className="text-muted">
-              {groupStats.totalTeams} team(s) • {groupStats.totalTasks} total tasks • {groupStats.completionRate}% overall completion
-            </small>
-          </div>
+const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => (
+  <div className="adviser-group-section">
+    <div className="adviser-group-header">
+      <div className="adviser-info">
+        <i className="fas fa-user-tie"></i>
+        <div>
+          <h4>{adviserName || `Adviser Group: ${adviserGroup}`}</h4>
         </div>
       </div>
-      <AdviserTeamProgress teamsProgress={teams} />
     </div>
-  );
-};
+    <AdviserTeamProgress teamsProgress={teams} />
+  </div>
+);
 
-// SVG-based Circular Progress Bar (kept)
 const ProgressCircle = ({ percentage }) => {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
   const isFilled = percentage > 0;
-
   return (
     <svg width="120" height="120" viewBox="0 0 120 120">
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke="#f0f0f0"
-        strokeWidth="12"
-      />
+      <circle cx="60" cy="60" r={radius} fill="none" stroke="#f0f0f0" strokeWidth="12" />
       {isFilled && (
         <circle
           cx="60"
@@ -233,38 +229,99 @@ const ProgressCircle = ({ percentage }) => {
   );
 };
 
-const TeamCard = ({ adviser, teams }) => {
-  return (
-    <div className="team-card">
-      <div className="adviser-header">
-        <i className="fas fa-user-tie"></i>
-        <span>{adviser}</span>
-      </div>
-      <div className="team-progress-container">
-        {teams.map((team, index) => (
-          <div key={index} className="team-item">
-            <div className="team-name">
-              <i className="fas fa-users"></i>
-              <span>{team.name}</span>
-            </div>
-            <ProgressCircle percentage={team.progress} />
-          </div>
-        ))}
-      </div>
+const TeamCard = ({ adviser, teams }) => (
+  <div className="team-card">
+    <div className="adviser-header">
+      <i className="fas fa-user-tie"></i>
+      <span>{adviser}</span>
     </div>
-  );
-};
+    <div className="team-progress-container">
+      {teams.map((team, index) => (
+        <div key={index} className="team-item">
+          <div className="team-name">
+            <i className="fas fa-users"></i>
+            <span>{team.name}</span>
+          </div>
+          <ProgressCircle percentage={team.progress} />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const InstructorDashboard = () => {
   useAuthGuard();
+
+  const { logout } = UserAuth?.() || { logout: null };
+  const navigate = useNavigate();
+  const { subPage } = useParams();
+
+  // ===== ToS state =====
+  const storedUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("customUser") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+  const userKey = getUserKey(storedUser);
+  const role = Number(storedUser?.user_roles || 0);
+
+  const [checkingTos, setCheckingTos] = useState(true);
+  const [showTos, setShowTos] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (!userKey) {
+          if (alive) setShowTos(false);
+          return;
+        }
+        const accepted = await fetchTosAcceptance(userKey, role);
+        if (alive) setShowTos(!accepted);
+      } catch (e) {
+        console.error("ToS check failed:", e);
+        if (alive) setShowTos(true);
+      } finally {
+        if (alive) setCheckingTos(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [userKey, role]);
+
+  const handleTosAccept = async () => {
+    try {
+      if (!userKey) return;
+      await acceptTos(userKey, role);
+      setShowTos(false);
+    } catch (e) {
+      console.error("ToS accept failed:", e);
+      // keep modal open so user can retry
+    }
+  };
+
+  const handleTosDecline = () => {
+    localStorage.removeItem("customUser");
+    localStorage.removeItem("user_id");
+    if (typeof logout === "function") logout();
+    navigate("/Signin", { replace: true });
+  };
+
+  // ===== dashboard state =====
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarWidth, setSidebarWidth] = useState(70);
   const [isSoloMode, setIsSoloMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState("");
 
-  const navigate = useNavigate();
-  const { subPage } = useParams();
+  const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [recentTasks, setRecentTasks] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [teamsProgress, setTeamsProgress] = useState([]);
+  const [adviserGroups, setAdviserGroups] = useState([]);
 
   const handlePageChange = (page) => {
     setActivePage(page);
@@ -272,289 +329,177 @@ const InstructorDashboard = () => {
   };
 
   useEffect(() => {
-    if (subPage) {
-      setActivePage(subPage);
-    } else if (isSoloMode) {
-      setActivePage("SoloModeDashboard");
-    } else {
-      setActivePage("Dashboard");
-    }
+    if (subPage) setActivePage(subPage);
+    else if (isSoloMode) setActivePage("SoloModeDashboard");
+    else setActivePage("Dashboard");
   }, [isSoloMode, subPage]);
 
-
-  // ==== NEW STATES FOR TASKS ====
-  const [upcomingTasks, setUpcomingTasks] = useState([]);
-  const [recentTasks, setRecentTasks] = useState([]);
-  const [calendarEvents, setCalendarEvents] = useState([]);
-  const [teamsProgress, setTeamsProgress] = useState([]);
-  const [adviserGroups, setAdviserGroups] = useState([]);
-
-   const formatTime = (timeString) => {
+  const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     const [hour, minute] = timeString.split(":");
     let h = parseInt(hour, 10);
     const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12; // Convert to 12-hour format
+    h = h % 12 || 12;
     return `${h}:${minute} ${ampm}`;
-    };
+  };
 
-  // ==== FETCH ALL PROJECT MANAGERS PROGRESS AND GROUP BY ADVISER ====
   useEffect(() => {
     const fetchInstructorData = async () => {
       try {
         setIsLoading(true);
         setDebugInfo("Fetching instructor dashboard data...");
 
-        // Fetch all adviser tasks (oral and final defense)
         const [oralTasksResult, finalTasksResult] = await Promise.all([
           supabase.from("adviser_oral_def").select("*"),
-          supabase.from("adviser_final_def").select("*")
+          supabase.from("adviser_final_def").select("*"),
         ]);
-
-        if (oralTasksResult.error) console.error("Error fetching oral tasks:", oralTasksResult.error);
-        if (finalTasksResult.error) console.error("Error fetching final tasks:", finalTasksResult.error);
 
         const allAdviserTasks = [
           ...(oralTasksResult.data || []).map((t) => ({ ...t, type: "Oral Defense" })),
           ...(finalTasksResult.data || []).map((t) => ({ ...t, type: "Final Defense" })),
         ];
 
-        console.log("📊 All Adviser Tasks Found:", allAdviserTasks.length);
-
         const today = new Date();
-
-        // 1. Upcoming Tasks with manager names
         const upcoming = allAdviserTasks
-          .filter(
-            (task) =>
-              task.due_date &&
-              new Date(task.due_date) >= today &&
-              task.status !== "Completed"
-          )
+          .filter((task) => task.due_date && new Date(task.due_date) >= today && task.status !== "Completed")
           .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
           .slice(0, 5);
 
-        const upcomingWithNames = await Promise.all(upcoming.map(async (task) => {
-          if (!task.manager_id) return { ...task, managerName: "N/A" };
-          const { data: manager } = await supabase.from("user_credentials").select("first_name, last_name").eq("id", task.manager_id).single();
-          return { ...task, managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" };
-        }));
+        const upcomingWithNames = await Promise.all(
+          upcoming.map(async (task) => {
+            if (!task.manager_id) return { ...task, managerName: "N/A" };
+            const { data: manager } = await supabase
+              .from("user_credentials")
+              .select("first_name, last_name")
+              .eq("id", task.manager_id)
+              .single();
+            return { ...task, managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" };
+          })
+        );
         setUpcomingTasks(upcomingWithNames);
 
-        // 2. Recent Tasks
         const recent = [...allAdviserTasks]
           .sort((a, b) => new Date(b.date_created || b.created_at) - new Date(a.date_created || a.created_at))
           .slice(0, 5);
         const recentWithNames = await Promise.all(
-  recent.map(async (task) => {
-    if (!task.manager_id) return { ...task, managerName: "N/A" };
-    const { data: manager } = await supabase
-      .from("user_credentials")
-      .select("first_name, last_name")
-      .eq("id", task.manager_id)
-      .single();
-    return { 
-      ...task, 
-      managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" 
-    };
-  })
-);
-setRecentTasks(recentWithNames);
+          recent.map(async (task) => {
+            if (!task.manager_id) return { ...task, managerName: "N/A" };
+            const { data: manager } = await supabase
+              .from("user_credentials")
+              .select("first_name, last_name")
+              .eq("id", task.manager_id)
+              .single();
+            return { ...task, managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" };
+          })
+        );
+        setRecentTasks(recentWithNames);
 
-        // 3. Teams' Progress - Fetch ALL project managers with ALL their tasks
-        console.log("👥 Fetching all project managers...");
-        
         const { data: teams, error: teamsError } = await supabase
           .from("user_credentials")
           .select("id, group_name, first_name, last_name, adviser_group")
-          .eq("user_roles", 1); // All project managers (user_roles = 1)
+          .eq("user_roles", 1);
 
-        console.log("👥 All Project Managers Found:", teams?.length);
-
-        if (teamsError) {
-          console.error("❌ Error fetching teams:", teamsError);
-          setDebugInfo(`Error fetching teams: ${teamsError.message}`);
-          setTeamsProgress([]);
-          setAdviserGroups([]);
-        } else if (!teams || teams.length === 0) {
-          console.warn("⚠️ No project managers found");
-          setDebugInfo("No project managers found in the system");
+        if (teamsError || !teams) {
           setTeamsProgress([]);
           setAdviserGroups([]);
         } else {
-          setDebugInfo(`Found ${teams.length} project manager(s)`);
-          
-          // Fetch comprehensive task progress for each project manager
           const teamsProgressData = await Promise.all(
             teams.map(async (team) => {
-              try {
-                console.log(`🔍 Checking tasks for team: ${team.group_name} (ID: ${team.id})`);
-                
-                // Fetch ALL task types for this project manager
-                const [managerTasksResult, adviserOralTasksResult, adviserFinalTasksResult] = await Promise.all([
-                  // Manager tasks from manager_title_task
-                  supabase.from("manager_title_task").select("status, task_name, due_date").eq("manager_id", team.id),
-                  // Adviser oral defense tasks for this manager (from any adviser)
-                  supabase.from("adviser_oral_def").select("status, task, due_date").eq("manager_id", team.id),
-                  // Adviser final defense tasks for this manager (from any adviser)
-                  supabase.from("adviser_final_def").select("status, task, due_date").eq("manager_id", team.id)
-                ]);
+              const [managerTasksResult, adviserOralTasksResult, adviserFinalTasksResult] = await Promise.all([
+                supabase.from("manager_title_task").select("status, task_name, due_date").eq("manager_id", team.id),
+                supabase.from("adviser_oral_def").select("status, task, due_date").eq("manager_id", team.id),
+                supabase.from("adviser_final_def").select("status, task, due_date").eq("manager_id", team.id),
+              ]);
 
-                const managerTasks = managerTasksResult.data || [];
-                const adviserOralTasks = adviserOralTasksResult.data || [];
-                const adviserFinalTasks = adviserFinalTasksResult.data || [];
+              const managerTasks = managerTasksResult.data || [];
+              const adviserOralTasks = adviserOralTasksResult.data || [];
+              const adviserFinalTasks = adviserFinalTasksResult.data || [];
 
-                // Combine ALL tasks for this team
-                const allTeamTasks = [
-                  ...managerTasks.map(t => ({ ...t, source: 'manager' })),
-                  ...adviserOralTasks.map(t => ({ ...t, source: 'adviser_oral' })),
-                  ...adviserFinalTasks.map(t => ({ ...t, source: 'adviser_final' }))
-                ];
+              const allTeamTasks = [
+                ...managerTasks.map((t) => ({ ...t, source: "manager" })),
+                ...adviserOralTasks.map((t) => ({ ...t, source: "adviser_oral" })),
+                ...adviserFinalTasks.map((t) => ({ ...t, source: "adviser_final" })),
+              ];
 
-                console.log(`📋 Team ${team.group_name} tasks:`, {
-                  managerTasks: managerTasks.length,
-                  adviserOralTasks: adviserOralTasks.length,
-                  adviserFinalTasks: adviserFinalTasks.length,
-                  total: allTeamTasks.length
-                });
+              if (allTeamTasks.length === 0) return null;
 
-                // Only include teams that actually have tasks
-                if (allTeamTasks.length === 0) {
-                  console.log(`ℹ️ Team ${team.group_name} has no tasks, skipping`);
-                  return null;
-                }
-
-                // Count tasks by status - COMBINE ALL TASK TYPES
-                const counts = { 
-                  "To Do": 0, 
-                  "In Progress": 0, 
-                  "To Review": 0, 
-                  "Completed": 0, 
-                  "Missed": 0 
-                };
-                
-                allTeamTasks.forEach(task => {
-                  if (counts[task.status] !== undefined) {
-                    counts[task.status]++;
-                  } else {
-                    // Handle unknown statuses
-                    counts["To Do"]++;
-                  }
-                });
-
-                const teamProgress = {
-                  group_name: team.group_name,
-                  manager_id: team.id,
-                  manager_name: `${team.first_name} ${team.last_name}`,
-                  adviser_group: team.adviser_group,
-                  counts,
-                  total_tasks: allTeamTasks.length,
-                  task_breakdown: {
-                    manager_tasks: managerTasks.length,
-                    adviser_oral_tasks: adviserOralTasks.length,
-                    adviser_final_tasks: adviserFinalTasks.length
-                  }
-                };
-
-                console.log(`✅ Team ${team.group_name} progress:`, teamProgress);
-                return teamProgress;
-
-              } catch (error) {
-                console.error(`❌ Error processing team ${team.group_name}:`, error);
-                return null;
-              }
-            })
-          );
-          
-          // Filter out null values (teams with no tasks or errors)
-          const filteredTeamsProgress = teamsProgressData.filter(Boolean);
-          console.log("🎯 Final teams progress data:", filteredTeamsProgress);
-          setTeamsProgress(filteredTeamsProgress);
-          
-          // Group teams by adviser_group
-          const groupedByAdviser = filteredTeamsProgress.reduce((groups, team) => {
-            const adviserGroup = team.adviser_group || 'Ungrouped';
-            if (!groups[adviserGroup]) {
-              groups[adviserGroup] = [];
-            }
-            groups[adviserGroup].push(team);
-            return groups;
-          }, {});
-
-          console.log("👨‍🏫 Teams grouped by adviser:", groupedByAdviser);
-
-          // Get adviser names for each group (user_roles = 3 for advisers)
-          const adviserGroupsWithNames = await Promise.all(
-            Object.entries(groupedByAdviser).map(async ([adviserGroup, teams]) => {
-              // Try to get adviser name from user_credentials
-              let adviserName = `Adviser Group: ${adviserGroup}`;
-              
-              if (adviserGroup && adviserGroup !== 'Ungrouped') {
-                const { data: adviser } = await supabase
-                  .from("user_credentials")
-                  .select("first_name, last_name")
-                  .eq("adviser_group", adviserGroup)
-                  .eq("user_roles", 3) // FIXED: user_roles = 3 for advisers
-                  .single();
-
-                if (adviser) {
-                  adviserName = `${adviser.first_name} ${adviser.last_name}`;
-                  console.log(`✅ Found adviser: ${adviserName} for group: ${adviserGroup}`);
-                } else {
-                  console.log(`❌ No adviser found for group: ${adviserGroup} with user_roles = 3`);
-                }
-              }
+              const counts = { "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0 };
+              allTeamTasks.forEach((task) => {
+                if (counts[task.status] !== undefined) counts[task.status]++;
+                else counts["To Do"]++;
+              });
 
               return {
-                adviserGroup,
-                adviserName,
-                teams
+                group_name: team.group_name,
+                manager_id: team.id,
+                manager_name: `${team.first_name} ${team.last_name}`,
+                adviser_group: team.adviser_group,
+                counts,
+                total_tasks: allTeamTasks.length,
+                task_breakdown: {
+                  manager_tasks: managerTasks.length,
+                  adviser_oral_tasks: adviserOralTasks.length,
+                  adviser_final_tasks: adviserFinalTasks.length,
+                },
               };
             })
           );
 
+          const filtered = teamsProgressData.filter(Boolean);
+          setTeamsProgress(filtered);
+
+          const groupedByAdviser = filtered.reduce((groups, t) => {
+            const ag = t.adviser_group || "Ungrouped";
+            if (!groups[ag]) groups[ag] = [];
+            groups[ag].push(t);
+            return groups;
+          }, {});
+
+          const adviserGroupsWithNames = await Promise.all(
+            Object.entries(groupedByAdviser).map(async ([ag, groupTeams]) => {
+              let adviserName = `Adviser Group: ${ag}`;
+              if (ag && ag !== "Ungrouped") {
+                const { data: adviser } = await supabase
+                  .from("user_credentials")
+                  .select("first_name, last_name")
+                  .eq("adviser_group", ag)
+                  .eq("user_roles", 3)
+                  .single();
+                if (adviser) adviserName = `${adviser.first_name} ${adviser.last_name}`;
+              }
+              return { adviserGroup: ag, adviserName, teams: groupTeams };
+            })
+          );
           setAdviserGroups(adviserGroupsWithNames);
-          
-          if (filteredTeamsProgress.length === 0) {
-            setDebugInfo(prev => prev + " - But no teams have tasks yet");
-          } else {
-            setDebugInfo(prev => prev + ` - ${filteredTeamsProgress.length} team(s) across ${adviserGroupsWithNames.length} adviser group(s)`);
-          }
         }
 
-        // 4. Calendar Events
-        const events = allAdviserTasks.map((task) => ({
-          id: task.id,
-          title: `${task.task} (${task.status})`,
-          start: task.due_date,
-          color:
-            task.status === "Completed"
-              ? "#4BC0C0"
-              : task.status === "Missed"
-              ? "#FF6384"
-              : task.status === "In Progress"
-              ? "#809D3C"
-              : task.status === "To Review"
-              ? "#578FCA"
-              : "#FABC3F",
-        }));
-
+        const events = (oralTasksResult?.data || [])
+          .concat(finalTasksResult?.data || [])
+          .map((task) => ({
+            id: task.id,
+            title: `${task.task} (${task.status})`,
+            start: task.due_date,
+            color:
+              task.status === "Completed"
+                ? "#4BC0C0"
+                : task.status === "Missed"
+                ? "#FF6384"
+                : task.status === "In Progress"
+                ? "#809D3C"
+                : task.status === "To Review"
+                ? "#578FCA"
+                : "#FABC3F",
+          }));
         setCalendarEvents(events);
-
       } catch (error) {
-        console.error("❌ Error loading instructor dashboard data:", error);
         setDebugInfo(`Error: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
     };
-    
 
-    if (!isSoloMode) {
-     ; fetchInstructorData()
-    }
+    if (!isSoloMode) fetchInstructorData();
   }, [isSoloMode]);
-
 
   // ==== MAIN CONTENT RENDER ====
   const renderContent = () => {
@@ -603,7 +548,6 @@ setRecentTasks(recentWithNames);
               </div>
             ) : (
               <>
-                {/* Section 1: INSTRUCTOR UPCOMING ACTIVITY */}
                 <div className="dashboard-section">
                   <h4>INSTRUCTOR UPCOMING ACTIVITY</h4>
                   <div className="upcoming-activity">
@@ -617,10 +561,18 @@ setRecentTasks(recentWithNames);
                             <span>{t.managerName}</span>
                           </div>
                           <div className="activity-body">
-                            <h5><i className="fas fa-tasks"></i> {t.task}</h5>
-                            <p><i className="fas fa-calendar-alt"></i> {new Date(t.due_date).toLocaleDateString()}</p>
-                            <p><i className="fas fa-clock"></i> {formatTime(t.time) || "No Time"}</p>
-                            <p><i className="fas fa-flag"></i> {t.type}</p>
+                            <h5>
+                              <i className="fas fa-tasks"></i> {t.task}
+                            </h5>
+                            <p>
+                              <i className="fas fa-calendar-alt"></i> {new Date(t.due_date).toLocaleDateString()}
+                            </p>
+                            <p>
+                              <i className="fas fa-clock"></i> {formatTime(t.time) || "No Time"}
+                            </p>
+                            <p>
+                              <i className="fas fa-flag"></i> {t.type}
+                            </p>
                             <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
                               {t.status}
                             </span>
@@ -631,7 +583,6 @@ setRecentTasks(recentWithNames);
                   </div>
                 </div>
 
-                {/* Section 2: TEAMS' PROGRESS GROUPED BY ADVISER */}
                 <div className="dashboard-section">
                   <div className="section-header">
                     <h4>TEAMS PROGRESS BY ADVISER</h4>
@@ -639,10 +590,10 @@ setRecentTasks(recentWithNames);
                       {teamsProgress.length} team(s) across {adviserGroups.length} adviser group(s)
                     </span>
                   </div>
-                  
+
                   {adviserGroups.length > 0 ? (
                     <div className="adviser-groups-container">
-                      {adviserGroups.map((group, index) => (
+                      {adviserGroups.map((group) => (
                         <AdviserGroupSection
                           key={group.adviserGroup}
                           adviserGroup={group.adviserGroup}
@@ -659,7 +610,6 @@ setRecentTasks(recentWithNames);
                   )}
                 </div>
 
-                {/* Section 3: RECENT ACTIVITY CREATED */}
                 <div className="dashboard-section">
                   <h4>RECENT ACTIVITY CREATED</h4>
                   {recentTasks.length === 0 ? (
@@ -702,7 +652,6 @@ setRecentTasks(recentWithNames);
                   )}
                 </div>
 
-                {/* Section 4: INSTRUCTOR CALENDAR */}
                 <div className="dashboard-section">
                   <h4>INSTRUCTOR CALENDAR</h4>
                   <div className="calendar-container">
@@ -712,7 +661,7 @@ setRecentTasks(recentWithNames);
                       headerToolbar={{
                         left: "prev,next today",
                         center: "title",
-                        right: "dayGridMonth,timeGridWeek,timeGridDay"
+                        right: "dayGridMonth,timeGridWeek,timeGridDay",
                       }}
                       events={calendarEvents}
                       height="400px"
@@ -722,333 +671,49 @@ setRecentTasks(recentWithNames);
               </>
             )}
 
-            {/* CSS Styles */}
+            {/* Styles */}
             <style>{`
-              .adviser-dashboard-content {
-                display: flex;
-                flex-direction: column;
-                gap: 25px;
-              }
-              
-              .loading-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 40px;
-                gap: 15px;
-              }
-              
-              .dashboard-section {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              }
-              
-              .dashboard-section h4 {
-                margin-bottom: 15px;
-                color: #333;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
-              }
-              
-              .section-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
-              }
-              
-              .teams-count {
-                color: #666;
-                font-size: 0.9rem;
-                font-style: italic;
-              }
-              
-              .adviser-groups-container {
-                display: flex;
-                flex-direction: column;
-                gap: 25px;
-              }
-              
-              .adviser-group-section {
-                background: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                border: 1px solid #e9ecef;
-              }
-              
-              .adviser-group-header {
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #dee2e6;
-              }
-              
-              .adviser-info {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-              }
-              
-              .adviser-info i {
-                font-size: 1.5rem;
-                color: #805ad5;
-              }
-              
-              .adviser-info h4 {
-                margin: 0;
-                color: #333;
-                font-size: 1.25rem;
-              }
-              
-              .adviser-info small {
-                font-size: 0.85rem;
-              }
-              
-              .upcoming-activity {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                max-height: 300px;
-                overflow-y: auto;
-              }
-              
-              .activity-card {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 15px;
-                background: #f9f9f9;
-                transition: all 0.3s ease;
-              }
-              
-              .activity-card:hover {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                transform: translateY(-2px);
-              }
-              
-              .activity-header {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 10px;
-                font-weight: bold;
-                color: #333;
-              }
-              
-              .activity-body h5 {
-                margin: 0 0 8px 0;
-                color: #444;
-                font-size: 1rem;
-              }
-              
-              .activity-body p {
-                margin: 4px 0;
-                color: #666;
-                display: flex;
-                align-items: center;
-                gap: 5px;
-              }
-              
-              .progress-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 20px;
-                padding: 10px 0;
-              }
-              
-              .progress-card {
-                background: white;
-                padding: 15px;
-                border-radius: 8px;
-                border: 1px solid #e9ecef;
-                text-align: center;
-                transition: all 0.3s ease;
-                position: relative;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-              }
-              
-              .progress-card:hover {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-              }
-              
-              .progress-card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-              }
-              
-              .progress-card-header h5 {
-                margin: 0;
-                color: #333;
-                font-size: 1rem;
-              }
-              
-              .total-tasks {
-                font-size: 0.8rem;
-                color: #666;
-                background: #e9ecef;
-                padding: 2px 8px;
-                border-radius: 12px;
-              }
-              
-              .chart-container {
-                position: relative;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-              }
-              
-              .chart-center-percentage {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                text-align: center;
-                pointer-events: none;
-              }
-              
-              .percentage-value {
-                display: block;
-                font-size: 1.5rem;
-                font-weight: bold;
-                color: #333;
-                line-height: 1.2;
-              }
-              
-              .percentage-label {
-                display: block;
-                font-size: 0.8rem;
-                color: #666;
-                margin-top: 2px;
-              }
-              
-              .progress-stats {
-                margin-top: 15px;
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-              }
-              
-              .stat-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 4px 0;
-                border-bottom: 1px solid #f0f0f0;
-              }
-              
-              .stat-label {
-                font-size: 0.85rem;
-                color: #666;
-              }
-              
-              .stat-value {
-                font-weight: bold;
-              }
-              
-              .task-breakdown {
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px dashed #ddd;
-              }
-              
-              .no-teams-message {
-                text-align: center;
-                padding: 40px 20px;
-                color: #666;
-              }
-              
-              .recent-table-container {
-                max-height: 400px;
-                overflow-y: auto;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-              }
-              
-              table {
-                width: 100%;
-                border-collapse: collapse;
-              }
-              
-              th, td {
-                padding: 10px 12px;
-                text-align: left;
-                border-bottom: 1px solid #ddd;
-              }
-              
-              th {
-                background-color: #f8f9fa;
-                font-weight: bold;
-                position: sticky;
-                top: 0;
-                z-index: 10;
-              }
-              
-              tr:hover {
-                background-color: #f5f5f5;
-              }
-              
-              .status-badge {
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.8em;
-                font-weight: bold;
-                white-space: nowrap;
-              }
-              
-              .status-to-do { background-color: #FABC3F; color: white; }
-              .status-in-progress { background-color: #809D3C; color: white; }
-              .status-to-review { background-color: #578FCA; color: white; }
-              .status-completed { background-color: #4BC0C0; color: white; }
-              .status-missed { background-color: #FF6384; color: white; }
-              
-              .calendar-container {
-                background: white;
-                border-radius: 8px;
-                overflow: hidden;
-                border: 1px solid #e0e0e0;
-              }
-              
-              /* Responsive Design */
-              @media (max-width: 768px) {
-                .dashboard-section {
-                  padding: 15px;
-                }
-                
-                .section-header {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 8px;
-                }
-                
-                .adviser-info {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 8px;
-                }
-                
-                .progress-grid {
-                  grid-template-columns: 1fr;
-                  gap: 15px;
-                }
-                
-                .progress-card-header {
-                  flex-direction: column;
-                  gap: 8px;
-                  align-items: flex-start;
-                }
-                
-                .recent-table-container {
-                  overflow-x: auto;
-                }
-                
-                table {
-                  min-width: 800px;
-                }
+              .adviser-dashboard-content { display:flex; flex-direction:column; gap:25px; }
+              .loading-container { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:15px; }
+              .dashboard-section { background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+              .dashboard-section h4 { margin-bottom:15px; color:#333; border-bottom:2px solid #f0f0f0; padding-bottom:8px; }
+              .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #f0f0f0; padding-bottom:8px; }
+              .teams-count { color:#666; font-size:.9rem; font-style:italic; }
+              .adviser-groups-container { display:flex; flex-direction:column; gap:25px; }
+              .adviser-group-section { background:#f8f9fa; border-radius:8px; padding:20px; border:1px solid #e9ecef; }
+              .adviser-group-header { margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid #dee2e6; }
+              .adviser-info { display:flex; align-items:center; gap:12px; }
+              .adviser-info i { font-size:1.5rem; color:#805ad5; }
+              .upcoming-activity { display:flex; flex-direction:column; gap:12px; max-height:300px; overflow-y:auto; }
+              .activity-card { border:1px solid #e0e0e0; border-radius:6px; padding:15px; background:#f9f9f9; transition:.3s; }
+              .activity-card:hover { box-shadow:0 4px 8px rgba(0,0,0,0.1); transform:translateY(-2px); }
+              .activity-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-weight:700; color:#333; }
+              .progress-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; padding:10px 0; }
+              .progress-card { background:#fff; padding:15px; border-radius:8px; border:1px solid #e9ecef; text-align:center; transition:.3s; position:relative; box-shadow:0 2px 4px rgba(0,0,0,0.05); }
+              .progress-card:hover { box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+              .progress-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+              .total-tasks { font-size:.8rem; color:#666; background:#e9ecef; padding:2px 8px; border-radius:12px; }
+              .chart-container { position:relative; display:flex; justify-content:center; align-items:center; }
+              .chart-center-percentage { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
+              .percentage-value { display:block; font-size:1.5rem; font-weight:700; color:#333; line-height:1.2; }
+              .percentage-label { display:block; font-size:.8rem; color:#666; margin-top:2px; }
+              .progress-stats { margin-top:15px; display:flex; flex-direction:column; gap:8px; }
+              .stat-item { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #f0f0f0; }
+              .recent-table-container { max-height:400px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:6px; }
+              table { width:100%; border-collapse:collapse; }
+              th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #ddd; }
+              th { background:#f8f9fa; font-weight:700; position:sticky; top:0; z-index:10; }
+              tr:hover { background:#f5f5f5; }
+              .status-badge { padding:4px 8px; border-radius:4px; font-size:.8em; font-weight:700; white-space:nowrap; }
+              .status-to-do { background:#FABC3F; color:#fff; } .status-in-progress { background:#809D3C; color:#fff; }
+              .status-to-review { background:#578FCA; color:#fff; } .status-completed { background:#4BC0C0; color:#fff; }
+              .status-missed { background:#FF6384; color:#fff; }
+              .calendar-container { background:#fff; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0; }
+              @media (max-width:768px){ .dashboard-section{padding:15px;} .section-header{flex-direction:column; align-items:flex-start; gap:8px;}
+                .adviser-info{flex-direction:column; align-items:flex-start; gap:8px;}
+                .progress-grid{grid-template-columns:1fr; gap:15px;}
+                .progress-card-header{flex-direction:column; gap:8px; align-items:flex-start;}
+                .recent-table-container{overflow-x:auto;} table{min-width:800px;}
               }
             `}</style>
           </div>
@@ -1084,6 +749,11 @@ setRecentTasks(recentWithNames);
           <Footer />
         </div>
       </div>
+
+      {/* Show ToS only after DB check finishes */}
+      {!checkingTos && (
+        <TermsOfService open={showTos} onAccept={handleTosAccept} onDecline={handleTosDecline} />
+      )}
     </div>
   );
 };
