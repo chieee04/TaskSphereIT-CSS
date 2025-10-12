@@ -21,7 +21,6 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useAuthGuard } from "../../components/hooks/useAuthGuard";
 
-// Pages
 import Tasks from "./ManagerTask/ManagerTask";
 import AdviserTasks from "./ManagerAdviserTask";
 import MemberTaskBoard from "../Member/MemberTaskBoard";
@@ -47,54 +46,15 @@ import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
-// NEW: ToS modal + auth context
 import TermsOfService from "../../components/TermsOfService";
 import { UserAuth } from "../../Contex/AuthContext";
 
-// ---- ChartJS
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler, ArcElement);
 
-// ---- Constants
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ROLE_MANAGER = 1;                    // managers = 1 in your DB
-const TOS_VERSION = "2025-05-09";          // must match TermsOfService.jsx
+const ROLE_MANAGER = 1;
+const TOS_VERSION = "2025-05-09";
 
-// ---- ToS helpers (role-agnostic check) ----
-const getUserKey = (u) =>
-  u?.id ||
-  u?.user_id ||
-  u?.uuid ||
-  u?.email ||
-  u?.user_email ||
-  u?.username ||
-  u?.user_key ||
-  null;
-
-// check ONLY by (user_key, version) → role is ignored
-async function hasAcceptedTos(userKey) {
-  const { data, error } = await supabase
-    .from("tos_acceptance")
-    .select("id")
-    .eq("user_key", String(userKey))
-    .eq("version", TOS_VERSION)
-    .order("accepted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error && error.code !== "PGRST116") throw error;
-  return !!data;
-}
-
-// insert a row; ignore duplicate key error if you add a unique index later
-async function acceptTos(userKey, role) {
-  const { error } = await supabase.from("tos_acceptance").insert({
-    user_key: String(userKey),
-    role: Number(role || 0),
-    version: TOS_VERSION
-  });
-  if (error && error.code !== "23505") throw error;
-}
-
-// ---- Chart helpers
 function getLineColor(ctx) {
   const colors = {
     "To Do": "#FABC3F",
@@ -114,7 +74,6 @@ function adjustRadiusBasedOnData(ctx) {
   return v < 10 ? 5 : v < 25 ? 7 : v < 50 ? 9 : v < 75 ? 11 : 15;
 }
 
-// ---- Team progress pie chart
 const TeamProgressChart = () => {
   const [statusCounts, setStatusCounts] = useState({
     "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0
@@ -122,9 +81,9 @@ const TeamProgressChart = () => {
 
   useEffect(() => {
     const fetchTaskStatusCounts = async () => {
-      const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) return;
-      const currentUser = JSON.parse(storedUser);
+      const stored = localStorage.getItem("customUser");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
       const managerUUID = currentUser.uuid || currentUser.id;
       if (!managerUUID) return;
 
@@ -176,49 +135,53 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
   const navigate = useNavigate();
   const { subPage } = useParams();
 
-  // ===== ToS state (role-agnostic check) =====
+  // ===== ToS state (Manager checks by user_id in user_credentials) =====
   const storedUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("customUser") || "null"); }
     catch { return null; }
   }, []);
-  const userKey = getUserKey(storedUser);
   const role = Number(storedUser?.user_roles || ROLE_MANAGER);
+  const userId = storedUser?.user_id != null ? String(storedUser.user_id) : null;
 
   const [checkingTos, setCheckingTos] = useState(true);
   const [showTos, setShowTos] = useState(false);
-  const [tosSaving, setTosSaving] = useState(false); // double-click guard
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        if (!userKey) { if (alive) setShowTos(false); return; }
-        const accepted = await hasAcceptedTos(userKey); // 👈 role ignored here
-        if (alive) setShowTos(!accepted);
-      } catch (e) {
-        console.error("ToS check failed:", e);
+        // Only managers use this codepath
+        if (Number(role) !== ROLE_MANAGER) {
+          if (alive) setShowTos(false);
+          return;
+        }
+        if (!userId) {
+          if (alive) setShowTos(true);
+          return;
+        }
+
+        // Read tos_agree via user_id ONLY
+        const { data, error } = await supabase
+          .from("user_credentials")
+          .select("tos_agree, tos_version")
+          .eq("user_id", userId)
+          .single();
+
+        if (error) {
+          if (alive) setShowTos(true);
+          return;
+        }
+
+        const agreed = data?.tos_agree === true && data?.tos_version === TOS_VERSION;
+        if (alive) setShowTos(!agreed);
+      } catch {
         if (alive) setShowTos(true);
       } finally {
         if (alive) setCheckingTos(false);
       }
     })();
     return () => { alive = false; };
-  }, [userKey]);
-
-  const handleTosAccept = async () => {
-    if (tosSaving) return;
-    setTosSaving(true);
-    try {
-      if (!userKey) return;
-      await acceptTos(userKey, role);
-      setShowTos(false);
-    } catch (e) {
-      console.error("ToS accept failed:", e);
-      // keep modal open so user can retry
-    } finally {
-      setTosSaving(false);
-    }
-  };
+  }, [role, userId]);
 
   const handleTosDecline = () => {
     localStorage.removeItem("customUser");
@@ -346,7 +309,6 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
           name: "manager_final_redef",
           select: "id, task, due_date, time, status, created_at, member_id, project_phase",
           mapTask: t => t.task,
-          mapCreated: t => t.created_at,
           mapTime: t => t.time?.slice(0, 5)
         }
       ];
@@ -376,7 +338,11 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
 
       const withNames = await Promise.all(upcoming.map(async task => {
         if (!task.member_id) return { ...task, memberName: "No Member" };
-        const { data: member } = await supabase.from("user_credentials").select("first_name,last_name").eq("id", task.member_id).single();
+        const { data: member } = await supabase
+          .from("user_credentials")
+          .select("first_name,last_name")
+          .eq("id", task.member_id)
+          .single();
         return { ...task, memberName: member ? `${member.first_name} ${member.last_name}` : "Unknown" };
       }));
 
@@ -386,7 +352,6 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
     fetchUpcomingTasks();
   }, []);
 
-  // Weekly summary → chart data
   const weeklyData = WEEK_DAYS.map(day => {
     const dayTasks = allWeeklyTasks.filter(task => {
       const taskDay = new Date(task.due_date).toLocaleDateString("en-US", { weekday: "long" });
@@ -549,10 +514,7 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
 
   return (
     <div>
-      <Header
-        isSoloMode={isSoloMode}
-        setIsSoloMode={setIsSoloMode}
-      />
+      <Header isSoloMode={isSoloMode} setIsSoloMode={setIsSoloMode} />
       <div className="d-flex">
         <Sidebar
           activeItem={activePage}
@@ -568,16 +530,18 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
           }}
           id="main-content-wrapper"
         >
-          <main className="flex-grow-1 p-3">
-            {renderContent()}
-          </main>
+          <main className="flex-grow-1 p-3">{renderContent()}</main>
           <Footer />
         </div>
       </div>
 
       {/* Show ToS only after the DB check completes */}
       {!checkingTos && (
-        <TermsOfService open={showTos} onAccept={handleTosAccept} onDecline={handleTosDecline} />
+        <TermsOfService
+          open={showTos}
+          onAccept={() => setShowTos(false)}
+          onDecline={handleTosDecline}
+        />
       )}
     </div>
   );
