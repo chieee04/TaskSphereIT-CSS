@@ -21,7 +21,9 @@ export default function AdviserTeamsSummary() {
   const [view, setView] = useState("summary");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [adviserId, setAdviserId] = useState(null);
+
+  // Logged-in adviser (user_credentials row)
+  const [adviserRow, setAdviserRow] = useState(null); // {id, user_id, adviser_group}
 
   // Summary
   const [teams, setTeams] = useState([]); // [{name, preview}]
@@ -39,7 +41,7 @@ export default function AdviserTeamsSummary() {
   });
   const [tasks, setTasks] = useState([]);
 
-  // Resolve adviser id (user_credentials.id) from localStorage customUser.user_id
+  // 1) Resolve the adviser row (id + adviser_group) from localStorage customUser.user_id
   useEffect(() => {
     (async () => {
       try {
@@ -51,68 +53,79 @@ export default function AdviserTeamsSummary() {
 
         const { data, error } = await supabase
           .from("user_credentials")
-          .select("id, user_id")
+          .select("id, user_id, adviser_group")
           .eq("user_id", u.user_id)
           .single();
         if (error) throw error;
-        setAdviserId(data?.id || null);
+        setAdviserRow(data || null);
       } catch {
         setErr("Failed to load adviser profile.");
       }
     })();
   }, []);
 
-  // Load teams the adviser handles (distinct group_name across adviser tables)
+  // 2) Load teams owned by this adviser by adviser_group from user_credentials
   useEffect(() => {
-    if (!adviserId) return;
+    if (!adviserRow?.adviser_group) return; // nothing to show if adviser_group is null
     (async () => {
       try {
         setLoading(true);
         setErr("");
-        const tables = ["adviser_final_def", "adviser_oral_def"];
-        const groups = new Set();
 
-        for (const t of tables) {
-          const { data, error } = await supabase
-            .from(t)
-            .select("group_name, adviser_id")
-            .eq("adviser_id", adviserId);
-          if (!error && data) {
-            data.forEach((r) => r.group_name && groups.add(r.group_name));
-          }
+        // Pull all members that belong to this adviser's adviser_group and have a group_number
+        const { data: uc, error } = await supabase
+          .from("user_credentials")
+          .select("first_name,last_name,middle_name,group_name,group_number,user_roles,adviser_group")
+          .eq("adviser_group", adviserRow.adviser_group)
+          .not("group_number", "is", null);
+
+        if (error) throw error;
+
+        // Group by group_number, prepare stable labels
+        const byTeam = new Map();
+        for (const m of uc || []) {
+          if (!byTeam.has(m.group_number)) byTeam.set(m.group_number, []);
+          byTeam.get(m.group_number).push(m);
         }
 
-        const result = [];
-        for (const g of [...groups].sort((a, b) => a.localeCompare(b))) {
-          let preview = "Team";
-          const { data: anyMember } = await supabase
-            .from("user_credentials")
-            .select("first_name,last_name,group_name")
-            .eq("group_name", g)
-            .limit(1);
-          if (anyMember && anyMember.length) {
-            const m = anyMember[0];
-            preview = `${m.last_name || m.first_name || "Member"}, Et Al`;
-          }
-          result.push({ name: g, preview });
+        const list = [];
+        for (const [gnum, members] of byTeam) {
+          // prefer manager last_name, else fallback to group_name, else "Team <num>"
+          const pm = members.find((x) => x.user_roles === 1);
+          const labelFromPM = pm ? `${(pm.last_name || "").toUpperCase()}, Et Al` : null;
+
+          // choose a group_name that exists among members
+          const any = members.find((x) => x.group_name);
+          const labelFromGroupName = any?.group_name || null;
+
+          const preview = labelFromPM || labelFromGroupName || `Team ${gnum}`;
+
+          // card name (top text) — use group_name if present, else preview
+          const cardName = labelFromGroupName || preview;
+
+          list.push({ name: cardName, preview, group_number: gnum });
         }
-        setTeams(result);
+
+        // sort by label for stable UI
+        list.sort((a, b) => a.preview.localeCompare(b.preview));
+
+        setTeams(list);
       } catch {
         setErr("Failed to load teams.");
       } finally {
         setLoading(false);
       }
     })();
-  }, [adviserId]);
+  }, [adviserRow]);
 
-  // Open a team (detail)
+  // 3) Open a team (detail)
   const openTeam = async (groupName) => {
     setSelectedTeam(groupName);
     setView("detail");
     setLoading(true);
     setErr("");
     try {
-      // Members
+      // Members by group_name
       let mems = [];
       const { data: m1 } = await supabase
         .from("user_credentials")
@@ -120,7 +133,7 @@ export default function AdviserTeamsSummary() {
         .eq("group_name", groupName);
       if (m1) mems = m1;
 
-      // Tasks + status counts from adviser tables
+      // Tasks + status counts from adviser tables (optional)
       const tables = ["adviser_final_def", "adviser_oral_def"];
       const counts = { "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0 };
       let merged = [];
@@ -198,11 +211,9 @@ export default function AdviserTeamsSummary() {
   );
 
   return (
-    // Same shell as your other pages so the footer stays pinned
     <div className="min-h-screen flex flex-col bg-white">
       <div className="flex-1">
         <div className="container mx-auto px-6 py-6">
-          {/* Header */}
           <div className="mb-2 flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: ACCENT }} />
             <h1 className="text-sm font-semibold" style={{ color: ACCENT }}>
@@ -211,17 +222,14 @@ export default function AdviserTeamsSummary() {
           </div>
           <hr className="mb-4" style={{ borderColor: ACCENT }} />
 
-          {/* Error */}
           {err && (
             <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
               {err}
             </div>
           )}
 
-          {/* SUMMARY VIEW */}
           {view === "summary" && (
             <>
-              {/* White search bar (like the other screens) */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <div className="relative w-full md:max-w-xs">
                   <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -246,7 +254,7 @@ export default function AdviserTeamsSummary() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                   {visibleTeams.map((t) => (
                     <button
-                      key={t.name}
+                      key={`${t.group_number}-${t.name}`}
                       onClick={() => openTeam(t.name)}
                       className="group flex flex-col rounded-xl border border-neutral-200 bg-white shadow-sm outline-none transition hover:shadow-md"
                     >
@@ -274,7 +282,6 @@ export default function AdviserTeamsSummary() {
             </>
           )}
 
-          {/* DETAIL VIEW */}
           {view === "detail" && (
             <>
               <div className="mb-4 flex items-center justify-between">
@@ -290,9 +297,7 @@ export default function AdviserTeamsSummary() {
                 <div className="py-10 text-center text-sm text-neutral-500">Loading team details…</div>
               ) : (
                 <>
-                  {/* Members + Donut */}
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {/* Members */}
                     <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
                       <div className="border-b px-4 py-2 text-sm font-semibold text-neutral-800">Team</div>
                       <div className="max-h-[260px] overflow-y-auto">
@@ -319,26 +324,19 @@ export default function AdviserTeamsSummary() {
                       </div>
                     </div>
 
-                    {/* Progress donut */}
                     <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
                       <div className="border-b px-4 py-2 text-sm font-semibold text-neutral-800">Tasks Progress</div>
                       <div className="flex flex-col items-center gap-4 p-4 sm:flex-row sm:items-start">
                         <div className="mx-auto h-[220px] w-[220px]">
                           <Pie
                             data={donut.data}
-                            options={{
-                              maintainAspectRatio: false,
-                              plugins: { legend: { display: false } },
-                            }}
+                            options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }}
                           />
                         </div>
                         <ul className="space-y-2 text-sm">
                           {STATUS_ORDER.map((label) => (
                             <li key={label} className="flex items-center gap-2">
-                              <span
-                                className="inline-block h-3 w-3 rounded-sm"
-                                style={{ backgroundColor: STATUS_COLORS[label] }}
-                              />
+                              <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STATUS_COLORS[label] }} />
                               <span className="text-neutral-700">{label}</span>
                               <span className="ml-2 rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">
                                 {progress[label] || 0}
@@ -353,7 +351,6 @@ export default function AdviserTeamsSummary() {
                     </div>
                   </div>
 
-                  {/* Team Tasks */}
                   <div className="mt-6 rounded-xl border border-neutral-200 bg-white shadow-sm">
                     <div className="border-b px-4 py-2 text-sm font-semibold text-neutral-800">Team Tasks</div>
                     <div className="overflow-x-auto">
