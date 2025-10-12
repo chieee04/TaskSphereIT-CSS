@@ -1,33 +1,41 @@
 // src/components/TermsOfService.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../supabaseClient"; // <-- adjust path if yours differs
+import { supabase } from "../supabaseClient";
 
 // MUST match what dashboards query
 const TOS_VERSION = "2025-05-09";
+const ROLE_MANAGER = 1;
 
 const TermsOfService = ({ open, onAccept, onDecline }) => {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
-  // derive the same userKey the dashboards use
+  // Read the logged-in user object
   const storedUser = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("customUser") || "null"); }
-    catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem("customUser") || "null");
+    } catch {
+      return null;
+    }
   }, []);
-  const role = Number(storedUser?.user_roles); // adviser=3, instructor=4, etc.
+
+  const role = Number(storedUser?.user_roles);
+  const userId = storedUser?.user_id != null ? String(storedUser.user_id) : null;
+
+  // A canonical key to store in tos_acceptance (doesn't affect your manager check)
   const userKey = useMemo(() => {
-    if (!storedUser) return null;
+    const u = storedUser || {};
     return (
-      storedUser.username || // <- your table shows this is what you store
-      storedUser.email ||
-      storedUser.user_id ||
-      storedUser.id ||
-      String(storedUser.adviser_group || "")
+      (u.username && String(u.username)) ||
+      (u.email && String(u.email)) ||
+      (u.user_id != null && String(u.user_id)) ||
+      (u.id != null && String(u.id)) ||
+      null
     );
   }, [storedUser]);
 
-  // lock background scroll while modal is open
+  // Lock background scroll while modal is open
   useEffect(() => {
     if (!open) return;
     const prevHtml = document.documentElement.style.overflow;
@@ -47,15 +55,29 @@ const TermsOfService = ({ open, onAccept, onDecline }) => {
     setSaving(true);
     try {
       if (!userKey || !role) throw new Error("Missing user info");
-      // Upsert acceptance record
-      const { error } = await supabase
+
+      // 1) Write to tos_acceptance for history/audit (role-agnostic)
+      const { error: acceptErr } = await supabase
         .from("tos_acceptance")
         .upsert(
-          { user_key: String(userKey), role, version: TOS_VERSION },
+          { user_key: String(userKey), role: Number(role), version: TOS_VERSION },
           { onConflict: "user_key,role,version" }
         );
-      if (error) throw error;
-      onAccept?.(); // let the parent hide the modal
+      if (acceptErr) throw acceptErr;
+
+      // 2) For MANAGER ONLY — flag the row on user_credentials by user_id
+      if (Number(role) === ROLE_MANAGER) {
+        if (!userId) {
+          throw new Error("Cannot update manager ToS flag: missing user_id.");
+        }
+        const { error: updErr } = await supabase
+          .from("user_credentials")
+          .update({ tos_agree: true, tos_version: TOS_VERSION })
+          .eq("user_id", userId);
+        if (updErr) throw updErr;
+      }
+
+      onAccept?.(); // parent hides the modal
     } catch (e) {
       setErr(e.message || "Failed to save acceptance");
     } finally {
@@ -76,12 +98,11 @@ const TermsOfService = ({ open, onAccept, onDecline }) => {
           </p>
         </div>
 
-        {/* Body (unchanged) */}
+        {/* Body */}
         <div className="mt-4 max-h-[70vh] overflow-y-auto px-6 pb-6">
           <style>{`.tos-h3{font-weight:600;font-size:15px;color:#111827}.tos-text{font-size:14px;line-height:1.6;color:#1f2937}.tos-ul{padding-left:1.25rem} .tos-ul li{margin:.25rem 0}`}</style>
 
-          {/* ... your sections exactly as you already have them ... */}
-            <section className="mb-6">
+          <section className="mb-6">
             <h3 className="tos-h3">Acceptance of Terms</h3>
             <hr className="my-2 border-neutral-300" />
             <p className="tos-text">
@@ -215,14 +236,9 @@ const TermsOfService = ({ open, onAccept, onDecline }) => {
               </p>
             </div>
           </section>
-          {/* (omitted here for brevity; keep your existing content) */}
         </div>
 
-        {err && (
-          <div className="px-6 text-sm text-red-600 -mt-2">
-            {err}
-          </div>
-        )}
+        {err && <div className="px-6 text-sm text-red-600 -mt-2">{err}</div>}
 
         <div className="flex items-center justify-end gap-3 border-t border-neutral-200 px-6 py-4 rounded-b-xl">
           <button
