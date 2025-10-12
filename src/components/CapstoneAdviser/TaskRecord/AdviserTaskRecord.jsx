@@ -1,51 +1,50 @@
+// src/components/CapstoneAdviser/AdviserTaskRecord.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import tasksIcon from "../../../assets/tasks-icon.png";
 import recordIcon from "../../../assets/records-icon.png";
 
-export default function AdviserTaskRecord({ setActivePage }) {
-  // ✅ Cards data
+const ACCENT = "#5a0d0e";
+
+export default function AdviserTaskRecord() {
+  const navigate = useNavigate();
+
+  // Explicit targets for the record screens (match your router paths)
   const items = [
-    {
-      title: "Oral Defense",
-      icon: recordIcon,
-      onClick: () => setActivePage("Oral Defense Record"),
-    },
-    {
-      title: "Final Defense",
-      icon: recordIcon,
-      onClick: () => setActivePage("Title Defense Record"),
-    },
+    { title: "Oral Defense",  icon: recordIcon, to: "/Adviser/OralDefenseRecord" },
+    { title: "Final Defense", icon: recordIcon, to: "/Adviser/FinalDefenseRecord" }, // goes to AdviserFinalRecord.jsx
   ];
 
+  const go = (to) => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    navigate(to);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 overflow-hidden">
-      {/* Main Content */}
-      <div className="flex-grow container mx-auto px-6 py-6">
-        <h2 className="section-title flex items-center mb-4">
-          <img src={tasksIcon} alt="Tasks Icon" className="section-icon w-6 h-6 mr-2" />
+    <div className="min-h-screen bg-white">
+      <div className="px-6 sm:px-8 py-6">
+        <h2 className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: ACCENT }}>
+          <img src={tasksIcon} alt="Tasks Icon" className="w-5 h-5" />
           Tasks Record
         </h2>
-        <hr className="divider border-t-2 border-gray-300 mb-4" />
+        <hr className="mb-6" style={{ borderColor: ACCENT }} />
 
-        {/* ✅ Keep original cards */}
-        <div className="tasks-record-container flex flex-wrap gap-6 justify-center">
-          {items.map((item, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {items.map(({ title, icon, to }) => (
             <div
-              key={index}
-              className="task-card bg-white border border-gray-200 rounded-lg shadow-md p-6 text-center cursor-pointer hover:shadow-lg transition"
-              onClick={item.onClick}
+              key={title}
+              role="button"
+              tabIndex={0}
+              onClick={() => go(to)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && go(to)}
+              className="flex items-center justify-center bg-white shadow-md rounded-md overflow-hidden hover:shadow-lg transition border border-gray-200 focus:outline-none focus:ring-2 cursor-pointer"
+              style={{ ringColor: `${ACCENT}33` }}
             >
-              <div className="task-card-icon mb-3 flex justify-center">
-                <img src={item.icon} alt={`${item.title} Icon`} className="card-icon w-16 h-16" />
-              </div>
-              <div className="task-card-header">
-                <h3 className="task-title text-gray-800 font-semibold text-md">
-                  {item.title.split(" ").map((word, i) => (
-                    <React.Fragment key={i}>
-                      {word}
-                      <br />
-                    </React.Fragment>
-                  ))}
+              <div style={{ background: ACCENT }} className="w-4 h-full" />
+              <div className="flex flex-col items-center justify-center p-4 w-full h-32">
+                <img src={icon} alt={`${title} Icon`} className="w-10 h-10 mb-2" />
+                <h3 className="text-sm font-semibold text-center leading-tight" style={{ color: ACCENT }}>
+                  {title}
                 </h3>
               </div>
             </div>
