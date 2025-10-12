@@ -1,95 +1,176 @@
 import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { FaFileAlt, FaEllipsisV, FaSearch, FaTrash, FaEdit } from "react-icons/fa";
+import {
+  FaFileAlt,
+  FaEllipsisV,
+  FaSearch,
+  FaTrash,
+  FaEdit,
+} from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
- 
+
+const FILES_BUCKET = "manuscripts"; // <- your bucket name
+
+const getFileName = (urlOrPath) => {
+  if (!urlOrPath) return "";
+  const noQuery = urlOrPath.split("?")[0];
+  return decodeURIComponent(noQuery.split("/").pop() || "");
+};
+
+const isHttpUrl = (s) => /^https?:\/\//i.test(s);
+
+/** Build a downloadable URL from file_url:
+ * - If it's already an http(s) URL, use it.
+ * - Else, treat it as a Storage path inside FILES_BUCKET (no extra prefix).
+ */
+const getDownloadHref = (file_url) => {
+  if (!file_url) return null;
+  if (isHttpUrl(file_url)) return file_url;
+
+  // ensure no leading slash to avoid // in key
+  const key = file_url.replace(/^\/+/, "");
+  const { data } = supabase.storage.from(FILES_BUCKET).getPublicUrl(key);
+  return data?.publicUrl || null;
+};
+
+// If bucket is PRIVATE, use a signed URL instead:
+// const getSignedDownloadHref = async (file_url) => {
+//   if (!file_url) return null;
+//   if (isHttpUrl(file_url)) return file_url;
+//   const key = file_url.replace(/^\/+/, "");
+//   const { data } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(key, 3600);
+//   return data?.signedUrl || null;
+// };
+
 const MySwal = withReactContent(Swal);
- 
+
+<style>{`
+  .table-fixed-container { overflow: visible; max-height: none; }
+  .manus-table { table-layout: fixed; width: 100%; }
+
+  /* Column widths */
+  .col-no { width: 56px; }
+  .col-team { width: 170px; }
+  .col-date { width: 108px; }
+  .col-time { width: 90px; }
+  .col-plag { width: 92px; }
+  .col-ai { width: 70px; }
+  .col-file { width: 220px; }   /* fixed width, will ellipsis */
+  .col-adv { width: auto; }     /* flexible, wraps */
+  .col-verdict { width: 108px; }
+  .col-action { width: 84px; }
+
+  .manus-table th, .manus-table td { padding: 10px 8px; }
+
+  /* Ellipsis that actually works inside table cells */
+  .file-ellipsis {
+    display: block;           /* important: block-level box */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;      /* single line only */
+    word-break: normal;       /* don't break long tokens */
+    overflow-wrap: normal;    /* don't wrap underscores/dots */
+  }
+
+  /* Wrap text (no ellipsis) for Adviser names */
+  .wrap-auto {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+`}</style>;
+
 // --- Component Start ---
- 
+
 const ManuScript = () => {
   const [accounts, setAccounts] = useState([]);
   const [schedules, setSchedules] = useState([]);
   // openDropdown stores the calculated position and ID of the active menu
-  const [openDropdown, setOpenDropdown] = useState(null); 
+  const [openDropdown, setOpenDropdown] = useState(null);
   const [search, setSearch] = useState("");
   const [advisers, setAdvisers] = useState([]);
- 
+
   // STATE for row selection/deletion
-  const [selectedSchedules, setSelectedSchedules] = useState([]); 
-  const [isSelectionMode, setIsSelectionMode] = useState(false); 
- 
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
   // Ref for the outer table container (must be position: relative)
-  const tableWrapperRef = useRef(null); 
+  const tableWrapperRef = useRef(null);
   // Ref to store button references for coordinate calculation
-  const dropdownButtonRefs = useRef({}); 
- 
-  // Verdict mapping 
+  const dropdownButtonRefs = useRef({});
+
+  // Verdict mapping
   const verdictMap = {
     1: "Pending",
     2: "Re-Def",
     3: "Completed",
   };
- 
+
   // --- Dropdown/Utility Functions ---
- 
+
   const handleToggleDropdown = (e, index, schedId) => {
-      e.stopPropagation();
- 
-      if (openDropdown && openDropdown.index === index) {
-          setOpenDropdown(null);
-      } else {
-          // Use a timeout to ensure React has flushed any layout changes before measuring
-          setTimeout(() => {
-              const buttonRef = dropdownButtonRefs.current[index];
-              const wrapperRef = tableWrapperRef.current;
- 
-              if (!buttonRef || !wrapperRef) return;
- 
-              // Get the coordinates of the button and the wrapper relative to the viewport
-              const buttonRect = buttonRef.getBoundingClientRect();
-              const wrapperRect = wrapperRef.getBoundingClientRect();
- 
-              // Calculate position relative to the wrapper's current scroll/viewport offset.
-              const top = buttonRect.top - wrapperRect.top + buttonRect.height + 5; 
- 
-              // Align the dropdown's right edge with the button's right edge.
-              const dropdownWidth = 160; 
-              const left = buttonRect.right - wrapperRect.left - dropdownWidth; 
- 
-              setOpenDropdown({
-                  index: index,
-                  schedId: schedId,
-                  top: top,
-                  left: left,
-              });
-          }, 0);
-      }
+    e.stopPropagation();
+
+    if (openDropdown && openDropdown.index === index) {
+      setOpenDropdown(null);
+    } else {
+      // Use a timeout to ensure React has flushed any layout changes before measuring
+      setTimeout(() => {
+        const buttonRef = dropdownButtonRefs.current[index];
+        const wrapperRef = tableWrapperRef.current;
+
+        if (!buttonRef || !wrapperRef) return;
+
+        // Get the coordinates of the button and the wrapper relative to the viewport
+        const buttonRect = buttonRef.getBoundingClientRect();
+        const wrapperRect = wrapperRef.getBoundingClientRect();
+
+        // Calculate position relative to the wrapper's current scroll/viewport offset.
+        const top = buttonRect.top - wrapperRect.top + buttonRect.height + 5;
+
+        // Align the dropdown's right edge with the button's right edge.
+        const dropdownWidth = 160;
+        const left = buttonRect.right - wrapperRect.left - dropdownWidth;
+
+        setOpenDropdown({
+          index: index,
+          schedId: schedId,
+          top: top,
+          left: left,
+        });
+      }, 0);
+    }
   };
- 
+
   // Click handler to close the detached menu when clicking anywhere else
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openDropdown) {
         const buttonRef = dropdownButtonRefs.current[openDropdown.index];
-        const dropdownElement = document.querySelector('.dropdown-menu-detached'); 
- 
+        const dropdownElement = document.querySelector(
+          ".dropdown-menu-detached"
+        );
+
         if (
-            (buttonRef && !buttonRef.contains(event.target)) &&
-            (dropdownElement && !dropdownElement.contains(event.target))
+          buttonRef &&
+          !buttonRef.contains(event.target) &&
+          dropdownElement &&
+          !dropdownElement.contains(event.target)
         ) {
           setOpenDropdown(null);
         }
       }
     };
- 
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [openDropdown]);
- 
+
   // --- Data Fetching Hooks ---
   useEffect(() => {
     const fetchAdvisers = async () => {
@@ -98,37 +179,36 @@ const ManuScript = () => {
         .select("*")
         .eq("user_roles", 3)
         .not("adviser_group", "is", null);
- 
+
       if (!error) {
         setAdvisers(data);
       }
     };
     fetchAdvisers();
- 
+
     const fetchData = async () => {
-        const { data: accData } = await supabase
-            .from("user_credentials")
-            .select("*");
-        if (accData) setAccounts(accData);
- 
-        const { data: schedData } = await supabase
-            .from("user_manuscript_sched")
-            .select("*");
-        if (schedData) setSchedules(schedData);
+      const { data: accData } = await supabase
+        .from("user_credentials")
+        .select("*");
+      if (accData) setAccounts(accData);
+
+      const { data: schedData } = await supabase
+        .from("user_manuscript_sched")
+        .select("*");
+      if (schedData) setSchedules(schedData);
     };
     fetchData();
   }, []);
- 
- 
+
   // --- Selection Functions ---
   const handleToggleSelect = (id) => {
-    setSelectedSchedules((prev) => 
-      prev.includes(id) 
-        ? prev.filter((schedId) => schedId !== id) 
+    setSelectedSchedules((prev) =>
+      prev.includes(id)
+        ? prev.filter((schedId) => schedId !== id)
         : [...prev, id]
     );
   };
- 
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const allIds = filteredSchedules.map((sched) => sched.id);
@@ -137,15 +217,15 @@ const ManuScript = () => {
       setSelectedSchedules([]);
     }
   };
- 
+
   const handleCancelSelection = () => {
     setIsSelectionMode(false);
-    setSelectedSchedules([]); 
+    setSelectedSchedules([]);
   };
- 
+
   // --- CRUD/Action Functions ---
- 
-  const handleCreateSchedule = () => { 
+
+  const handleCreateSchedule = () => {
     MySwal.fire({
       title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
         <i class="bi bi-journal-text"></i> Create Manuscript Schedule</div>`,
@@ -188,23 +268,23 @@ const ManuScript = () => {
       didOpen: () => {
         const adviserSelect = document.getElementById("adviserSelect");
         const teamSelect = document.getElementById("teamSelect");
- 
+
         adviserSelect.addEventListener("change", async (e) => {
           const adviserId = e.target.value;
- 
+
           const { data: adviser } = await supabase
             .from("user_credentials")
             .select("adviser_group")
             .eq("id", adviserId)
             .single();
- 
+
           if (adviser?.adviser_group) {
             const { data: managerTeams } = await supabase
               .from("user_credentials")
               .select("id, group_name")
               .eq("user_roles", 1)
               .eq("adviser_group", adviser.adviser_group);
- 
+
             teamSelect.innerHTML = `<option disabled selected value="">Select Team</option>`;
             managerTeams?.forEach((t) => {
               const opt = document.createElement("option");
@@ -221,7 +301,7 @@ const ManuScript = () => {
         const managerId = document.getElementById("teamSelect").value;
         const date = document.getElementById("scheduleDate").value;
         const time = document.getElementById("scheduleTime").value;
- 
+
         if (!adviser || !managerId || !date || !time) {
           MySwal.showValidationMessage("Please fill all fields");
           return false;
@@ -231,7 +311,7 @@ const ManuScript = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const { adviser, managerId, date, time } = result.value;
- 
+
         const { error, data } = await supabase
           .from("user_manuscript_sched")
           .insert([
@@ -243,11 +323,11 @@ const ManuScript = () => {
               plagiarism: 0,
               ai: 0,
               file_uploaded: null,
-              verdict: 1, 
+              verdict: 1,
             },
           ])
           .select();
- 
+
         if (error) {
           console.error("Insert error:", error);
           MySwal.fire("Error", "Failed to create schedule", "error");
@@ -263,22 +343,23 @@ const ManuScript = () => {
       }
     });
   };
- 
-  const handleUpdate = async (schedId) => { 
-    setOpenDropdown(null); 
- 
+
+  const handleUpdate = async (schedId) => {
+    setOpenDropdown(null);
+
     // 1. Find the schedule to be updated
-    const scheduleToUpdate = schedules.find(s => s.id === schedId);
- 
+    const scheduleToUpdate = schedules.find((s) => s.id === schedId);
+
     if (!scheduleToUpdate) {
-        MySwal.fire("Error", "Schedule not found.", "error");
-        return;
+      MySwal.fire("Error", "Schedule not found.", "error");
+      return;
     }
- 
+
     // Get the team name for display purposes in the modal
-    const teamName = accounts.find((a) => a.id === scheduleToUpdate.manager_id)?.group_name || "Unknown Team";
- 
- 
+    const teamName =
+      accounts.find((a) => a.id === scheduleToUpdate.manager_id)?.group_name ||
+      "Unknown Team";
+
     MySwal.fire({
       title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
         <i class="bi bi-journal-text"></i> Update Schedule for ${teamName}</div>`,
@@ -299,12 +380,12 @@ const ManuScript = () => {
       showCancelButton: true,
       confirmButtonText: "Update",
       cancelButtonText: "Cancel",
-      confirmButtonColor: "#3B0304", 
+      confirmButtonColor: "#3B0304",
       width: "500px",
       preConfirm: () => {
         const newDate = document.getElementById("scheduleDate").value;
         const newTime = document.getElementById("scheduleTime").value;
- 
+
         if (!newDate || !newTime) {
           MySwal.showValidationMessage("Please fill both Date and Time fields");
           return false;
@@ -314,7 +395,7 @@ const ManuScript = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const { newDate, newTime } = result.value;
- 
+
         const { error, data } = await supabase
           .from("user_manuscript_sched")
           .update({
@@ -323,18 +404,18 @@ const ManuScript = () => {
           })
           .eq("id", schedId)
           .select();
- 
+
         if (error) {
           console.error("Update error:", error);
           MySwal.fire("Error", "Failed to update schedule", "error");
         } else {
-            // Update local state with the new data
-            if (data && data.length > 0) {
-                setSchedules(prev => prev.map(s => 
-                    s.id === schedId ? data[0] : s
-                ));
-            }
- 
+          // Update local state with the new data
+          if (data && data.length > 0) {
+            setSchedules((prev) =>
+              prev.map((s) => (s.id === schedId ? data[0] : s))
+            );
+          }
+
           MySwal.fire({
             icon: "success",
             title: "✓ Schedule Updated",
@@ -345,25 +426,25 @@ const ManuScript = () => {
       }
     });
   };
- 
+
   const handleDelete = async (id) => {
-    setOpenDropdown(null); 
+    setOpenDropdown(null);
     const confirm = await MySwal.fire({
       title: "Delete Schedule?",
       text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3B0304", 
-      cancelButtonColor: "#999", 
+      confirmButtonColor: "#3B0304",
+      cancelButtonColor: "#999",
       confirmButtonText: "Yes, delete it!",
     });
- 
+
     if (confirm.isConfirmed) {
       const { error } = await supabase
         .from("user_manuscript_sched")
         .delete()
         .eq("id", id);
- 
+
       if (!error) {
         setSchedules((prev) => prev.filter((s) => s.id !== id));
         MySwal.fire("Deleted!", "Schedule has been deleted.", "success");
@@ -372,7 +453,7 @@ const ManuScript = () => {
       }
     }
   };
- 
+
   const handleDeleteSelected = async () => {
     if (selectedSchedules.length === 0) {
       MySwal.fire({
@@ -382,7 +463,7 @@ const ManuScript = () => {
       });
       return;
     }
- 
+
     const confirm = await MySwal.fire({
       title: `Delete ${selectedSchedules.length} Schedules?`,
       text: "This action cannot be undone.",
@@ -392,31 +473,38 @@ const ManuScript = () => {
       cancelButtonColor: "#999",
       confirmButtonText: "Yes, delete them!",
     });
- 
+
     if (confirm.isConfirmed) {
       const { error } = await supabase
         .from("user_manuscript_sched")
         .delete()
-        .in("id", selectedSchedules); 
- 
+        .in("id", selectedSchedules);
+
       if (!error) {
-        setSchedules((prev) => prev.filter((s) => !selectedSchedules.includes(s.id)));
+        setSchedules((prev) =>
+          prev.filter((s) => !selectedSchedules.includes(s.id))
+        );
         setSelectedSchedules([]);
         setIsSelectionMode(false);
-        MySwal.fire("Deleted!", `${selectedSchedules.length} schedules have been deleted.`, "success");
+        MySwal.fire(
+          "Deleted!",
+          `${selectedSchedules.length} schedules have been deleted.`,
+          "success"
+        );
       } else {
         MySwal.fire("Error", "Failed to delete selected schedules.", "error");
       }
     }
   };
- 
+
   // --- Filtering and State Calculation ---
- 
+
   const filteredSchedules = schedules.filter((sched) => {
-    const teamName = accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
-    const verdict = verdictMap[sched.verdict] || "Pending"; 
+    const teamName =
+      accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
+    const verdict = verdictMap[sched.verdict] || "Pending";
     const fileName = sched.file_uploaded || "No File";
- 
+
     const searchText = search.toLowerCase();
     return (
       teamName.toLowerCase().includes(searchText) ||
@@ -426,15 +514,15 @@ const ManuScript = () => {
       fileName.toLowerCase().includes(searchText)
     );
   });
- 
-  const isAllSelected = filteredSchedules.length > 0 && 
-                        filteredSchedules.every(sched => selectedSchedules.includes(sched.id));
- 
+
+  const isAllSelected =
+    filteredSchedules.length > 0 &&
+    filteredSchedules.every((sched) => selectedSchedules.includes(sched.id));
+
   // --- Render ---
- 
+
   return (
     <div className="p-6">
- 
       {/* Scrollbar Fix for Webkit (Chrome/Safari) must be in a style tag */}
       <style>{`
         /* Hide scrollbar for Chrome, Safari and Opera */
@@ -442,205 +530,268 @@ const ManuScript = () => {
           display: none;
         }
       `}</style>
- 
+
       {/* Header */}
       <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
         <FaFileAlt /> Manuscript &raquo; Scheduled Teams
       </h1>
       <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
- 
+
       {/* Control Block */}
       <div className="flex justify-between items-start mb-6 gap-4">
         <div className="flex flex-col items-start gap-4">
-            <button
-              className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
-              onClick={handleCreateSchedule} 
-            >
-              ➕ Create Schedule
-            </button>
-            <div className="relative w-full" style={{ maxWidth: '250px' }}>
-              <input
-                type="text"
-                className="w-full px-4 py-2 pl-10 bg-white border border-[#B2B2B2] rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
+          <button
+            className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
+            onClick={handleCreateSchedule}
+          >
+            ➕ Create Schedule
+          </button>
+          <div className="relative w-full" style={{ maxWidth: "250px" }}>
+            <input
+              type="text"
+              className="w-full px-4 py-2 pl-10 bg-white border border-[#B2B2B2] rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
         </div>
-        <div className="self-end flex items-center gap-2"> 
-            {!isSelectionMode ? (
-                <button
-                    className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-white hover:border-[#B2B2B2]"
-                    onClick={() => setIsSelectionMode(true)}
-                >
-                    <FaTrash /> Delete
-                </button>
-            ) : (
-                <>
-                    <button
-                        className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
-                        onClick={handleCancelSelection}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-lg shadow-sm border flex items-center gap-2 transition 
-                            ${selectedSchedules.length > 0 
-                                ? 'bg-white text-black border-[#B2B2B2] hover:bg-gray-50' 
-                                : 'bg-white text-gray-400 border-[#B2B2B2] cursor-not-allowed'
+        <div className="self-end flex items-center gap-2">
+          {!isSelectionMode ? (
+            <button
+              className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-white hover:border-[#B2B2B2]"
+              onClick={() => setIsSelectionMode(true)}
+            >
+              <FaTrash /> Delete
+            </button>
+          ) : (
+            <>
+              <button
+                className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-gray-100"
+                onClick={handleCancelSelection}
+              >
+                Cancel
+              </button>
+              <button
+                className={`px-4 py-2 rounded-lg shadow-sm border flex items-center gap-2 transition 
+                            ${
+                              selectedSchedules.length > 0
+                                ? "bg-white text-black border-[#B2B2B2] hover:bg-gray-50"
+                                : "bg-white text-gray-400 border-[#B2B2B2] cursor-not-allowed"
                             }`}
-                        onClick={handleDeleteSelected} 
-                        disabled={selectedSchedules.length === 0}
-                    >
-                        <FaTrash /> Delete Selected
-                    </button>
-                </>
-            )}
+                onClick={handleDeleteSelected}
+                disabled={selectedSchedules.length === 0}
+              >
+                <FaTrash /> Delete Selected
+              </button>
+            </>
+          )}
         </div>
       </div>
- 
+
       {/* Table Container - THE RELATIVE PARENT FOR THE DETACHED DROPDOWN */}
-      <div 
-          ref={tableWrapperRef}
-          className="bg-white rounded-lg shadow-md relative"
+      <div
+        ref={tableWrapperRef}
+        className="bg-white rounded-lg shadow-md relative"
       >
- 
         {/* Inner div with Conditional Scrolling and Scrollbar Hiding */}
-        <div 
-          className="table-scroll-area overflow-x-auto overflow-y-auto max-h-96"
-          style={{ 
-            'scrollbarWidth': 'none', /* For Firefox */
-            'msOverflowStyle': 'none', /* For IE and Edge */
-          }}
-        > 
-            <table className="min-w-full divide-y divide-gray-200">
+        <div className="table-fixed-container">
+          <table className="manus-table divide-y divide-gray-200">
+            <colgroup>
+              <col className="col-no" />
+              <col className="col-team" />
+              <col className="col-date" />
+              <col className="col-time" />
+              <col className="col-plag" />
+              <col className="col-ai" />
+              <col className="col-file" />
+              <col className="col-adv" />
+              <col className="col-verdict" />
+              <col className="col-action" />
+            </colgroup>
             <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                {isSelectionMode && (
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <input
-                            type="checkbox"
-                            className="form-checkbox h-4 w-4 bg-white text-[#3B0304] border-[#B2B2B2] rounded focus:ring-[#3B0304]"
-                            checked={isAllSelected}
-                            onChange={handleSelectAll}
-                        />
-                    </th>
+              <tr>
+                {isSelectionMode ? (
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-no">
+                    <input /* … */ />
+                  </th>
+                ) : (
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-no">
+                    NO
+                  </th>
                 )}
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Plagiarism</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AI</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Uploaded</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Verdict</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                </tr>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-team">
+                  TEAM
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-date">
+                  DATE
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-time">
+                  TIME
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider col-plag">
+                  PLAGIARISM
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider col-ai">
+                  AI
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-file">
+                  FILE UPLOADED
+                </th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider col-adv">
+                  ADVISER
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider col-verdict">
+                  VERDICT
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider col-action">
+                  ACTION
+                </th>
+              </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
-                {filteredSchedules.map((sched, index) => {
+              {filteredSchedules.map((sched, index) => {
                 const teamName =
-                    accounts.find((a) => a.id === sched.manager_id)?.group_name ||
-                    "Unknown";
- 
+                  accounts.find((a) => a.id === sched.manager_id)?.group_name ||
+                  "Unknown";
+
                 const isSelected = selectedSchedules.includes(sched.id);
- 
+
                 return (
-                    <tr 
-                        key={sched.id} 
-                        className={`transition duration-150 ease-in-out ${isSelected && isSelectionMode ? 'bg-gray-50' : ''}`}
-                    >
+                  <tr
+                    key={sched.id}
+                    className={`transition duration-150 ease-in-out ${
+                      isSelected && isSelectionMode ? "bg-gray-50" : ""
+                    }`}
+                  >
                     {isSelectionMode && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            <input
-                                type="checkbox"
-                                className="form-checkbox h-4 w-4 bg-white text-[#3B0304] border-[#B2B2B2] rounded focus:ring-[#3B0304]"
-                                checked={isSelected}
-                                onChange={() => handleToggleSelect(sched.id)}
-                            />
-                        </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4 bg-white text-[#3B0304] border-[#B2B2B2] rounded focus:ring-[#3B0304]"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(sched.id)}
+                        />
+                      </td>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{teamName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(sched.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                        })}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {index + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sched.time}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{sched.plagiarism}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{sched.ai}%</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {sched.file_uploaded || "No File"}
+                      {teamName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(sched.date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {sched.time}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                        Pending
+                      {sched.plagiarism}%
                     </td>
- 
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                      {sched.ai}%
+                    </td>
+                    <td
+                      className="px-3 py-3 text-sm text-gray-600"
+                      title={getFileName(sched.file_url) || "No File"}
+                    >
+                      {sched.file_url ? (
+                        <a
+                          href={getDownloadHref(sched.file_url)}
+                          download={getFileName(sched.file_url)}
+                          className="file-ellipsis inline-block align-middle hover:underline"
+                          rel="noopener noreferrer"
+                        >
+                          {getFileName(sched.file_url)}
+                        </a>
+                      ) : (
+                        <span className="file-ellipsis">No File</span>
+                      )}
+                    </td>
+
+                    {/* ADVISER — wrap (no ellipsis) */}
+                    <td className="px-3 py-3 text-sm text-gray-700 wrap-auto">
+                      Gerald Tolentino
+                    </td>
+
+                    {/* Verdict */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
+                      {verdictMap[sched.verdict] || "Pending"}
+                    </td>
+
                     {/* Action Column - Just the button here */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                        {!isSelectionMode && (
-                            <button
-                                ref={el => dropdownButtonRefs.current[index] = el}
-                                onClick={(e) => handleToggleDropdown(e, index, sched.id)}
-                                className="bg-white border-none focus:outline-none p-1 rounded hover:bg-gray-100"
-                            >
-                                <FaEllipsisV className="text-[#3B0304] text-sm" />
-                            </button>
-                        )}
+                      {!isSelectionMode && (
+                        <button
+                          ref={(el) => (dropdownButtonRefs.current[index] = el)}
+                          onClick={(e) =>
+                            handleToggleDropdown(e, index, sched.id)
+                          }
+                          className="bg-white border-none focus:outline-none p-1 rounded hover:bg-gray-100"
+                          aria-label="Actions"
+                          title="Actions"
+                        >
+                          <FaEllipsisV className="text-[#3B0304] text-sm" />
+                        </button>
+                      )}
                     </td>
-                    </tr>
+                  </tr>
                 );
-                })}
-                {filteredSchedules.length === 0 && (
+              })}
+              {filteredSchedules.length === 0 && (
                 <tr>
-                    <td colSpan={isSelectionMode ? "11" : "10"} className="text-center py-4 text-gray-500">
+                  <td
+                    colSpan={isSelectionMode ? "11" : "10"}
+                    className="text-center py-4 text-gray-500"
+                  >
                     No schedules found.
-                    </td>
+                  </td>
                 </tr>
-                )}
+              )}
             </tbody>
-            </table>
+          </table>
         </div>
- 
+
         {/* RENDER DETACHED DROPDOWN MENU HERE - ABSOLUTE POSITIONED RELATIVE TO THE WRAPPER */}
         {openDropdown && !isSelectionMode && (
-            <div 
-                // Container styles: White background, subtle gray ring, shadow
-                className="dropdown-menu-detached w-40 rounded-md shadow-lg ring-1 ring-gray-200 bg-white overflow-hidden z-50" 
-                style={{
-                    position: 'absolute',
-                    top: `${openDropdown.top}px`,
-                    left: `${openDropdown.left}px`,
-                }}
-                onClick={(e) => e.stopPropagation()} 
-            >
-                <div className="py-1">
-                    {/* Update Button - Locked to white background and black text on hover */}
-                    <button
-                        onClick={() => handleUpdate(openDropdown.schedId)}
-                        className="w-full flex items-center px-4 py-3 text-sm text-black bg-white hover:bg-white hover:text-black transition-none duration-0 text-left"
-                    >
-                        <FaEdit className="mr-3 text-black text-sm" /> Update
-                    </button>
-                    {/* Delete Button - Locked to white background and black text on hover */}
-                    <button
-                        onClick={() => handleDelete(openDropdown.schedId)}
-                        className="w-full flex items-center px-4 py-3 text-sm text-black bg-white hover:bg-white hover:text-black transition-none duration-0 text-left"
-                    >
-                        <FaTrash className="mr-3 text-black text-sm" /> Delete
-                    </button>
-                </div>
+          <div
+            // Container styles: White background, subtle gray ring, shadow
+            className="dropdown-menu-detached w-40 rounded-md shadow-lg ring-1 ring-gray-200 bg-white overflow-hidden z-50"
+            style={{
+              position: "absolute",
+              top: `${openDropdown.top}px`,
+              left: `${openDropdown.left}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="py-1">
+              {/* Update Button - Locked to white background and black text on hover */}
+              <button
+                onClick={() => handleUpdate(openDropdown.schedId)}
+                className="w-full flex items-center px-4 py-3 text-sm text-black bg-white hover:bg-white hover:text-black transition-none duration-0 text-left"
+              >
+                <FaEdit className="mr-3 text-black text-sm" /> Update
+              </button>
+              {/* Delete Button - Locked to white background and black text on hover */}
+              <button
+                onClick={() => handleDelete(openDropdown.schedId)}
+                className="w-full flex items-center px-4 py-3 text-sm text-black bg-white hover:bg-white hover:text-black transition-none duration-0 text-left"
+              >
+                <FaTrash className="mr-3 text-black text-sm" /> Delete
+              </button>
             </div>
+          </div>
         )}
- 
       </div>
     </div>
   );
 };
- 
+
 export default ManuScript;
