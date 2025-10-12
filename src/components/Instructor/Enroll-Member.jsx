@@ -14,35 +14,31 @@ import {
   FaTrash,
   FaSearch,
 } from "react-icons/fa";
-import "../Style/Instructor/Enroll-Member.css"; 
+import "../Style/Instructor/Enroll-Member.css";
 import { openAddStudent } from "../../services/instructor/addStudent";
- 
+
 const Enroll = () => {
   const MySwal = withReactContent(Swal);
   const [importedData, setImportedData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [selectedRows, setSelectedRows] = useState([]); 
-  const [isSelectionMode, setIsSelectionMode] = useState(false); 
- 
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
   const tableWrapperRef = useRef(null);
- 
+
   // --- Utility Functions for Dropdown ---
- 
   const handleToggleDropdown = (index) => {
     setOpenDropdown(openDropdown === index ? null : index);
   };
- 
+
   // --- Utility Functions for Selection ---
- 
   const handleToggleSelect = (id) => {
-    setSelectedRows((prev) => 
-      prev.includes(id) 
-        ? prev.filter((rowId) => rowId !== id) 
-        : [...prev, id]
+    setSelectedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
     );
   };
- 
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const allIds = filteredData.map((row) => row.id);
@@ -51,19 +47,19 @@ const Enroll = () => {
       setSelectedRows([]);
     }
   };
- 
+
   // Function to start the selection mode
   const handleStartSelection = () => {
     setIsSelectionMode(true);
-    setSelectedRows([]); 
-  }
- 
+    setSelectedRows([]);
+  };
+
   // Function to cancel selection mode
   const handleCancelSelection = () => {
     setIsSelectionMode(false);
-    setSelectedRows([]); 
+    setSelectedRows([]);
   };
- 
+
   const handleDeleteSelected = () => {
     if (selectedRows.length === 0) {
       MySwal.fire({
@@ -73,7 +69,7 @@ const Enroll = () => {
       });
       return;
     }
- 
+
     MySwal.fire({
       title: `Delete ${selectedRows.length} Students?`,
       text: "This will remove the students from the list before final upload.",
@@ -84,20 +80,26 @@ const Enroll = () => {
       confirmButtonText: "Yes, delete them!",
     }).then((result) => {
       if (result.isConfirmed) {
-        const updatedData = importedData.filter((row) => !selectedRows.includes(row.id));
+        const updatedData = importedData.filter(
+          (row) => !selectedRows.includes(row.id)
+        );
         setImportedData(updatedData);
- 
-        handleCancelSelection(); 
- 
-        MySwal.fire("Deleted!", `${selectedRows.length} students removed.`, "success");
+
+        handleCancelSelection();
+
+        MySwal.fire(
+          "Deleted!",
+          `${selectedRows.length} students removed.`,
+          "success"
+        );
       }
     });
   };
- 
-const handleAddStudent = async () => {
-  MySwal.fire({
-    title: "",
-    html: `
+
+  const handleAddStudent = async () => {
+    MySwal.fire({
+      title: "",
+      html: `
       <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
         <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
@@ -107,7 +109,7 @@ const handleAddStudent = async () => {
           Add Student
         </h5>
       </div>
- 
+
       <div style="padding: 1.2rem 1.2rem;">
         <!-- Student ID -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
@@ -115,35 +117,35 @@ const handleAddStudent = async () => {
           <input id="user_id" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
- 
-        <!-- Password -->
+
+        <!-- Password (prefilled + disabled) -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-          <input id="password" class="swal2-input" placeholder=""
-            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+          <input id="password" class="swal2-input" value="Pass_123" disabled
+            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #f5f5f5; color:#666; margin-left: 0;" />
         </div>
- 
+
         <!-- Last Name -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
           <input id="last_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
- 
+
         <!-- First Name -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
           <input id="first_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
- 
+
         <!-- Middle Initial -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
           <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
           <input id="middle_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
- 
+
         <!-- Buttons -->
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
           <button id="cancel-btn" class="swal2-cancel"
@@ -157,164 +159,186 @@ const handleAddStudent = async () => {
         </div>
       </div>
     `,
-    showConfirmButton: false,
-    showCancelButton: false,
-    width: "460px",
-    customClass: {
-      popup: 'custom-swal-popup',
-    },
-    didOpen: () => {
-      const popup = Swal.getPopup();
- const studentIdInput = popup.querySelector("#user_id");
-studentIdInput.setAttribute("maxlength", "9");
+      showConfirmButton: false,
+      showCancelButton: false,
+      width: "460px",
+      customClass: {
+        popup: "custom-swal-popup",
+      },
+      didOpen: () => {
+        const popup = Swal.getPopup();
 
-// 🔹 Create inline validation message element
-const validationMessage = document.createElement("div");
-validationMessage.style.color = "red";
-validationMessage.style.fontSize = "0.8rem";
-validationMessage.style.marginTop = "0.4rem";
-validationMessage.style.textAlign = "left";
-validationMessage.style.display = "none";
-studentIdInput.parentNode.appendChild(validationMessage);
+        // enforce numeric + max length on student id
+        const studentIdInput = popup.querySelector("#user_id");
+        studentIdInput.setAttribute("maxlength", "9");
 
-studentIdInput.addEventListener("input", (e) => {
-  let value = e.target.value;
+        const validationMessage = document.createElement("div");
+        validationMessage.style.color = "red";
+        validationMessage.style.fontSize = "0.8rem";
+        validationMessage.style.marginTop = "0.4rem";
+        validationMessage.style.textAlign = "left";
+        validationMessage.style.display = "none";
+        studentIdInput.parentNode.appendChild(validationMessage);
 
-  // Auto-remove non-numeric characters
-  const cleanedValue = value.replace(/[^0-9]/g, "");
-  if (value !== cleanedValue) {
-    e.target.value = cleanedValue;
-    validationMessage.textContent = "Only numbers are allowed for Student ID.";
-    validationMessage.style.display = "block";
-  } else {
-    validationMessage.style.display = "none";
-  }
+        studentIdInput.addEventListener("input", (e) => {
+          let value = e.target.value;
 
-  // Enforce max length of 9 digits
-  if (cleanedValue.length > 9) {
-    e.target.value = cleanedValue.slice(0, 9);
-    validationMessage.textContent = "Student ID can only be 9 digits long.";
-    validationMessage.style.display = "block";
-  }
-});
+          // Auto-remove non-numeric characters
+          const cleanedValue = value.replace(/[^0-9]/g, "");
+          if (value !== cleanedValue) {
+            e.target.value = cleanedValue;
+            validationMessage.textContent =
+              "Only numbers are allowed for Student ID.";
+            validationMessage.style.display = "block";
+          } else {
+            validationMessage.style.display = "none";
+          }
 
-      // Cancel button functionality
-      popup.querySelector('#cancel-btn').onclick = () => {
-        Swal.close();
-      };
- 
-      // Enroll button functionality
-      popup.querySelector('#enroll-btn').onclick = () => {
-        Swal.clickConfirm();
-      };
- 
-      // Hover effects
-      popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
-        e.target.style.backgroundColor = '#f8f8f8';
-      });
-      popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
-        e.target.style.backgroundColor = '#fff';
-      });
-      popup.querySelector('#enroll-btn').addEventListener('mouseenter', (e) => {
-        e.target.style.backgroundColor = '#2a0203';
-        e.target.style.borderColor = '#2a0203';
-      });
-      popup.querySelector('#enroll-btn').addEventListener('mouseleave', (e) => {
-        e.target.style.backgroundColor = '#3B0304';
-        e.target.style.borderColor = '#3B0304';
-      });
- 
-      // Add focus effects to inputs
-      const inputs = popup.querySelectorAll('input');
-      inputs.forEach(input => {
-        input.addEventListener('focus', (e) => {
-          e.target.style.borderColor = '#3B0304';
-          e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
+          // Enforce max length of 9 digits
+          if (cleanedValue.length > 9) {
+            e.target.value = cleanedValue.slice(0, 9);
+            validationMessage.textContent =
+              "Student ID can only be 9 digits long.";
+            validationMessage.style.display = "block";
+          }
         });
-        input.addEventListener('blur', (e) => {
-          e.target.style.borderColor = '#888';
-          e.target.style.boxShadow = 'none';
+
+        // 🔒 Ensure password is defaulted + locked even if DOM changes
+        const passInput = popup.querySelector("#password");
+        if (passInput) {
+          passInput.value = "Pass_123";
+          passInput.disabled = true;
+          passInput.style.backgroundColor = "#f5f5f5";
+          passInput.style.color = "#666";
+        }
+
+        // Cancel button functionality
+        popup.querySelector("#cancel-btn").onclick = () => {
+          Swal.close();
+        };
+
+        // Enroll button functionality
+        popup.querySelector("#enroll-btn").onclick = () => {
+          Swal.clickConfirm();
+        };
+
+        // Hover effects
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseenter", (e) => {
+            e.target.style.backgroundColor = "#f8f8f8";
+          });
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseleave", (e) => {
+            e.target.style.backgroundColor = "#fff";
+          });
+        popup
+          .querySelector("#enroll-btn")
+          .addEventListener("mouseenter", (e) => {
+            e.target.style.backgroundColor = "#2a0203";
+            e.target.style.borderColor = "#2a0203";
+          });
+        popup
+          .querySelector("#enroll-btn")
+          .addEventListener("mouseleave", (e) => {
+            e.target.style.backgroundColor = "#3B0304";
+            e.target.style.borderColor = "#3B0304";
+          });
+
+        // Add focus effects to inputs
+        const inputs = popup.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.addEventListener("focus", (e) => {
+            e.target.style.borderColor = "#3B0304";
+            e.target.style.boxShadow = "0 0 0 2px rgba(59, 3, 4, 0.1)";
+          });
+          input.addEventListener("blur", (e) => {
+            e.target.style.borderColor = "#888";
+            e.target.style.boxShadow = "none";
+          });
         });
-      });
-    },
-    preConfirm: () => {
-      const user_id = document.getElementById("user_id").value;
-      const password = document.getElementById("password").value;
-      const first_name = document.getElementById("first_name").value;
-      const last_name = document.getElementById("last_name").value;
- 
-      if (!user_id || !password || !first_name || !last_name) {
-        MySwal.showValidationMessage(
-          'Please fill out all required fields (Student ID, Password, First Name, Last Name).'
-        );
-        return false;
+      },
+      preConfirm: () => {
+        const user_id = document.getElementById("user_id").value;
+        const password = document.getElementById("password").value; // will be Pass_123
+        const first_name = document.getElementById("first_name").value;
+        const last_name = document.getElementById("last_name").value;
+
+        if (!user_id || !password || !first_name || !last_name) {
+          MySwal.showValidationMessage(
+            "Please fill out all required fields (Student ID, Password, First Name, Last Name)."
+          );
+          return false;
+        }
+
+        // Number check
+        if (/\d/.test(first_name) || /\d/.test(last_name)) {
+          MySwal.showValidationMessage(
+            "Numbers in First Name or Last Name are not allowed."
+          );
+          return false;
+        }
+
+        return {
+          user_id,
+          password, // Pass_123
+          first_name,
+          last_name,
+          middle_name: document.getElementById("middle_name").value,
+        };
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const newStudent = {
+          id: uuidv4(),
+          ...result.value,
+        };
+        setImportedData((prev) => [...prev, newStudent]);
+        MySwal.fire("Added!", "New student added successfully.", "success");
       }
- 
-      // Number check
-      if (/\d/.test(first_name) || /\d/.test(last_name)) {
-        MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
-        return false;
-      }
- 
-      return {
-        user_id,
-        password,
-        first_name,
-        last_name,
-        middle_name: document.getElementById("middle_name").value,
+    });
+  };
+
+  const handleDownload = () => {
+    const wsData = [
+      [
+        "PASTE HERE : FULL NAME (LastN, FirstN, MiddleI)",
+        "",
+        "ID Number",
+        "Password",
+        "Last Name",
+        "First Name",
+        "Middle Initial",
+      ],
+      ["", "", "", "", "", "", ""],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // ✅ Column width setup
+    ws["!cols"] = [
+      { wch: 45 }, // A - Full Name
+      { wch: 5 }, // B - spacer
+      { wch: 15 }, // C - ID Number
+      { wch: 15 }, // D - Password
+      { wch: 18 }, // E - Last Name
+      { wch: 18 }, // F - First Name
+      { wch: 15 }, // G - Middle Initial
+    ];
+
+    // ✅ Apply formulas for rows 2–500
+    for (let row = 2; row <= 500; row++) {
+      // 🔹 Last Name (E)
+      ws[`E${row}`] = {
+        t: "s",
+        f: `=IF(A${row}="","",TRIM(LEFT(A${row},FIND(",",A${row})-1)))`,
       };
-    },
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const newStudent = {
-        id: uuidv4(),
-        ...result.value,
-      };
-      setImportedData((prev) => [...prev, newStudent]);
-      MySwal.fire("Added!", "New student added successfully.", "success");
-    }
-  });
-};
- 
-const handleDownload = () => {
-  const wsData = [
-    [
-      "PASTE HERE : FULL NAME (LastN, FirstN, MiddleI)",
-      "", // Spacer column B
-      "ID Number",
-      "Password",
-      "Last Name",
-      "First Name",
-      "Middle Initial",
-    ],
-    ["", "", "", "", "", "", ""],
-  ];
 
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  // ✅ Column width setup
-  ws["!cols"] = [
-    { wch: 45 }, // A - Full Name
-    { wch: 5 },  // B - spacer
-    { wch: 15 }, // C - ID Number
-    { wch: 15 }, // D - Password
-    { wch: 18 }, // E - Last Name
-    { wch: 18 }, // F - First Name
-    { wch: 15 }, // G - Middle Initial
-  ];
-
-  // ✅ Apply formulas for rows 2–500
-  for (let row = 2; row <= 500; row++) {
-    // 🔹 Last Name (E)
-    ws[`E${row}`] = {
-      t: "s",
-      f: `=IF(A${row}="","",TRIM(LEFT(A${row},FIND(",",A${row})-1)))`,
-    };
-
-    // 🔹 First Name (F) — fixed version, excludes middle initial
-    ws[`F${row}`] = {
-      t: "s",
-      f: `=IF(A${row}="","",
+      // 🔹 First Name (F) — fixed version, excludes middle initial
+      ws[`F${row}`] = {
+        t: "s",
+        f: `=IF(A${row}="","",
         TRIM(
           IF(
             ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
@@ -327,12 +351,12 @@ const handleDownload = () => {
           )
         )
       )`,
-    };
+      };
 
-    // 🔹 Middle Initial (G)
-    ws[`G${row}`] = {
-      t: "s",
-      f: `=IF(A${row}="","",
+      // 🔹 Middle Initial (G)
+      ws[`G${row}`] = {
+        t: "s",
+        f: `=IF(A${row}="","",
         IF(
           ISERROR(FIND(",",A${row},FIND(",",A${row})+1)),
           IF(
@@ -343,94 +367,94 @@ const handleDownload = () => {
           TRIM(SUBSTITUTE(MID(A${row},FIND(",",A${row},FIND(",",A${row})+1)+1,LEN(A${row})),".",""))
         )
       )`,
-    };
-  }
+      };
+    }
 
-  // ✅ Create workbook
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Students_Template");
+    // ✅ Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students_Template");
 
-  // ✅ Define used range and force Excel recalculation
-  ws["!ref"] = "A1:G500";
-  wb.Workbook = { CalcPr: { fullCalcOnLoad: true } };
+    // ✅ Define used range and force Excel recalculation
+    ws["!ref"] = "A1:G500";
+    wb.Workbook = { CalcPr: { fullCalcOnLoad: true } };
 
-  // ✅ Write and download
-  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), "students_template.xlsx");
-};
-
-
-
-
- 
-const handleImport = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-    // ✅ Process imported Excel rows
-    const processedData = jsonData
-      .filter((row) => row["ID Number"] || row["Last Name"]) // skip empty rows
-      .map((row) => ({
-        id: uuidv4(),
-        user_id: row["ID Number"] ? String(row["ID Number"]).trim() : "",
-        password: row["Password"] ? String(row["Password"]).trim() : "",
-        first_name: row["First Name"] ? String(row["First Name"]).trim() : "",
-        last_name: row["Last Name"] ? String(row["Last Name"]).trim() : "",
-        middle_name: row["Middle Initial"] ? String(row["Middle Initial"]).trim() : "",
-      }));
-
-    // ✅ Validation (optional)
-    const invalidRow = processedData.find(
-      (r) => /\d/.test(r.first_name) || /\d/.test(r.last_name)
+    // ✅ Write and download
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(
+      new Blob([wbout], { type: "application/octet-stream" }),
+      "students_template.xlsx"
     );
-    if (invalidRow) {
-      MySwal.fire({
-        title: "Invalid Name Format",
-        text: "Names cannot contain numbers.",
-        icon: "warning",
-        confirmButtonColor: "#3B0304",
-      });
+  };
+
+  const handleImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      // ✅ Process imported Excel rows
+      const processedData = jsonData
+        .filter((row) => row["ID Number"] || row["Last Name"]) // skip empty rows
+        .map((row) => ({
+          id: uuidv4(),
+          user_id: row["ID Number"] ? String(row["ID Number"]).trim() : "",
+          password: row["Password"] ? String(row["Password"]).trim() : "",
+          first_name: row["First Name"] ? String(row["First Name"]).trim() : "",
+          last_name: row["Last Name"] ? String(row["Last Name"]).trim() : "",
+          middle_name: row["Middle Initial"]
+            ? String(row["Middle Initial"]).trim()
+            : "",
+        }));
+
+      // ✅ Validation (optional)
+      const invalidRow = processedData.find(
+        (r) => /\d/.test(r.first_name) || /\d/.test(r.last_name)
+      );
+      if (invalidRow) {
+        MySwal.fire({
+          title: "Invalid Name Format",
+          text: "Names cannot contain numbers.",
+          icon: "warning",
+          confirmButtonColor: "#3B0304",
+        });
+        return;
+      }
+
+      setImportedData(processedData);
+      setSelectedRows([]);
+      setSearchTerm("");
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleUpload = async () => {
+    if (importedData.length === 0) {
+      MySwal.fire("No Data", "Please import students first.", "warning");
       return;
     }
 
-    setImportedData(processedData);
-    setSelectedRows([]);
-    setSearchTerm("");
-  };
+    // 1️⃣ Generate year options dynamically — current and future only
+    const currentYear = new Date().getFullYear();
+    const maxFutureYears = 1; // You can adjust how many future years to include
+    const yearOptions = [];
 
-  reader.readAsArrayBuffer(file);
-};
- 
- 
-  const handleUpload = async () => {
-  if (importedData.length === 0) {
-    MySwal.fire("No Data", "Please import students first.", "warning");
-    return;
-  }
+    for (let i = 0; i <= maxFutureYears; i++) {
+      const startYear = currentYear + i;
+      const endYear = startYear + 1;
+      yearOptions.push(`${startYear}-${endYear}`);
+    }
 
- // 1️⃣ Generate year options dynamically — current and future only
-const currentYear = new Date().getFullYear();
-const maxFutureYears = 1; // You can adjust how many future years to include
-const yearOptions = [];
-
-for (let i = 0; i <= maxFutureYears; i++) {
-  const startYear = currentYear + i;
-  const endYear = startYear + 1;
-  yearOptions.push(`${startYear}-${endYear}`);
-}
-
-// 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
-const { value: selectedYear } = await MySwal.fire({
-  title: "Select Academic Year",
-  html: `
+    // 2️⃣ SweetAlert2 prompt for year selection (auto-select current)
+    const { value: selectedYear } = await MySwal.fire({
+      title: "Select Academic Year",
+      html: `
     <div style="max-width: 100%; overflow: hidden;">
       <select id="year-select" style="
         width: 100%;
@@ -446,8 +470,8 @@ const { value: selectedYear } = await MySwal.fire({
           .map(
             (year) => `
               <option value="${year}" ${
-                year.startsWith(currentYear.toString()) ? "selected" : ""
-              }>
+              year.startsWith(currentYear.toString()) ? "selected" : ""
+            }>
                 ${year}
               </option>`
           )
@@ -455,67 +479,71 @@ const { value: selectedYear } = await MySwal.fire({
       </select>
     </div>
   `,
-  showCancelButton: true,
-  confirmButtonColor: "#3B0304",
-  cancelButtonColor: "#999",
-  confirmButtonText: "Confirm",
-  focusConfirm: false,
-  width: "350px",
-  customClass: {
-    popup: "custom-swal-popup",
-  },
-  didOpen: () => {
-    // Force select to full width (SweetAlert2 overrides width by default)
-    const select = document.getElementById("year-select");
-    if (select) {
-      select.style.width = "100%";
-      select.style.display = "block";
+      showCancelButton: true,
+      confirmButtonColor: "#3B0304",
+      cancelButtonColor: "#999",
+      confirmButtonText: "Confirm",
+      focusConfirm: false,
+      width: "350px",
+      customClass: {
+        popup: "custom-swal-popup",
+      },
+      didOpen: () => {
+        // Force select to full width (SweetAlert2 overrides width by default)
+        const select = document.getElementById("year-select");
+        if (select) {
+          select.style.width = "100%";
+          select.style.display = "block";
+        }
+      },
+      preConfirm: () => {
+        const year = document.getElementById("year-select").value;
+        if (!year) {
+          MySwal.showValidationMessage("Please select a year first.");
+          return false;
+        }
+        return year;
+      },
+    });
+
+    // 3️⃣ Handle cancel
+    if (!selectedYear) {
+      MySwal.fire("Cancelled", "Enrollment was cancelled.", "info");
+      return;
     }
-  },
-  preConfirm: () => {
-    const year = document.getElementById("year-select").value;
-    if (!year) {
-      MySwal.showValidationMessage("Please select a year first.");
-      return false;
+
+    try {
+      const dataToInsert = importedData.map((row) => ({
+        user_id: row.user_id,
+        password: row.password || "Pass_123", // fallback if an imported row left it blank
+        first_name: row.first_name,
+        last_name: row.last_name,
+        middle_name: row.middle_name,
+        user_roles: 2, // Students
+        year: selectedYear, // 🆕 Save academic year
+      }));
+
+      const { error } = await supabase
+        .from("user_credentials")
+        .insert(dataToInsert);
+      if (error) throw error;
+
+      MySwal.fire(
+        "Success",
+        `Students enrolled for ${selectedYear}!`,
+        "success"
+      );
+      setImportedData([]);
+      setSelectedRows([]);
+    } catch (err) {
+      console.error("Upload error:", err.message);
+      MySwal.fire("Error", err.message, "error");
     }
-    return year;
-  },
-});
+  };
 
-// 3️⃣ Handle cancel
-if (!selectedYear) {
-  MySwal.fire("Cancelled", "Enrollment was cancelled.", "info");
-  return;
-}
-
-try {
-  const dataToInsert = importedData.map((row) => ({
-    user_id: row.user_id,
-    password: row.password,
-    first_name: row.first_name,
-    last_name: row.last_name,
-    middle_name: row.middle_name,
-    user_roles: 2, // Students
-    year: selectedYear, // 🆕 Save academic year
-  }));
-
-  const { error } = await supabase.from("user_credentials").insert(dataToInsert);
-  if (error) throw error;
-
-  MySwal.fire("Success", `Students enrolled for ${selectedYear}!`, "success");
-  setImportedData([]);
-  setSelectedRows([]);
-} catch (err) {
-  console.error("Upload error:", err.message);
-  MySwal.fire("Error", err.message, "error");
-}
-
-};
-
- 
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
- 
+
     MySwal.fire({
       title: "",
       html: `
@@ -528,43 +556,53 @@ try {
             Edit Student
           </h5>
         </div>
- 
+
         <div style="padding: 1.2rem 1.2rem;">
           <!-- Student ID -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Student ID</label>
-            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder=""
+            <input id="user_id" class="swal2-input" value="${
+              row.user_id
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
- 
-          <!-- Password -->
+
+          <!-- Password (editable in edit modal) -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
+            <input id="password" class="swal2-input" value="${
+              row.password || "Pass_123"
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
- 
+
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
-            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder=""
+            <input id="last_name" class="swal2-input" value="${
+              row.last_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
- 
+
           <!-- First Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
-            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
+            <input id="first_name" class="swal2-input" value="${
+              row.first_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
- 
+
           <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
             <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
-            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
+            <input id="middle_name" class="swal2-input" value="${
+              row.middle_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
- 
+
           <!-- Buttons -->
           <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
             <button id="cancel-btn" class="swal2-cancel"
@@ -582,80 +620,84 @@ try {
       showCancelButton: false,
       width: "460px",
       customClass: {
-        popup: 'custom-swal-popup',
+        popup: "custom-swal-popup",
       },
       didOpen: () => {
         const popup = Swal.getPopup();
         const studentIdInput = popup.querySelector("#user_id");
-studentIdInput.setAttribute("maxlength", "9");
+        studentIdInput.setAttribute("maxlength", "9");
 
-// 🔹 Create inline validation message element
-const validationMessage = document.createElement("div");
-validationMessage.style.color = "red";
-validationMessage.style.fontSize = "0.8rem";
-validationMessage.style.marginTop = "0.4rem";
-validationMessage.style.textAlign = "left";
-validationMessage.style.display = "none";
-studentIdInput.parentNode.appendChild(validationMessage);
+        const validationMessage = document.createElement("div");
+        validationMessage.style.color = "red";
+        validationMessage.style.fontSize = "0.8rem";
+        validationMessage.style.marginTop = "0.4rem";
+        validationMessage.style.textAlign = "left";
+        validationMessage.style.display = "none";
+        studentIdInput.parentNode.appendChild(validationMessage);
 
-studentIdInput.addEventListener("input", (e) => {
-  let value = e.target.value;
+        studentIdInput.addEventListener("input", (e) => {
+          let value = e.target.value;
 
-  // Auto-remove non-numeric characters
-  const cleanedValue = value.replace(/[^0-9]/g, "");
-  if (value !== cleanedValue) {
-    e.target.value = cleanedValue;
-    validationMessage.textContent = "Only numbers are allowed for Student ID.";
-    validationMessage.style.display = "block";
-  } else {
-    validationMessage.style.display = "none";
-  }
+          // Auto-remove non-numeric characters
+          const cleanedValue = value.replace(/[^0-9]/g, "");
+          if (value !== cleanedValue) {
+            e.target.value = cleanedValue;
+            validationMessage.textContent =
+              "Only numbers are allowed for Student ID.";
+            validationMessage.style.display = "block";
+          } else {
+            validationMessage.style.display = "none";
+          }
 
-  // Enforce max length of 9 digits
-  if (cleanedValue.length > 9) {
-    e.target.value = cleanedValue.slice(0, 9);
-    validationMessage.textContent = "Student ID can only be 9 digits long.";
-    validationMessage.style.display = "block";
-  }
-});
+          // Enforce max length of 9 digits
+          if (cleanedValue.length > 9) {
+            e.target.value = cleanedValue.slice(0, 9);
+            validationMessage.textContent =
+              "Student ID can only be 9 digits long.";
+            validationMessage.style.display = "block";
+          }
+        });
 
- 
         // Cancel button functionality
-        popup.querySelector('#cancel-btn').onclick = () => {
+        popup.querySelector("#cancel-btn").onclick = () => {
           Swal.close();
         };
- 
+
         // Save button functionality
-        popup.querySelector('#save-btn').onclick = () => {
+        popup.querySelector("#save-btn").onclick = () => {
           Swal.clickConfirm();
         };
- 
+
         // Hover effects
-        popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
-          e.target.style.backgroundColor = '#f8f8f8';
-        });
-        popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
-          e.target.style.backgroundColor = '#fff';
-        });
-        popup.querySelector('#save-btn').addEventListener('mouseenter', (e) => {
-          e.target.style.backgroundColor = '#2a0203';
-          e.target.style.borderColor = '#2a0203';
-        });
-        popup.querySelector('#save-btn').addEventListener('mouseleave', (e) => {
-          e.target.style.backgroundColor = '#3B0304';
-          e.target.style.borderColor = '#3B0304';
-        });
- 
-        // Add focus effects to inputs
-        const inputs = popup.querySelectorAll('input');
-        inputs.forEach(input => {
-          input.addEventListener('focus', (e) => {
-            e.target.style.borderColor = '#3B0304';
-            e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseenter", (e) => {
+            e.target.style.backgroundColor = "#f8f8f8";
           });
-          input.addEventListener('blur', (e) => {
-            e.target.style.borderColor = '#888';
-            e.target.style.boxShadow = 'none';
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseleave", (e) => {
+            e.target.style.backgroundColor = "#fff";
+          });
+        popup.querySelector("#save-btn").addEventListener("mouseenter", (e) => {
+          e.target.style.backgroundColor = "#2a0203";
+          e.target.style.borderColor = "#2a0203";
+        });
+        popup.querySelector("#save-btn").addEventListener("mouseleave", (e) => {
+          e.target.style.backgroundColor = "#3B0304";
+          e.target.style.borderColor = "#3B0304";
+        });
+
+        // Add focus effects to inputs
+        const inputs = popup.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.addEventListener("focus", (e) => {
+            e.target.style.borderColor = "#3B0304";
+            e.target.style.boxShadow = "0 0 0 2px rgba(59, 3, 4, 0.1)";
+          });
+          input.addEventListener("blur", (e) => {
+            e.target.style.borderColor = "#888";
+            e.target.style.boxShadow = "none";
           });
         });
       },
@@ -664,20 +706,22 @@ studentIdInput.addEventListener("input", (e) => {
         const password = document.getElementById("password").value;
         const first_name = document.getElementById("first_name").value;
         const last_name = document.getElementById("last_name").value;
- 
+
         if (!user_id || !password || !first_name || !last_name) {
           MySwal.showValidationMessage(
-            'Please fill out all required fields (Student ID, Password, First Name, Last Name).'
+            "Please fill out all required fields (Student ID, Password, First Name, Last Name)."
           );
           return false;
         }
- 
+
         // Number check
         if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+          MySwal.showValidationMessage(
+            "Numbers in First Name or Last Name are not allowed."
+          );
           return false;
         }
- 
+
         return {
           user_id,
           password,
@@ -689,66 +733,65 @@ studentIdInput.addEventListener("input", (e) => {
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...importedData];
-        updatedData[index] = { ...row, ...result.value }; 
+        updatedData[index] = { ...row, ...result.value };
         setImportedData(updatedData);
         MySwal.fire("Updated!", "Student updated successfully.", "success");
       }
     });
   };
- 
+
   const handleDeleteRow = (index) => {
     setOpenDropdown(null);
- 
+
     MySwal.fire({
       title: "Are you sure?",
       text: "This will remove the student from the list.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
-      confirmButtonColor: "#3B0304", 
-      cancelButtonColor: "#999", 
+      confirmButtonColor: "#3B0304",
+      cancelButtonColor: "#999",
     }).then((result) => {
       if (result.isConfirmed) {
-        const updatedData = importedData.filter((_, i) => i !== index); 
+        const updatedData = importedData.filter((_, i) => i !== index);
         const deletedId = importedData[index].id;
-        setSelectedRows(prev => prev.filter(id => id !== deletedId));
- 
+        setSelectedRows((prev) => prev.filter((id) => id !== deletedId));
+
         setImportedData(updatedData);
         MySwal.fire("Deleted!", "Student removed.", "success");
       }
     });
   };
- 
+
   const handleCancel = () => {
     setImportedData([]);
     setSelectedRows([]);
     setSearchTerm("");
     MySwal.fire("Cancelled", "Import cancelled.", "info");
   };
- 
+
   // --- Filtering ---
   const filteredData = importedData.filter((row) => {
-  const userId = String(row.user_id ?? "").toLowerCase();
-  const firstName = String(row.first_name ?? "").toLowerCase();
-  const lastName = String(row.last_name ?? "").toLowerCase();
-  const middleName = String(row.middle_name ?? "").toLowerCase();
- 
-  return (
-    userId.includes(searchTerm.toLowerCase()) ||
-    firstName.includes(searchTerm.toLowerCase()) ||
-    lastName.includes(searchTerm.toLowerCase()) ||
-    middleName.includes(searchTerm.toLowerCase())
-  );
-});
-  const isAllSelected = filteredData.length > 0 && 
-                        filteredData.every(row => selectedRows.includes(row.id));
- 
- 
+    const userId = String(row.user_id ?? "").toLowerCase();
+    const firstName = String(row.first_name ?? "").toLowerCase();
+    const lastName = String(row.last_name ?? "").toLowerCase();
+    const middleName = String(row.middle_name ?? "").toLowerCase();
+
+    return (
+      userId.includes(searchTerm.toLowerCase()) ||
+      firstName.includes(searchTerm.toLowerCase()) ||
+      lastName.includes(searchTerm.toLowerCase()) ||
+      middleName.includes(searchTerm.toLowerCase())
+    );
+  });
+
+  const isAllSelected =
+    filteredData.length > 0 &&
+    filteredData.every((row) => selectedRows.includes(row.id));
+
   // --- Render ---
- 
   return (
     <div className="container-fluid px-4 py-3">
- 
       {/* Scrollbar Fix for Webkit (Chrome/Safari) */}
       <style>{`
         /* Hide scrollbar for Chrome, Safari and Opera */
@@ -758,9 +801,9 @@ studentIdInput.addEventListener("input", (e) => {
         /* Style for the custom dropdown menu */
         .enroll-dropdown {
           position: absolute;
-          right: 30px; 
+          right: 30px;
           top: 0;
-          z-index: 20; 
+          z-index: 20;
           min-width: 100px;
           padding: 4px 0;
           margin: 0;
@@ -786,17 +829,20 @@ studentIdInput.addEventListener("input", (e) => {
           cursor: pointer;
         }
         .enroll-dropdown .dropdown-item:hover {
-          background-color: #f8f9fa; 
+          background-color: #f8f9fa;
         }
       `}</style>
- 
+
       <div className="row">
         <div className="col-12">
-          <div className="d-flex align-items-center mb-2 enroll-header" style={{color: '#3B0304'}}>
+          <div
+            className="d-flex align-items-center mb-2 enroll-header"
+            style={{ color: "#3B0304" }}
+          >
             <FaUserGraduate className="me-2" size={18} />
             <strong>Enroll » Students</strong>
           </div>
- 
+
           <div
             style={{
               height: "1.5px",
@@ -808,9 +854,8 @@ studentIdInput.addEventListener("input", (e) => {
             }}
           />
         </div>
- 
-        <div className="col-12 col-md-12 col-lg-12"> 
- 
+
+        <div className="col-12 col-md-12 col-lg-12">
           {/* Top Control Buttons */}
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
             <div className="d-flex flex-wrap align-items-center gap-2">
@@ -827,12 +872,16 @@ studentIdInput.addEventListener("input", (e) => {
                   borderRadius: "6px",
                   transition: "background-color 0.2s",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "white")
+                }
               >
-                <FaDownload size={14} /> Download 
+                <FaDownload size={14} /> Download
               </button>
- 
+
               <label
                 className="btn d-flex align-items-center gap-1 mb-0"
                 style={{
@@ -846,20 +895,24 @@ studentIdInput.addEventListener("input", (e) => {
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "white")
+                }
               >
-                <FaUpload size={14} /> Import 
+                <FaUpload size={14} /> Import
                 <input
                   type="file"
                   hidden
                   accept=".xlsx,.xls"
                   onChange={handleImport}
-                  onClick={(e) => e.target.value = null} 
+                  onClick={(e) => (e.target.value = null)}
                 />
               </label>
             </div>
- 
+
             <div className="d-flex align-items-center gap-2 flex-wrap">
               {importedData.length > 0 && (
                 <>
@@ -877,12 +930,14 @@ studentIdInput.addEventListener("input", (e) => {
                       cursor: "pointer",
                       transition: "opacity 0.2s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.opacity = "0.9")
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                   >
                     Save & Enroll ({importedData.length})
                   </button>
- 
+
                   <button
                     className="btn"
                     onClick={handleCancel}
@@ -897,15 +952,19 @@ studentIdInput.addEventListener("input", (e) => {
                       cursor: "pointer",
                       transition: "background-color 0.2s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
                     Cancel Import
                   </button>
                 </>
               )}
- 
-              {/* RESTORED: Add Student Button */}
+
+              {/* Add Student Button */}
               <button
                 className="btn"
                 style={{
@@ -919,18 +978,19 @@ studentIdInput.addEventListener("input", (e) => {
                   whiteSpace: "nowrap",
                   transition: "background-color 0.2s",
                 }}
- 
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "white")
+                }
                 onClick={handleAddStudent}
- 
               >
                 + Add Student
               </button>
- 
             </div>
           </div>
- 
+
           {importedData.length === 0 ? (
             <div
               className="text-center p-4 border"
@@ -946,191 +1006,291 @@ studentIdInput.addEventListener("input", (e) => {
               proceed with enrolling the students into the system.
             </div>
           ) : (
- 
             // --- Enrollment Table Section ---
-            <div className="bg-white rounded-lg shadow-md relative" ref={tableWrapperRef}>
- 
+            <div
+              className="bg-white rounded-lg shadow-md relative"
+              ref={tableWrapperRef}
+            >
               {/* Table Controls (Search and Delete Selected) */}
               <div className="d-flex justify-content-between align-items-center p-3 flex-wrap gap-2">
- 
                 <div className="position-relative">
-                    <input
-                        type="text"
-                        placeholder="Search student..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="form-control ps-5"
-                        style={{
-                            fontSize: "0.9rem",
-                            maxWidth: "200px",
-                            borderRadius: '6px',
-                            border: '1px solid #ccc',
-                            height: '38px',
-                        }}
-                    />
-                    <FaSearch 
-                        className="position-absolute text-muted" 
-                        style={{ left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem' }} 
-                    />
+                  <input
+                    type="text"
+                    placeholder="Search student..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="form-control ps-5"
+                    style={{
+                      fontSize: "0.9rem",
+                      maxWidth: "200px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      height: "38px",
+                    }}
+                  />
+                  <FaSearch
+                    className="position-absolute text-muted"
+                    style={{
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: "0.85rem",
+                    }}
+                  />
                 </div>
- 
+
                 {/* Conditional Delete Buttons */}
                 {!isSelectionMode ? (
-                    <button
-                        className="btn d-flex align-items-center gap-1 text-[#3B0304] border-[#3B0304]"
-                        onClick={handleStartSelection}
-                        style={{
-                          fontSize: "0.85rem",
-                          padding: "6px 12px",
-                          borderRadius: "6px",
-                          backgroundColor: "transparent",
-                          fontWeight: "500",
-                          border: `1.5px solid #3B0304`,
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                        <FaTrash size={12} /> Delete
-                    </button>
+                  <button
+                    className="btn d-flex align-items-center gap-1 text-[#3B0304] border-[#3B0304]"
+                    onClick={handleStartSelection}
+                    style={{
+                      fontSize: "0.85rem",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      backgroundColor: "transparent",
+                      fontWeight: "500",
+                      border: `1.5px solid #3B0304`,
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
+                  >
+                    <FaTrash size={12} /> Delete
+                  </button>
                 ) : (
-                    <div className="d-flex align-items-center gap-2">
-                         <button
-                            className="btn"
-                            onClick={handleCancelSelection}
-                            style={{
-                                fontSize: "0.85rem",
-                                padding: "6px 12px",
-                                borderRadius: "6px",
-                                border: "1.5px solid #B2B2B2",
-                                backgroundColor: "transparent",
-                                color: "#3B0304",
-                                fontWeight: "500",
-                                transition: "background-color 0.2s",
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="btn d-flex align-items-center gap-1"
-                            onClick={handleDeleteSelected}
-                            disabled={selectedRows.length === 0}
-                            style={{
-                              fontSize: "0.85rem",
-                              padding: "6px 12px",
-                              borderRadius: "6px",
-                              backgroundColor: "transparent",
-                              fontWeight: "500",
-                              cursor: selectedRows.length === 0 ? 'not-allowed' : 'pointer',
-                              // Use the main color for active delete, gray for disabled
-                              color: selectedRows.length === 0 ? '#A0A0A0' : '#3B0304', 
-                              border: `1.5px solid ${selectedRows.length === 0 ? '#B2B2B2' : '#3B0304'}`,
-                              transition: "all 0.2s",
-                            }}
-                            onMouseEnter={(e) => selectedRows.length > 0 ? e.currentTarget.style.backgroundColor = '#f0f0f0' : null}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                            <FaTrash size={12} /> Delete Selected
-                        </button>
-                    </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      className="btn"
+                      onClick={handleCancelSelection}
+                      style={{
+                        fontSize: "0.85rem",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        border: "1.5px solid #B2B2B2",
+                        backgroundColor: "transparent",
+                        color: "#3B0304",
+                        fontWeight: "500",
+                        transition: "background-color 0.2s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn d-flex align-items-center gap-1"
+                      onClick={handleDeleteSelected}
+                      disabled={selectedRows.length === 0}
+                      style={{
+                        fontSize: "0.85rem",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        backgroundColor: "transparent",
+                        fontWeight: "500",
+                        cursor:
+                          selectedRows.length === 0 ? "not-allowed" : "pointer",
+                        color:
+                          selectedRows.length === 0 ? "#A0A0A0" : "#3B0304",
+                        border: `1.5px solid ${
+                          selectedRows.length === 0 ? "#B2B2B2" : "#3B0304"
+                        }`,
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) =>
+                        selectedRows.length > 0
+                          ? (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                          : null
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <FaTrash size={12} /> Delete Selected
+                    </button>
+                  </div>
                 )}
               </div>
- 
+
               {/* Table Body with Scrolling */}
-              <div 
+              <div
                 className="table-scroll-area overflow-x-auto overflow-y-auto"
-                style={{ maxHeight: '400px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              > 
+                style={{
+                  maxHeight: "400px",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       {/* Checkbox Header (Conditional) */}
                       {isSelectionMode && (
-                          <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '40px' }}>
-                              <input
-                                  type="checkbox"
-                                  className="form-checkbox h-4 w-4 text-[#3B0304] border-gray-300 rounded"
-                                  checked={isAllSelected}
-                                  onChange={handleSelectAll}
-                              />
-                          </th>
+                        <th
+                          scope="col"
+                          className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          style={{ width: "40px" }}
+                        >
+                          <input
+                            type="checkbox"
+                            className="form-checkbox h-4 w-4 text-[#3B0304] border-gray-300 rounded"
+                            checked={isAllSelected}
+                            onChange={handleSelectAll}
+                          />
+                        </th>
                       )}
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Initial</th>
-                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px' }}>Action</th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        NO
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Student ID
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Password
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        First Name
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Last Name
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Middle Initial
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        style={{ width: "100px" }}
+                      >
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredData.map((row, index) => {
-                        const isSelected = selectedRows.includes(row.id);
-                        return (
-                          <tr key={row.id} className={isSelected ? 'bg-gray-50' : 'hover:bg-gray-50 transition duration-150'}>
-                            {/* Checkbox Cell (Conditional) */}
-                            {isSelectionMode && (
-                                <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
-                                    <input
-                                        type="checkbox"
-                                        className="form-checkbox h-4 w-4 text-[#3B0304] border-gray-300 rounded"
-                                        checked={isSelected}
-                                        onChange={() => handleToggleSelect(row.id)}
-                                    />
-                                </td>
-                            )}
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{importedData.indexOf(row) + 1}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.user_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.password}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.first_name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.last_name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.middle_name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center position-relative">
-                              {/* Action Button only visible when not in selection mode */}
-                              {!isSelectionMode && (
-                                  <button
-                                    className="text-gray-500 hover:text-[#3B0304] p-1 rounded transition duration-150"
-                                    onClick={() => handleToggleDropdown(index)}
-                                    style={{border: 'none', background: 'none'}}
-                                  >
-                                    <FaEllipsisV size={14} />
-                                  </button>
-                              )}
- 
-                              {/* Detached Dropdown Menu */}
-                              {openDropdown === index && !isSelectionMode && (
-                                <ul className="enroll-dropdown" style={{ right: '5px', top: '50%', transform: 'translateY(-50%)', marginTop: '0' }}>
-                                  <li>
-                                    <button
-                                      className="dropdown-item d-flex align-items-center gap-2"
-                                      onClick={() => handleEditRow(row, index)}
-                                    >
-                                      <FaEdit size={12} style={{ color: '#3B0304' }} /> Edit
-                                    </button>
-                                  </li>
-                                  <li>
-                                    <button
-                                      className="dropdown-item d-flex align-items-center gap-2 text-danger"
-                                      onClick={() => handleDeleteRow(index)}
-                                    >
-                                      <FaTrash size={12} /> Delete
-                                    </button>
-                                  </li>
-                                </ul>
-                              )}
+                      const isSelected = selectedRows.includes(row.id);
+                      return (
+                        <tr
+                          key={row.id}
+                          className={
+                            isSelected
+                              ? "bg-gray-50"
+                              : "hover:bg-gray-50 transition duration-150"
+                          }
+                        >
+                          {/* Checkbox Cell (Conditional) */}
+                          {isSelectionMode && (
+                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
+                              <input
+                                type="checkbox"
+                                className="form-checkbox h-4 w-4 text-[#3B0304] border-gray-300 rounded"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelect(row.id)}
+                              />
                             </td>
-                          </tr>
-                        );
+                          )}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {importedData.indexOf(row) + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.user_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.password || "Pass_123"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.first_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.last_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.middle_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center position-relative">
+                            {/* Action Button only visible when not in selection mode */}
+                            {!isSelectionMode && (
+                              <button
+                                className="text-gray-500 hover:text-[#3B0304] p-1 rounded transition duration-150"
+                                onClick={() => handleToggleDropdown(index)}
+                                style={{ border: "none", background: "none" }}
+                              >
+                                <FaEllipsisV size={14} />
+                              </button>
+                            )}
+
+                            {/* Detached Dropdown Menu */}
+                            {openDropdown === index && !isSelectionMode && (
+                              <ul
+                                className="enroll-dropdown"
+                                style={{
+                                  right: "5px",
+                                  top: "50%",
+                                  transform: "translateY(-50%)",
+                                  marginTop: "0",
+                                }}
+                              >
+                                <li>
+                                  <button
+                                    className="dropdown-item d-flex align-items-center gap-2"
+                                    onClick={() => handleEditRow(row, index)}
+                                  >
+                                    <FaEdit
+                                      size={12}
+                                      style={{ color: "#3B0304" }}
+                                    />{" "}
+                                    Edit
+                                  </button>
+                                </li>
+                                <li>
+                                  <button
+                                    className="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                    onClick={() => handleDeleteRow(index)}
+                                  >
+                                    <FaTrash size={12} /> Delete
+                                  </button>
+                                </li>
+                              </ul>
+                            )}
+                          </td>
+                        </tr>
+                      );
                     })}
                     {filteredData.length === 0 && (
-                        <tr>
-                            <td colSpan={isSelectionMode ? "9" : "8"} className="text-center py-4 text-gray-500">
-                                No students match your search.
-                            </td>
-                        </tr>
+                      <tr>
+                        <td
+                          colSpan={isSelectionMode ? "9" : "8"}
+                          className="text-center py-4 text-gray-500"
+                        >
+                          No students match your search.
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -1142,5 +1302,5 @@ studentIdInput.addEventListener("input", (e) => {
     </div>
   );
 };
- 
+
 export default Enroll;

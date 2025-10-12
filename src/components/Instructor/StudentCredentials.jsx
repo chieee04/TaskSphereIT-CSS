@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaDownload, FaUserGraduate, FaEllipsisV, FaEdit, FaTrash, FaSearch, FaKey, FaTrashAlt } from "react-icons/fa";
+import {
+  FaDownload,
+  FaUserGraduate,
+  FaEllipsisV,
+  FaEdit,
+  FaTrash,
+  FaSearch,
+  FaKey,
+  FaTrashAlt,
+} from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
@@ -21,7 +30,7 @@ const StudentCredentials = () => {
   const secondYear = selectedYear ? parseInt(selectedYear) + 1 : "";
   const [loading, setLoading] = useState(true);
   const [credentials, setCredentials] = useState([]);
- 
+
   // Refs for detecting outside clicks
   const headerKebabRef = useRef(null);
   const tableKebabRefs = useRef([]);
@@ -40,10 +49,16 @@ const StudentCredentials = () => {
       }
 
       // Extract unique years and sort them in descending order
-      const uniqueYears = [...new Set(data.map(item => {
-        // Extract the first part of the year format (e.g., "2024" from "2024-2025")
-        return item.year ? item.year.split('-')[0] : null;
-      }))].filter(year => year !== null).sort((a, b) => b - a);
+      const uniqueYears = [
+        ...new Set(
+          data.map((item) => {
+            // Extract the first part of the year format (e.g., "2024" from "2024-2025")
+            return item.year ? item.year.split("-")[0] : null;
+          })
+        ),
+      ]
+        .filter((year) => year !== null)
+        .sort((a, b) => b - a);
 
       return uniqueYears;
     } catch (error) {
@@ -55,7 +70,7 @@ const StudentCredentials = () => {
   // Fetch credentials based on selected year
   const fetchCredentials = async (year) => {
     setLoading(true);
-    
+
     try {
       if (!year) {
         setCredentials([]);
@@ -68,7 +83,9 @@ const StudentCredentials = () => {
 
       const { data, error } = await supabase
         .from("user_credentials")
-        .select("id, last_name, first_name, middle_name, user_id, password, user_roles, year")
+        .select(
+          "id, last_name, first_name, middle_name, user_id, password, user_roles, year"
+        )
         .eq("year", academicYear)
         .in("user_roles", [1, 2])
         .order("last_name", { ascending: true });
@@ -89,32 +106,33 @@ const StudentCredentials = () => {
       setLoading(false);
     }
   };
- 
+
   const filteredData = credentials.filter((row) =>
     Object.values(row)
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
- 
+
   // Function to generate random password
   const generateRandomPassword = () => {
     const length = 8;
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const charset =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let password = "";
     for (let i = 0; i < length; i++) {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     return password;
   };
- 
+
   // Selection functions
   const handleToggleSelect = (id) => {
     setSelectedRows((prev) =>
       prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
     );
   };
- 
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const allIds = filteredData.map((row) => row.id);
@@ -123,18 +141,18 @@ const StudentCredentials = () => {
       setSelectedRows([]);
     }
   };
- 
+
   const handleStartMultipleDelete = () => {
     setIsSelectionMode(true);
     setSelectedRows([]);
     setOpenHeaderAction(false);
   };
- 
+
   const handleCancelSelection = () => {
     setIsSelectionMode(false);
     setSelectedRows([]);
   };
- 
+
   const handleDeleteSelected = async () => {
     if (selectedRows.length === 0) {
       MySwal.fire({
@@ -145,51 +163,68 @@ const StudentCredentials = () => {
       });
       return;
     }
- 
+
     const result = await MySwal.fire({
-      title: `Delete ${selectedRows.length} Student${selectedRows.length > 1 ? 's' : ''}?`,
+      title: `Delete ${selectedRows.length} Student${
+        selectedRows.length > 1 ? "s" : ""
+      }?`,
       text: "This will permanently delete the selected student(s).",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3B0304",
       cancelButtonColor: "#999",
-      confirmButtonText: `Yes, delete ${selectedRows.length} student${selectedRows.length > 1 ? 's' : ''}!`,
+      confirmButtonText: `Yes, delete ${selectedRows.length} student${
+        selectedRows.length > 1 ? "s" : ""
+      }!`,
     });
- 
+
     if (result.isConfirmed) {
       try {
         const { error } = await supabase
           .from("user_credentials")
           .delete()
           .in("id", selectedRows);
- 
+
         if (error) throw error;
- 
+
         // Remove deleted students from local state
-        const updatedCredentials = credentials.filter((row) => !selectedRows.includes(row.id));
+        const updatedCredentials = credentials.filter(
+          (row) => !selectedRows.includes(row.id)
+        );
         setCredentials(updatedCredentials);
- 
+
         // Exit selection mode
         handleCancelSelection();
- 
-        MySwal.fire("Deleted!", `${selectedRows.length} student${selectedRows.length > 1 ? 's' : ''} have been deleted.`, "success");
+
+        MySwal.fire(
+          "Deleted!",
+          `${selectedRows.length} student${
+            selectedRows.length > 1 ? "s" : ""
+          } have been deleted.`,
+          "success"
+        );
       } catch (error) {
         console.error("Delete error:", error);
         MySwal.fire("Error", "Failed to delete students.", "error");
       }
     }
   };
- 
-  const isAllSelected = filteredData.length > 0 && filteredData.every((row) => selectedRows.includes(row.id));
- 
+
+  const isAllSelected =
+    filteredData.length > 0 &&
+    filteredData.every((row) => selectedRows.includes(row.id));
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Close header kebab menu
-      if (headerKebabRef.current && !headerKebabRef.current.contains(event.target)) {
+      if (
+        headerKebabRef.current &&
+        !headerKebabRef.current.contains(event.target)
+      ) {
         setOpenHeaderAction(false);
       }
- 
+
       // Close table row kebab menus
       if (openDropdown !== null) {
         const currentRef = tableKebabRefs.current[openDropdown];
@@ -198,7 +233,7 @@ const StudentCredentials = () => {
         }
       }
     };
- 
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -208,18 +243,20 @@ const StudentCredentials = () => {
   // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setCurrentUser(user);
     };
     getCurrentUser();
   }, []);
- 
+
   // Initialize available years and set default selected year
   useEffect(() => {
     const initializeYears = async () => {
       const years = await fetchAvailableYears();
       setAvailableYears(years);
-      
+
       // Set the most recent year as default if available
       if (years.length > 0) {
         setSelectedYear(years[0]);
@@ -246,17 +283,17 @@ const StudentCredentials = () => {
     console.log(`Available years:`, availableYears);
     console.log(`Current user:`, currentUser);
   }, [selectedYear, availableYears, currentUser]);
- 
+
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
- 
+
     MySwal.fire({
       title: "",
       html: `
         <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
           <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
-              <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
+              <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
               <path d="m14.207 2.5l-.707.707L13.5 3.707l.707-.707.646.646a.5.5 0 0 1 0 .708l-3 3-.707.707-.707-.707.707-.707 3-3 .707.707.646-.646a.5.5 0 0 1 0-.708l-3-3z"/>
             </svg>
             Student Details
@@ -333,65 +370,75 @@ const StudentCredentials = () => {
       showCancelButton: false,
       width: "460px",
       customClass: {
-        popup: 'custom-swal-popup',
+        popup: "custom-swal-popup",
       },
       didOpen: () => {
         const popup = Swal.getPopup();
- 
+
         // Cancel button functionality
-        popup.querySelector('#cancel-btn').onclick = () => {
+        popup.querySelector("#cancel-btn").onclick = () => {
           Swal.close();
         };
- 
+
         // Save button functionality
-        popup.querySelector('#save-btn').onclick = () => {
+        popup.querySelector("#save-btn").onclick = () => {
           Swal.clickConfirm();
         };
- 
+
         // Reset password button functionality
-        popup.querySelector('#reset-password-btn').onclick = () => {
-          const passwordInput = document.getElementById('password');
+        popup.querySelector("#reset-password-btn").onclick = () => {
+          const passwordInput = document.getElementById("password");
           const newPassword = generateRandomPassword();
           passwordInput.value = newPassword;
-          MySwal.showValidationMessage(`Password has been reset to: ${newPassword}`);
+          MySwal.showValidationMessage(
+            `Password has been reset to: ${newPassword}`
+          );
         };
- 
+
         // Hover effects
-        popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
-          e.target.style.backgroundColor = '#f8f8f8';
-        });
-        popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
-          e.target.style.backgroundColor = '#fff';
-        });
-        popup.querySelector('#save-btn').addEventListener('mouseenter', (e) => {
-          e.target.style.backgroundColor = '#2a0203';
-          e.target.style.borderColor = '#2a0203';
-        });
-        popup.querySelector('#save-btn').addEventListener('mouseleave', (e) => {
-          e.target.style.backgroundColor = '#3B0304';
-          e.target.style.borderColor = '#3B0304';
-        });
- 
-        // Reset button hover effects
-        popup.querySelector('#reset-password-btn').addEventListener('mouseenter', (e) => {
-          e.target.style.color = '#2a0203';
-          e.target.style.textDecoration = 'underline';
-        });
-        popup.querySelector('#reset-password-btn').addEventListener('mouseleave', (e) => {
-          e.target.style.color = '#3B0304';
-          e.target.style.textDecoration = 'none';
-        });
- 
-        // Add focus effects to inputs
-        const inputs = popup.querySelectorAll('input');
-        inputs.forEach(input => {
-          input.addEventListener('focus', (e) => {
-            e.target.style.borderColor = '#3B0304';
-            e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseenter", (e) => {
+            e.target.style.backgroundColor = "#f8f8f8";
           });
-          input.addEventListener('blur', (e) => {
-            e.target.style.borderColor = '#888';
-            e.target.style.boxShadow = 'none';
+        popup
+          .querySelector("#cancel-btn")
+          .addEventListener("mouseleave", (e) => {
+            e.target.style.backgroundColor = "#fff";
+          });
+        popup.querySelector("#save-btn").addEventListener("mouseenter", (e) => {
+          e.target.style.backgroundColor = "#2a0203";
+          e.target.style.borderColor = "#2a0203";
+        });
+        popup.querySelector("#save-btn").addEventListener("mouseleave", (e) => {
+          e.target.style.backgroundColor = "#3B0304";
+          e.target.style.borderColor = "#3B0304";
+        });
+
+        // Reset button hover effects
+        popup
+          .querySelector("#reset-password-btn")
+          .addEventListener("mouseenter", (e) => {
+            e.target.style.color = "#2a0203";
+            e.target.style.textDecoration = "underline";
+          });
+        popup
+          .querySelector("#reset-password-btn")
+          .addEventListener("mouseleave", (e) => {
+            e.target.style.color = "#3B0304";
+            e.target.style.textDecoration = "none";
+          });
+
+        // Add focus effects to inputs
+        const inputs = popup.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.addEventListener("focus", (e) => {
+            e.target.style.borderColor = "#3B0304";
+            e.target.style.boxShadow = "0 0 0 2px rgba(59, 3, 4, 0.1)";
+          });
+          input.addEventListener("blur", (e) => {
+            e.target.style.borderColor = "#888";
+            e.target.style.boxShadow = "none";
           });
         });
       },
@@ -400,20 +447,22 @@ const StudentCredentials = () => {
         const password = document.getElementById("password").value;
         const first_name = document.getElementById("first_name").value;
         const last_name = document.getElementById("last_name").value;
- 
+
         if (!user_id || !password || !first_name || !last_name) {
           MySwal.showValidationMessage(
-            'Please fill out all required fields (User ID, Password, First Name, Last Name).'
+            "Please fill out all required fields (User ID, Password, First Name, Last Name)."
           );
           return false;
         }
- 
+
         // Number check
         if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+          MySwal.showValidationMessage(
+            "Numbers in First Name or Last Name are not allowed."
+          );
           return false;
         }
- 
+
         return {
           user_id,
           password,
@@ -429,7 +478,7 @@ const StudentCredentials = () => {
           .from("user_credentials")
           .update(updatedData)
           .eq("id", row.id);
- 
+
         if (error) {
           console.error("Update error:", error);
           MySwal.fire("Error", "Failed to update student.", "error");
@@ -442,7 +491,7 @@ const StudentCredentials = () => {
       }
     });
   };
- 
+
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -453,13 +502,13 @@ const StudentCredentials = () => {
       cancelButtonColor: "#999",
       confirmButtonText: "Yes, delete it!",
     });
- 
+
     if (result.isConfirmed) {
       const { error } = await supabase
         .from("user_credentials")
         .delete()
         .eq("id", id);
- 
+
       if (error) {
         console.error("Delete error:", error);
         Swal.fire("Error", "Failed to delete student.", "error");
@@ -469,7 +518,7 @@ const StudentCredentials = () => {
       }
     }
   };
- 
+
   const handleResetAllPasswords = () => {
     setOpenHeaderAction(false);
     MySwal.fire({
@@ -484,26 +533,32 @@ const StudentCredentials = () => {
       if (result.isConfirmed) {
         try {
           // Generate new random passwords for all students
-          const updates = credentials.map(student => ({
+          const updates = credentials.map((student) => ({
             id: student.id,
-            password: generateRandomPassword()
+            password: generateRandomPassword(),
           }));
- 
+
           // Update all passwords in the database
           const { error } = await supabase
             .from("user_credentials")
             .upsert(updates);
- 
+
           if (error) throw error;
- 
+
           // Update local state
-          const updatedCredentials = credentials.map(student => ({
+          const updatedCredentials = credentials.map((student) => ({
             ...student,
-            password: updates.find(u => u.id === student.id)?.password || student.password
+            password:
+              updates.find((u) => u.id === student.id)?.password ||
+              student.password,
           }));
           setCredentials(updatedCredentials);
- 
-          MySwal.fire("Reset!", "All passwords have been reset to random values.", "success");
+
+          MySwal.fire(
+            "Reset!",
+            "All passwords have been reset to random values.",
+            "success"
+          );
         } catch (error) {
           console.error("Reset all passwords error:", error);
           MySwal.fire("Error", "Failed to reset passwords.", "error");
@@ -554,14 +609,17 @@ const StudentCredentials = () => {
           background-color: #f8f9fa;
         }
       `}</style>
- 
+
       <div className="row">
         <div className="col-12">
-          <div className="d-flex align-items-center mb-2 student-cred-header" style={{color: '#3B0304'}}>
+          <div
+            className="d-flex align-items-center mb-2 student-cred-header"
+            style={{ color: "#3B0304" }}
+          >
             <FaUserGraduate className="me-2" size={18} />
             <strong>Student Credentials</strong>
           </div>
- 
+
           <div
             style={{
               height: "1.5px",
@@ -572,7 +630,7 @@ const StudentCredentials = () => {
               marginBottom: "1.5rem",
             }}
           />
- 
+
           <div className="col-12 col-md-12 col-lg-12">
             {/* Export Button */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -591,8 +649,12 @@ const StudentCredentials = () => {
                     borderRadius: "6px",
                     transition: "background-color 0.2s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "white")
+                  }
                 >
                   <FaDownload size={14} /> Export
                 </button>
@@ -625,7 +687,7 @@ const StudentCredentials = () => {
                 </div>
               </div>
             </div>
- 
+
             {/* Search and Kebab Menu Row */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
               <div className="position-relative">
@@ -643,22 +705,27 @@ const StudentCredentials = () => {
                     height: "38px",
                   }}
                 />
-                <FaSearch 
-                  className="position-absolute text-muted" 
-                  style={{ left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem" }} 
+                <FaSearch
+                  className="position-absolute text-muted"
+                  style={{
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontSize: "0.85rem",
+                  }}
                 />
               </div>
- 
+
               {/* Conditional Delete Buttons */}
               {!isSelectionMode ? (
-                <div 
+                <div
                   ref={headerKebabRef}
-                  style={{ 
-                    position: "relative", 
+                  style={{
+                    position: "relative",
                     display: "inline-block",
                     width: "100px",
                     display: "flex",
-                    justifyContent: "center"
+                    justifyContent: "center",
                   }}
                 >
                   <button
@@ -673,14 +740,21 @@ const StudentCredentials = () => {
                       border: "none",
                       transition: "all 0.2s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
                     <FaEllipsisV size={12} />
                   </button>
- 
+
                   {openHeaderAction && (
-                    <ul className="enroll-dropdown" style={{ right: "0", top: "100%", marginTop: "4px" }}>
+                    <ul
+                      className="enroll-dropdown"
+                      style={{ right: "0", top: "100%", marginTop: "4px" }}
+                    >
                       <li>
                         <button
                           className="dropdown-item d-flex align-items-center gap-2"
@@ -695,7 +769,8 @@ const StudentCredentials = () => {
                             fontSize: "0.85rem",
                           }}
                         >
-                          <FaKey size={12} style={{ color: '#3B0304' }} /> Reset All Password
+                          <FaKey size={12} style={{ color: "#3B0304" }} /> Reset
+                          All Password
                         </button>
                       </li>
                       <li>
@@ -710,10 +785,11 @@ const StudentCredentials = () => {
                             textAlign: "left",
                             cursor: "pointer",
                             fontSize: "0.85rem",
-                            color: '#212529',
+                            color: "#212529",
                           }}
                         >
-                          <FaTrashAlt size={12} style={{ color: '#212529' }} /> Delete Multiple
+                          <FaTrashAlt size={12} style={{ color: "#212529" }} />{" "}
+                          Delete Multiple
                         </button>
                       </li>
                     </ul>
@@ -734,8 +810,12 @@ const StudentCredentials = () => {
                       fontWeight: "500",
                       transition: "background-color 0.2s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
                     Cancel
                   </button>
@@ -749,20 +829,30 @@ const StudentCredentials = () => {
                       borderRadius: "6px",
                       backgroundColor: "transparent",
                       fontWeight: "500",
-                      cursor: selectedRows.length === 0 ? "not-allowed" : "pointer",
+                      cursor:
+                        selectedRows.length === 0 ? "not-allowed" : "pointer",
                       color: selectedRows.length === 0 ? "#A0A0A0" : "#3B0304",
-                      border: `1.5px solid ${selectedRows.length === 0 ? "#B2B2B2" : "#3B0304"}`,
+                      border: `1.5px solid ${
+                        selectedRows.length === 0 ? "#B2B2B2" : "#3B0304"
+                      }`,
                       transition: "all 0.2s",
                     }}
-                    onMouseEnter={(e) => (selectedRows.length > 0 ? (e.currentTarget.style.backgroundColor = "#f0f0f0") : null)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onMouseEnter={(e) =>
+                      selectedRows.length > 0
+                        ? (e.currentTarget.style.backgroundColor = "#f0f0f0")
+                        : null
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
-                    <FaTrash size={12} /> Delete Selected ({selectedRows.length})
+                    <FaTrash size={12} /> Delete Selected ({selectedRows.length}
+                    )
                   </button>
                 </div>
               )}
             </div>
- 
+
             {availableYears.length === 0 && !loading ? (
               <div
                 className="text-center p-4 border"
@@ -773,7 +863,8 @@ const StudentCredentials = () => {
                   borderRadius: "16px",
                 }}
               >
-                <strong>NOTE:</strong> No student credentials found in the system.
+                <strong>NOTE:</strong> No student credentials found in the
+                system.
               </div>
             ) : credentials.length === 0 && !loading ? (
               <div
@@ -785,22 +876,31 @@ const StudentCredentials = () => {
                   borderRadius: "16px",
                 }}
               >
-                <strong>NOTE:</strong> No student credentials found for {selectedYear}-{secondYear}.
+                <strong>NOTE:</strong> No student credentials found for{" "}
+                {selectedYear}-{secondYear}.
               </div>
             ) : (
               // --- Student Credentials Table Section ---
               <div className="bg-white rounded-lg shadow-md relative">
                 {/* Table Body with Scrolling */}
-                <div 
+                <div
                   className="table-scroll-area overflow-x-auto overflow-y-auto"
-                  style={{ maxHeight: '400px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                > 
+                  style={{
+                    maxHeight: "400px",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                  }}
+                >
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
                         {/* Checkbox Header (Conditional) */}
                         {isSelectionMode && (
-                          <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: "40px" }}>
+                          <th
+                            scope="col"
+                            className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            style={{ width: "40px" }}
+                          >
                             <input
                               type="checkbox"
                               className="form-checkbox h-4 w-4 text-[#3B0304] border-gray-300 rounded"
@@ -809,25 +909,67 @@ const StudentCredentials = () => {
                             />
                           </th>
                         )}
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Initial</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
-                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px' }}>Action</th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          NO
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Last Name
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          First Name
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Middle Initial
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          User ID
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          Password
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          style={{ width: "100px" }}
+                        >
+                          Action
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {loading ? (
                         <tr>
-                          <td colSpan={isSelectionMode ? "8" : "7"} className="text-center py-4 text-gray-500">
+                          <td
+                            colSpan={isSelectionMode ? "8" : "7"}
+                            className="text-center py-4 text-gray-500"
+                          >
                             Loading...
                           </td>
                         </tr>
                       ) : filteredData.length === 0 ? (
                         <tr>
-                          <td colSpan={isSelectionMode ? "8" : "7"} className="text-center py-4 text-gray-500">
+                          <td
+                            colSpan={isSelectionMode ? "8" : "7"}
+                            className="text-center py-4 text-gray-500"
+                          >
                             No students match your search.
                           </td>
                         </tr>
@@ -835,7 +977,14 @@ const StudentCredentials = () => {
                         filteredData.map((row, index) => {
                           const isSelected = selectedRows.includes(row.id);
                           return (
-                            <tr key={row.id} className={isSelected ? "bg-gray-50" : "hover:bg-gray-50 transition duration-150"}>
+                            <tr
+                              key={row.id}
+                              className={
+                                isSelected
+                                  ? "bg-gray-50"
+                                  : "hover:bg-gray-50 transition duration-150"
+                              }
+                            >
                               {/* Checkbox Cell (Conditional) */}
                               {isSelectionMode && (
                                 <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
@@ -847,27 +996,65 @@ const StudentCredentials = () => {
                                   />
                                 </td>
                               )}
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.last_name}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.first_name}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.middle_name}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.user_id}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.password}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {index + 1}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {row.last_name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {row.first_name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {row.middle_name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {row.user_id}
+                              </td>
+
+                              {/* ONLY CHANGE: mask non-default passwords */}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {row.password === "Pass_123"
+                                  ? "Pass_123"
+                                  : row.password
+                                  ? "********"
+                                  : ""}
+                              </td>
+
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center position-relative">
                                 {/* Action Button only visible when not in selection mode */}
                                 {!isSelectionMode && (
-                                  <div ref={el => tableKebabRefs.current[index] = el}>
+                                  <div
+                                    ref={(el) =>
+                                      (tableKebabRefs.current[index] = el)
+                                    }
+                                  >
                                     <button
                                       className="text-gray-500 hover:text-[#3B0304] p-1 rounded transition duration-150"
-                                      onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
-                                      style={{border: 'none', background: 'none'}}
+                                      onClick={() =>
+                                        setOpenDropdown(
+                                          openDropdown === index ? null : index
+                                        )
+                                      }
+                                      style={{
+                                        border: "none",
+                                        background: "none",
+                                      }}
                                     >
                                       <FaEllipsisV size={14} />
                                     </button>
- 
+
                                     {/* Detached Dropdown Menu */}
                                     {openDropdown === index && (
-                                      <ul className="enroll-dropdown" style={{ right: '5px', top: '50%', transform: 'translateY(-50%)', marginTop: '0' }}>
+                                      <ul
+                                        className="enroll-dropdown"
+                                        style={{
+                                          right: "5px",
+                                          top: "50%",
+                                          transform: "translateY(-50%)",
+                                          marginTop: "0",
+                                        }}
+                                      >
                                         <li>
                                           <button
                                             className="dropdown-item d-flex align-items-center gap-2"
@@ -876,7 +1063,11 @@ const StudentCredentials = () => {
                                               handleEditRow(row, index);
                                             }}
                                           >
-                                            <FaEdit size={12} style={{ color: '#3B0304' }} /> Edit
+                                            <FaEdit
+                                              size={12}
+                                              style={{ color: "#3B0304" }}
+                                            />{" "}
+                                            Edit
                                           </button>
                                         </li>
                                         <li>
@@ -886,9 +1077,13 @@ const StudentCredentials = () => {
                                               setOpenDropdown(null);
                                               handleDelete(row.id);
                                             }}
-                                            style={{ color: '#212529' }}
+                                            style={{ color: "#212529" }}
                                           >
-                                            <FaTrash size={12} style={{ color: '#212529' }} /> Delete
+                                            <FaTrash
+                                              size={12}
+                                              style={{ color: "#212529" }}
+                                            />{" "}
+                                            Delete
                                           </button>
                                         </li>
                                       </ul>
@@ -911,5 +1106,5 @@ const StudentCredentials = () => {
     </div>
   );
 };
- 
+
 export default StudentCredentials;
