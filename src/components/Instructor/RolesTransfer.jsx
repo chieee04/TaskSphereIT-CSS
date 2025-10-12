@@ -1,59 +1,8 @@
 // src/components/Instructor/RoleTransfer.jsx
 import React, { useState, useEffect } from "react";
-
-// Mock supabase client for demonstration
-const supabase = {
-  from: (table) => ({
-    select: (columns) => ({
-      eq: (column, value) => ({
-        single: async () => ({ 
-          data: { 
-            first_name: "John", 
-            last_name: "Doe", 
-            middle_name: "M", 
-            user_id: "12345" 
-          }, 
-          error: null 
-        })
-      })
-    }),
-    insert: (data) => ({
-      select: () => ({
-        single: async () => ({ data: { id: "new-user-id" }, error: null })
-      })
-    })
-  })
-};
-
-// Mock Swal for demonstration
-const Swal = {
-  fire: async (options) => {
-    if (options.showCancelButton) {
-      return { isConfirmed: window.confirm(options.text) };
-    }
-    alert(`${options.title}\n${options.text}`);
-    return { isConfirmed: true };
-  }
-};
-
-// SVG Icons
-const UserCircleIcon = () => (
-  <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-  </svg>
-);
-
-const UserTieIcon = () => (
-  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-  </svg>
-);
-
-const UserPlusIcon = () => (
-  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-  </svg>
-);
+import { FaUserCircle, FaUserTie, FaUserPlus } from "react-icons/fa";
+import Swal from "sweetalert2";
+import { supabase } from "../../supabaseClient";
 
 const RoleTransfer = () => {
   const [formData, setFormData] = useState({
@@ -68,14 +17,14 @@ const RoleTransfer = () => {
   const [errors, setErrors] = useState({});
   const [currentInstructor, setCurrentInstructor] = useState(null);
 
-  // Fetch current instructor (user_roles = 4)
+  // ✅ Fetch current instructor (user_roles = 4)
   useEffect(() => {
     const fetchInstructor = async () => {
       const { data, error } = await supabase
         .from("user_credentials")
         .select("first_name, last_name, middle_name, user_id")
         .eq("user_roles", 4)
-        .single();
+        .single(); // only one instructor
 
       if (error) {
         console.error("Error fetching instructor:", error);
@@ -87,14 +36,14 @@ const RoleTransfer = () => {
     fetchInstructor();
   }, []);
 
-  // Handle input change
+  // ✅ Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setErrors((prev) => ({ ...prev, [name]: "" })); // remove red border when typing
   };
 
-  // Validation checker
+  // ✅ Validation checker
   const validateFields = () => {
     const newErrors = {};
     Object.entries(formData).forEach(([key, value]) => {
@@ -104,12 +53,12 @@ const RoleTransfer = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle submit with confirmation
+  // ✅ Handle submit with SweetAlert2 confirmation
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateFields()) {
-      await Swal.fire({
+      Swal.fire({
         icon: "error",
         title: "Missing Fields",
         text: "Please fill out all fields before enrolling.",
@@ -128,7 +77,7 @@ const RoleTransfer = () => {
     });
 
     if (confirm.isConfirmed) {
-      // Step 1: Insert new instructor
+      // ✅ Step 1: Insert new instructor
       const { data, error } = await supabase
         .from("user_credentials")
         .insert([
@@ -138,7 +87,7 @@ const RoleTransfer = () => {
             first_name: formData.firstName,
             last_name: formData.lastName,
             middle_name: formData.middleName,
-            user_roles: 3,
+            user_roles: 3, // Adviser / New Instructor
             email: formData.email,
           },
         ])
@@ -147,7 +96,7 @@ const RoleTransfer = () => {
 
       if (error) {
         console.error("Error inserting new instructor:", error);
-        await Swal.fire({
+        Swal.fire({
           icon: "error",
           title: "Enrollment Failed",
           text: "An error occurred while enrolling the new instructor.",
@@ -155,26 +104,28 @@ const RoleTransfer = () => {
         return;
       }
 
-      // Step 2: Add notification for newly created instructor
+      // ✅ Step 2: Add notification for this newly created instructor
       try {
         const { error: notifError } = await supabase.from("notification").insert([
           {
-            user_id: data.id,
+            user_id: data.id, // 👈 uuid of the newly created account
             title: "You Have Been Assigned as the New Capstone Instructor",
             description: "The current instructor has officially transferred the Capstone advising role to you. You are now designated as the new Capstone Instructor for the group.",
-            date: new Date().toISOString(),
+            date: new Date().toISOString(), // timestamp
           },
         ]);
 
         if (notifError) {
           console.error("Error adding notification:", notifError);
+        } else {
+          console.log("✅ Notification successfully added!");
         }
       } catch (notifErr) {
         console.error("Notification insert failed:", notifErr);
       }
 
-      // Step 3: Success alert and reset form
-      await Swal.fire({
+      // ✅ Step 3: Success alert and reset form
+      Swal.fire({
         icon: "success",
         title: "Enrolled Successfully!",
         text: "The new instructor has been added successfully.",
@@ -199,7 +150,7 @@ const RoleTransfer = () => {
           {/* Header */}
           <div className="bg-gradient-to-r from-[#5a0d0e] to-[#7a1d1e] px-8 py-6">
             <div className="flex items-center space-x-3 text-white">
-              <UserCircleIcon />
+              <FaUserCircle className="text-4xl" />
               <h1 className="text-3xl font-bold">Role Transfer</h1>
             </div>
             <p className="text-gray-200 mt-2 ml-12">Transfer capstone instructor responsibilities</p>
@@ -209,9 +160,7 @@ const RoleTransfer = () => {
             {/* Current Instructor Section */}
             <div className="mb-10">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="text-[#5a0d0e]">
-                  <UserTieIcon />
-                </div>
+                <FaUserTie className="text-2xl text-[#5a0d0e]" />
                 <h2 className="text-2xl font-bold text-gray-800">Current Capstone Instructor</h2>
               </div>
               
@@ -241,9 +190,7 @@ const RoleTransfer = () => {
             {/* New Instructor Section */}
             <div>
               <div className="flex items-center space-x-2 mb-6">
-                <div className="text-[#5a0d0e]">
-                  <UserPlusIcon />
-                </div>
+                <FaUserPlus className="text-2xl text-[#5a0d0e]" />
                 <h2 className="text-2xl font-bold text-gray-800">New Capstone Instructor</h2>
               </div>
 
@@ -382,7 +329,7 @@ const RoleTransfer = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-content-end pt-4">
                   <button
                     type="submit"
                     className="bg-gradient-to-r from-[#5a0d0e] to-[#7a1d1e] text-white font-bold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-[#5a0d0e] focus:ring-opacity-50"
