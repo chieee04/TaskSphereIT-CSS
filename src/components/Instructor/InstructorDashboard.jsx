@@ -52,20 +52,6 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
-<<<<<<< HEAD
-  const getStatusColor = (status) => {
-    const colors = {
-      Completed: "#4BC0C0",
-      "To Do": "#FABC3F",
-      "In Progress": "#809D3C",
-      "To Review": "#578FCA",
-      Missed: "#FF6384",
-    };
-    return colors[status] || "#999999";
-  };
-
-=======
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
   return (
     <div className="team-progress-container">
       {teamsProgress.length > 0 ? (
@@ -84,23 +70,14 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
               datasets: [
                 {
                   label: "Tasks",
-<<<<<<< HEAD
                   data: [
                     team.counts["Completed"] || 0,
-                    totalTasks - (team.counts["Completed"] || 0),
+                    Math.max(0, totalTasks - (team.counts["Completed"] || 0)),
                   ],
-                  backgroundColor: ["#AA60C8", "#e9ecef"],
-                  borderColor: "#ffffff",
-                  borderWidth: 2,
-                  cutout: "70%",
-=======
-                  data: [team.counts["Completed"] || 0, 
-                         (totalTasks - (team.counts["Completed"] || 0))],
                   backgroundColor: [TASKSPHERE_PRIMARY, "#f0f0f0"],
                   borderColor: "#ffffff",
                   borderWidth: 3,
-                  cutout: '75%',
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
+                  cutout: "75%",
                 },
               ],
             };
@@ -124,70 +101,16 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   <i className="fas fa-users"></i>
                   <span className="team-name">{team.group_name}</span>
                 </div>
-<<<<<<< HEAD
-                <div className="chart-container">
-                  <div
-                    style={{
-                      width: "200px",
-                      height: "200px",
-                      margin: "auto",
-                      position: "relative",
-                    }}
-                  >
-                    <Doughnut data={chartData} options={chartOptions} />
-                    <div className="chart-center-percentage">
-                      <span className="percentage-value">
-                        {completionPercentage}%
-                      </span>
-                      <span className="percentage-label">Completed</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="progress-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Completed:</span>
-                    <span className="stat-value" style={{ color: "#4BC0C0" }}>
-                      {team.counts["Completed"] || 0}
-                    </span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">In Progress:</span>
-                    <span className="stat-value" style={{ color: "#809D3C" }}>
-                      {team.counts["In Progress"] || 0}
-                    </span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">To Do:</span>
-                    <span className="stat-value" style={{ color: "#FABC3F" }}>
-                      {team.counts["To Do"] || 0}
-                    </span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">To Review:</span>
-                    <span className="stat-value" style={{ color: "#578FCA" }}>
-                      {team.counts["To Review"] || 0}
-                    </span>
-                  </div>
-                  {team.task_breakdown && (
-                    <div className="task-breakdown">
-                      <small className="text-muted">
-                        {team.task_breakdown.manager_tasks} manager tasks,{" "}
-                        {team.task_breakdown.adviser_oral_tasks} oral defense,{" "}
-                        {team.task_breakdown.adviser_final_tasks} final defense
-                      </small>
-                    </div>
-                  )}
-                </div>
-=======
                 <div className="chart-wrapper">
                   <div className="chart-container-large">
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="chart-percentage-center">
-                      <span className="percentage-num">{completionPercentage}%</span>
+                      <span className="percentage-num">
+                        {completionPercentage}%
+                      </span>
                     </div>
                   </div>
                 </div>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
               </div>
             );
           })}
@@ -230,17 +153,7 @@ const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
       <div className="adviser-header-new">
         <div className="adviser-name-badge">
           <i className="fas fa-user-tie"></i>
-<<<<<<< HEAD
-          <div>
-            <h4>{adviserName || `Adviser Group: ${adviserGroup}`}</h4>
-            <small className="text-muted">
-              {groupStats.totalTeams} team(s) • {groupStats.totalTasks} total
-              tasks • {groupStats.completionRate}% overall completion
-            </small>
-          </div>
-=======
           <span>{adviserName || `Adviser Group: ${adviserGroup}`}</span>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         </div>
       </div>
       <AdviserTeamProgress teamsProgress={teams} />
@@ -367,29 +280,17 @@ const InstructorDashboard = () => {
               .select("first_name, last_name")
               .eq("id", task.manager_id)
               .single();
-<<<<<<< HEAD
             return {
               ...task,
               managerName: manager
                 ? `${manager.first_name} ${manager.last_name}`
                 : "Unknown Manager",
-=======
-            return { 
-              ...task, 
-              managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" 
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
             };
           })
         );
         setRecentTasks(recentWithNames);
 
-<<<<<<< HEAD
-        // 3. Teams' Progress - Fetch ALL project managers with ALL their tasks
-        console.log("👥 Fetching all project managers...");
-
-=======
         // 3. Teams' Progress
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         const { data: teams, error: teamsError } = await supabase
           .from("user_credentials")
           .select("id, group_name, first_name, last_name, adviser_group")
@@ -403,47 +304,26 @@ const InstructorDashboard = () => {
           setTeamsProgress([]);
           setAdviserGroups([]);
         } else {
-<<<<<<< HEAD
-          setDebugInfo(`Found ${teams.length} project manager(s)`);
-
-          // Fetch comprehensive task progress for each project manager
           const teamsProgressData = await Promise.all(
             teams.map(async (team) => {
               try {
-                console.log(
-                  `🔍 Checking tasks for team: ${team.group_name} (ID: ${team.id})`
-                );
-
-                // Fetch ALL task types for this project manager
                 const [
                   managerTasksResult,
                   adviserOralTasksResult,
                   adviserFinalTasksResult,
                 ] = await Promise.all([
-                  // Manager tasks from manager_title_task
                   supabase
                     .from("manager_title_task")
                     .select("status, task_name, due_date")
                     .eq("manager_id", team.id),
-                  // Adviser oral defense tasks for this manager (from any adviser)
                   supabase
                     .from("adviser_oral_def")
                     .select("status, task, due_date")
                     .eq("manager_id", team.id),
-                  // Adviser final defense tasks for this manager (from any adviser)
                   supabase
                     .from("adviser_final_def")
                     .select("status, task, due_date")
                     .eq("manager_id", team.id),
-=======
-          const teamsProgressData = await Promise.all(
-            teams.map(async (team) => {
-              try {
-                const [managerTasksResult, adviserOralTasksResult, adviserFinalTasksResult] = await Promise.all([
-                  supabase.from("manager_title_task").select("status, task_name, due_date").eq("manager_id", team.id),
-                  supabase.from("adviser_oral_def").select("status, task, due_date").eq("manager_id", team.id),
-                  supabase.from("adviser_final_def").select("status, task, due_date").eq("manager_id", team.id)
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 ]);
 
                 const managerTasks = managerTasksResult.data || [];
@@ -462,41 +342,16 @@ const InstructorDashboard = () => {
                   })),
                 ];
 
-<<<<<<< HEAD
-                console.log(`📋 Team ${team.group_name} tasks:`, {
-                  managerTasks: managerTasks.length,
-                  adviserOralTasks: adviserOralTasks.length,
-                  adviserFinalTasks: adviserFinalTasks.length,
-                  total: allTeamTasks.length,
-                });
-
-                // Only include teams that actually have tasks
                 if (allTeamTasks.length === 0) {
-                  console.log(
-                    `ℹ️ Team ${team.group_name} has no tasks, skipping`
-                  );
                   return null;
                 }
 
-                // Count tasks by status - COMBINE ALL TASK TYPES
                 const counts = {
                   "To Do": 0,
                   "In Progress": 0,
                   "To Review": 0,
                   Completed: 0,
                   Missed: 0,
-=======
-                if (allTeamTasks.length === 0) {
-                  return null;
-                }
-
-                const counts = { 
-                  "To Do": 0, 
-                  "In Progress": 0, 
-                  "To Review": 0, 
-                  "Completed": 0, 
-                  "Missed": 0 
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 };
 
                 allTeamTasks.forEach((task) => {
@@ -520,15 +375,6 @@ const InstructorDashboard = () => {
                     adviser_final_tasks: adviserFinalTasks.length,
                   },
                 };
-<<<<<<< HEAD
-
-                console.log(
-                  `✅ Team ${team.group_name} progress:`,
-                  teamProgress
-                );
-                return teamProgress;
-=======
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
               } catch (error) {
                 console.error(
                   `❌ Error processing team ${team.group_name}:`,
@@ -538,45 +384,25 @@ const InstructorDashboard = () => {
               }
             })
           );
-<<<<<<< HEAD
 
-          // Filter out null values (teams with no tasks or errors)
-=======
-          
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
           const filteredTeamsProgress = teamsProgressData.filter(Boolean);
           setTeamsProgress(filteredTeamsProgress);
-<<<<<<< HEAD
 
-          // Group teams by adviser_group
           const groupedByAdviser = filteredTeamsProgress.reduce(
             (groups, team) => {
-              const adviserGroup = team.adviser_group || "Ungrouped";
-              if (!groups[adviserGroup]) {
-                groups[adviserGroup] = [];
+              const ag = team.adviser_group || "Ungrouped";
+              if (!groups[ag]) {
+                groups[ag] = [];
               }
-              groups[adviserGroup].push(team);
+              groups[ag].push(team);
               return groups;
             },
             {}
           );
-=======
-          
-          const groupedByAdviser = filteredTeamsProgress.reduce((groups, team) => {
-            const adviserGroup = team.adviser_group || 'Ungrouped';
-            if (!groups[adviserGroup]) {
-              groups[adviserGroup] = [];
-            }
-            groups[adviserGroup].push(team);
-            return groups;
-          }, {});
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
 
           const adviserGroupsWithNames = await Promise.all(
-<<<<<<< HEAD
             Object.entries(groupedByAdviser).map(
               async ([adviserGroup, teams]) => {
-                // Try to get adviser name from user_credentials
                 let adviserName = `Adviser Group: ${adviserGroup}`;
 
                 if (adviserGroup && adviserGroup !== "Ungrouped") {
@@ -584,34 +410,12 @@ const InstructorDashboard = () => {
                     .from("user_credentials")
                     .select("first_name, last_name")
                     .eq("adviser_group", adviserGroup)
-                    .eq("user_roles", 3) // FIXED: user_roles = 3 for advisers
+                    .eq("user_roles", 3)
                     .single();
 
                   if (adviser) {
                     adviserName = `${adviser.first_name} ${adviser.last_name}`;
-                    console.log(
-                      `✅ Found adviser: ${adviserName} for group: ${adviserGroup}`
-                    );
-                  } else {
-                    console.log(
-                      `❌ No adviser found for group: ${adviserGroup} with user_roles = 3`
-                    );
                   }
-=======
-            Object.entries(groupedByAdviser).map(async ([adviserGroup, teams]) => {
-              let adviserName = `Adviser Group: ${adviserGroup}`;
-              
-              if (adviserGroup && adviserGroup !== 'Ungrouped') {
-                const { data: adviser } = await supabase
-                  .from("user_credentials")
-                  .select("first_name, last_name")
-                  .eq("adviser_group", adviserGroup)
-                  .eq("user_roles", 3)
-                  .single();
-
-                if (adviser) {
-                  adviserName = `${adviser.first_name} ${adviser.last_name}`;
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 }
 
                 return {
@@ -624,19 +428,6 @@ const InstructorDashboard = () => {
           );
 
           setAdviserGroups(adviserGroupsWithNames);
-<<<<<<< HEAD
-
-          if (filteredTeamsProgress.length === 0) {
-            setDebugInfo((prev) => prev + " - But no teams have tasks yet");
-          } else {
-            setDebugInfo(
-              (prev) =>
-                prev +
-                ` - ${filteredTeamsProgress.length} team(s) across ${adviserGroupsWithNames.length} adviser group(s)`
-            );
-          }
-=======
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         }
 
         // 4. Calendar Events - with uniform color
@@ -724,40 +515,17 @@ const InstructorDashboard = () => {
                             <i className="fas fa-users"></i>
                             <span>{t.managerName}</span>
                           </div>
-<<<<<<< HEAD
-                          <div className="activity-body">
-                            <h5>
-                              <i className="fas fa-tasks"></i> {t.task}
-                            </h5>
-                            <p>
-                              <i className="fas fa-calendar-alt"></i>{" "}
-                              {new Date(t.due_date).toLocaleDateString()}
-                            </p>
-                            <p>
-                              <i className="fas fa-clock"></i>{" "}
-                              {formatTime(t.time) || "No Time"}
-                            </p>
-                            <p>
-                              <i className="fas fa-flag"></i> {t.type}
-                            </p>
-                            <span
-                              className={`status-badge status-${t.status
-                                .toLowerCase()
-                                .replace(" ", "-")}`}
-                            >
-                              {t.status}
-                            </span>
-=======
                           <div className="card-details">
                             <div className="detail-row">
                               <i className="fas fa-calendar-alt"></i>
-                              <span>{new Date(t.due_date).toLocaleDateString()}</span>
+                              <span>
+                                {new Date(t.due_date).toLocaleDateString()}
+                              </span>
                             </div>
                             <div className="detail-row">
                               <i className="fas fa-clock"></i>
                               <span>{formatTime(t.time) || "No Time"}</span>
                             </div>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                           </div>
                         </div>
                       ))
@@ -765,26 +533,13 @@ const InstructorDashboard = () => {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-                {/* Section 2: TEAMS' PROGRESS GROUPED BY ADVISER */}
-                <div className="dashboard-section">
-                  <div className="section-header">
-                    <h4>TEAMS PROGRESS BY ADVISER</h4>
-                    <span className="teams-count">
-                      {teamsProgress.length} team(s) across{" "}
-                      {adviserGroups.length} adviser group(s)
-                    </span>
-                  </div>
-
-=======
                 {/* Section 2: TEAMS' PROGRESS */}
                 <div className="dashboard-section-modern">
                   <h4 className="section-title-modern">TEAMS' PROGRESS</h4>
-                  
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
+
                   {adviserGroups.length > 0 ? (
                     <div className="adviser-groups-wrapper">
-                      {adviserGroups.map((group, index) => (
+                      {adviserGroups.map((group) => (
                         <AdviserGroupSection
                           key={group.adviserGroup}
                           adviserGroup={group.adviserGroup}
@@ -805,7 +560,9 @@ const InstructorDashboard = () => {
 
                 {/* Section 3: RECENT ACTIVITY CREATED */}
                 <div className="dashboard-section-modern">
-                  <h4 className="section-title-modern">RECENT ACTIVITY CREATED</h4>
+                  <h4 className="section-title-modern">
+                    RECENT ACTIVITY CREATED
+                  </h4>
                   {recentTasks.length === 0 ? (
                     <p className="fst-italic text-muted">
                       No recent activities.
@@ -825,37 +582,35 @@ const InstructorDashboard = () => {
                         </thead>
                         <tbody>
                           {recentTasks.map((t, i) => (
-                            <tr key={t.id}>
+                            <tr key={t.id || i}>
                               <td>{i + 1}.</td>
-<<<<<<< HEAD
-                              <td>{t.task}</td>
+                              <td>{t.managerName || "—"}</td>
                               <td>
                                 {new Date(
                                   t.date_created || t.created_at
-                                ).toLocaleDateString()}
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
                               </td>
                               <td>
                                 {t.due_date
-                                  ? new Date(t.due_date).toLocaleDateString()
+                                  ? new Date(t.due_date).toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      }
+                                    )
                                   : "—"}
                               </td>
                               <td>{formatTime(t.time) || "—"}</td>
                               <td>
-                                <span
-                                  className={`status-badge status-${t.status
-                                    .toLowerCase()
-                                    .replace(" ", "-")}`}
-                                >
+                                <span className="status-badge-modern">
                                   {t.status}
                                 </span>
-=======
-                              <td>{t.managerName || "—"}</td>
-                              <td>{new Date(t.date_created || t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                              <td>{t.due_date ? new Date(t.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "—"}</td>
-                              <td>{formatTime(t.time) || "—"}</td>
-                              <td>
-                                <span className="status-badge-modern">{t.status}</span>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                               </td>
                             </tr>
                           ))}
@@ -879,11 +634,7 @@ const InstructorDashboard = () => {
                       headerToolbar={{
                         left: "prev,next today",
                         center: "title",
-<<<<<<< HEAD
                         right: "dayGridMonth,timeGridWeek,timeGridDay",
-=======
-                        right: "dayGridMonth"
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                       }}
                       events={calendarEvents}
                       height="auto"
@@ -1562,13 +1313,14 @@ const InstructorDashboard = () => {
   };
 
   return (
-<<<<<<< HEAD
     <div
-      style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        background: "#ffffff",
+      }}
     >
-=======
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#ffffff" }}>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
       <Header isSoloMode={isSoloMode} setIsSoloMode={setIsSoloMode} />
       <div className="d-flex" style={{ marginTop: "30px" }}></div>
       <div className="d-flex" style={{ flexGrow: 1, background: "#ffffff" }}>
@@ -1588,15 +1340,11 @@ const InstructorDashboard = () => {
             flexGrow: 1,
             marginLeft: `${sidebarWidth}px`,
             transition: "margin-left 0.3s",
-            background: "#ffffff"
+            background: "#ffffff",
           }}
           id="main-content-wrapper"
         >
-<<<<<<< HEAD
-          <main style={{ flexGrow: 1, padding: "20px" }}>
-=======
           <main style={{ flexGrow: 1, padding: "20px", background: "#ffffff" }}>
->>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
             {renderContent()}
           </main>
           <Footer />
@@ -1606,4 +1354,4 @@ const InstructorDashboard = () => {
   );
 };
 
-export default InstructorDashboard;
+export default InstructorDashboard; // hello
