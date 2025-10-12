@@ -79,22 +79,27 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     }
   };
 
-  // ✅ Toggle Solo/Team Mode
+  // ✅ Toggle Solo/Team Mode (disabled for role 4)
   const handleToggleMode = () => {
+    const customUser = JSON.parse(localStorage.getItem("customUser"));
+    const role = customUser?.user_roles;
+
+    // If Instructor (role 4), do nothing
+    if (role === 4) return;
+
     const newMode = !isSoloMode;
     setIsSoloMode(newMode);
 
-    const customUser = JSON.parse(localStorage.getItem("customUser"));
-    const role = customUser?.user_roles;
     let basePath = "/";
-
     if (role === 1) basePath = "/Manager";
     else if (role === 2) basePath = "/Member";
     else if (role === 3) basePath = "/Adviser";
     else if (role === 4) basePath = "/Instructor";
 
     if (newMode) {
-      navigate(`${basePath}/SoloModeDashboard`, { state: { activePage: "SoloModeDashboard" } });
+      navigate(`${basePath}/SoloModeDashboard`, {
+        state: { activePage: "SoloModeDashboard" },
+      });
     } else {
       navigate(`${basePath}/Dashboard`, { state: { activePage: "Dashboard" } });
     }
@@ -109,6 +114,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     return "User";
   };
 
+  const roleId = activeUser?.user_roles;
   const userName = activeUser
     ? `${activeUser.firstName || ""} ${activeUser.lastName || ""}`.trim()
     : "Guest";
@@ -144,25 +150,27 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
             gap: "10px",
           }}
         >
-          {/* SOLO/TEAM SWITCH */}
-          <div
-            style={{
-              ...switchContainerStyle,
-              backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
-              justifyContent: isSoloMode ? "flex-end" : "flex-start",
-            }}
-            onClick={handleToggleMode}
-          >
+          {/* SOLO/TEAM SWITCH — hidden if roleId === 4 (Instructor) */}
+          {roleId !== 4 && (
             <div
               style={{
-                ...textStyle,
-                color: isSoloMode ? "white" : "black",
+                ...switchContainerStyle,
+                backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
+                justifyContent: isSoloMode ? "flex-end" : "flex-start",
               }}
+              onClick={handleToggleMode}
             >
-              {isSoloMode ? "SOLO" : "TEAM"}
+              <div
+                style={{
+                  ...textStyle,
+                  color: isSoloMode ? "white" : "black",
+                }}
+              >
+                {isSoloMode ? "SOLO" : "TEAM"}
+              </div>
+              <div style={{ ...sliderStyle }} />
             </div>
-            <div style={{ ...sliderStyle }} />
-          </div>
+          )}
 
           <button
             style={{
