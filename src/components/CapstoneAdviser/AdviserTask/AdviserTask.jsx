@@ -1,55 +1,43 @@
+// src/components/CapstoneAdviser/AdviserTask.jsx
 import React from "react";
+import { Link } from "react-router-dom";
 import tasksIcon from "../../../assets/tasks-icon.png";
 import recordIcon from "../../../assets/records-icon.png";
 
-export default function AdviserTask({ setActivePage }) {
+const ACCENT = "#5a0d0e";
+
+export default function AdviserTask() {
   const items = [
-    {
-      title: "Oral Defense",
-      icon: recordIcon,
-      onClick: () => setActivePage("Oral Defense"),
-    },
-    {
-      title: "Final Defense",
-      icon: recordIcon,
-      onClick: () => setActivePage("Final Defense"),
-    },
+    { title: "Oral Defense",  icon: recordIcon, to: "/Adviser/OralDefense"  },
+    { title: "Final Defense", icon: recordIcon, to: "/Adviser/FinalDefense" },
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      {/* Content */}
-      <div className="flex-grow px-8 py-6">
-        {/* Header */}
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-[#3B0304] mb-2">
+    <div className="min-h-screen bg-white">
+      <div className="px-6 sm:px-8 py-6">
+        <h2 className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: ACCENT }}>
           <img src={tasksIcon} alt="Tasks Icon" className="w-5 h-5" />
           Tasks
         </h2>
-        <hr className="border-t border-[#3B0304] mb-6" />
+        <hr className="mb-6" style={{ borderColor: ACCENT }} />
 
-        {/* Task Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {items.map((item, index) => (
-            <div
-              key={index}
-              onClick={item.onClick}
-              className="cursor-pointer flex items-center justify-center bg-white shadow-md rounded-md overflow-hidden hover:shadow-lg transition-all duration-200 border border-gray-200"
+          {items.map(({ title, icon, to }) => (
+            <Link
+              key={title}
+              to={to}
+              className="flex items-center justify-center bg-white shadow-md rounded-md overflow-hidden hover:shadow-lg transition border border-gray-200 focus:outline-none focus:ring-2"
+              style={{ ringColor: `${ACCENT}33` }}
+              onClick={() => window.scrollTo({ top: 0, behavior: "instant" })}
             >
-              {/* Left colored bar */}
-              <div className="bg-[#3B0304] w-4 h-full" />
-
-              {/* Card content */}
+              <div style={{ background: ACCENT }} className="w-4 h-full" />
               <div className="flex flex-col items-center justify-center p-4 w-full h-32">
-                <img
-                  src={item.icon}
-                  alt={`${item.title} Icon`}
-                  className="w-8 h-8 mb-2"
-                />
-                <h3 className="text-sm font-semibold text-[#3B0304] text-center">
-                  {item.title}
+                <img src={icon} alt={`${title} Icon`} className="w-8 h-8 mb-2" />
+                <h3 className="text-sm font-semibold text-center" style={{ color: ACCENT }}>
+                  {title}
                 </h3>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
