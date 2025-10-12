@@ -10,7 +10,6 @@ import {
   FaPen,
 } from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
-// Import jsPDF
 import jsPDF from "jspdf";
 
 const MySwal = withReactContent(Swal);
@@ -25,11 +24,7 @@ const TitleDefense = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedSchedules, setSelectedSchedules] = useState([]);
 
-  const verdictMap = {
-    1: "Pending",
-    2: "Re-defense",
-    3: "Approved",
-  };
+  const verdictMap = { 1: "Pending", 2: "Re-defense", 3: "Approved" };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,8 +49,7 @@ const TitleDefense = () => {
         setTeams(uniqueTeams);
         setAdvisers(
           accData.filter(
-            (a) =>
-              a.user_roles === 3 || a.user_roles === 4 || a.user_roles === 5
+            (a) => a.user_roles === 3 || a.user_roles === 4 || a.user_roles === 5
           )
         );
       }
@@ -74,24 +68,20 @@ const TitleDefense = () => {
 
     fetchData();
   }, []);
+
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     const [hour, minute] = timeString.split(":");
     let h = parseInt(hour, 10);
     const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12; // Convert to 12-hour format
+    h = h % 12 || 12;
     return `${h}:${minute} ${ampm}`;
   };
 
-  // Move filteredSchedules calculation here, before handleExport function
   const filteredSchedules = schedules.filter((sched) => {
     const teamName =
       accounts.find((a) => a.id === sched.manager_id)?.group_name || "";
-    const panelists = [
-      sched.panelist1_id,
-      sched.panelist2_id,
-      sched.panelist3_id,
-    ]
+    const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
       .filter(Boolean)
       .map((id) => {
         const person = accounts.find((a) => a.id === id);
@@ -111,19 +101,13 @@ const TitleDefense = () => {
     );
   });
 
-  // Function to check time conflicts
   const hasTimeConflict = (date, time, existingSchedules) => {
     const newDateTime = new Date(`${date}T${time}`);
-
     for (const schedule of existingSchedules) {
       if (schedule.date === date) {
         const existingTime = new Date(`${schedule.date}T${schedule.time}`);
-        const timeDiff = Math.abs(newDateTime - existingTime) / (1000 * 60); // difference in minutes
-
-        // Check if the time difference is less than 60 minutes (1 hour)
-        if (timeDiff < 60) {
-          return true;
-        }
+        const timeDiff = Math.abs(newDateTime - existingTime) / (1000 * 60);
+        if (timeDiff < 60) return true;
       }
     }
     return false;
@@ -132,11 +116,8 @@ const TitleDefense = () => {
   const exportTitleDefenseAsPDF = (data) => {
     const today = new Date().toLocaleDateString();
     const fileName = `title-defense-schedule-${today.replace(/\//g, "-")}.pdf`;
-
-    // Create PDF using jsPDF
     const doc = new jsPDF();
 
-    // Add header
     doc.setFillColor(59, 3, 4);
     doc.rect(0, 0, 210, 30, "F");
     doc.setTextColor(255, 255, 255);
@@ -148,10 +129,7 @@ const TitleDefense = () => {
     doc.setFont("helvetica", "normal");
     doc.text(`Generated on: ${today}`, 105, 22, { align: "center" });
 
-    // Reset text color for content
     doc.setTextColor(0, 0, 0);
-
-    // Add table headers
     doc.setFillColor(59, 3, 4);
     doc.rect(10, 35, 190, 10, "F");
     doc.setTextColor(255, 255, 255);
@@ -167,11 +145,9 @@ const TitleDefense = () => {
       xPosition += columnWidths[index];
     });
 
-    // Add table rows
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
-
     let yPosition = 50;
 
     data.forEach((item, index) => {
@@ -179,13 +155,10 @@ const TitleDefense = () => {
         doc.addPage();
         yPosition = 20;
       }
-
-      // Alternate row background
       if (index % 2 === 0) {
         doc.setFillColor(245, 245, 245);
         doc.rect(10, yPosition - 4, 190, 6, "F");
       }
-
       xPosition = 10;
       const rowData = [
         item.no.toString(),
@@ -195,9 +168,7 @@ const TitleDefense = () => {
         item.panelists,
         item.verdict,
       ];
-
       rowData.forEach((cell, cellIndex) => {
-        // Wrap text for panelists column
         if (cellIndex === 4) {
           const lines = doc.splitTextToSize(cell, columnWidths[cellIndex] - 2);
           doc.text(lines, xPosition + 1, yPosition);
@@ -206,17 +177,54 @@ const TitleDefense = () => {
         }
         xPosition += columnWidths[cellIndex];
       });
-
       yPosition += 6;
     });
 
-    // Add footer with total records
     doc.setFontSize(8);
     doc.text(`Total Records: ${data.length}`, 14, 285);
-
-    // Save the PDF
     doc.save(fileName);
   };
+
+  // ========= NEW: Notify EVERYONE when type === 1 (Title Defense) =========
+  const createNotificationsForAllUsers = async (date, time) => {
+    try {
+      // grab all UUIDs from user_credentials.id
+      const { data: users, error: usersErr } = await supabase
+        .from("user_credentials")
+        .select("id");
+
+      if (usersErr) {
+        console.error("Fetch users for notifications failed:", usersErr);
+        return;
+      }
+
+      const rows = (users || [])
+        .map((u) => u?.id)
+        .filter(Boolean)
+        .map((uid) => ({
+          user_id: uid,
+          date,        // YYYY-MM-DD
+          time,        // HH:MM
+          type: 1,     // Title Defense
+          title: "Title Defense",
+        }));
+
+      if (rows.length === 0) return;
+
+      // Insert in chunks in case of large user counts
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const slice = rows.slice(i, i + CHUNK);
+        const { error: insErr } = await supabase
+          .from("user_notification")
+          .insert(slice);
+        if (insErr) console.error("user_notification insert failed:", insErr);
+      }
+    } catch (e) {
+      console.error("createNotificationsForAllUsers exception:", e);
+    }
+  };
+  // =======================================================================
 
   const handleCreateSchedule = () => {
     let selectedPanelists = [];
@@ -253,9 +261,8 @@ const TitleDefense = () => {
                                 (t) =>
                                   !schedules.some(
                                     (s) =>
-                                      accounts.find(
-                                        (a) => a.id === s.manager_id
-                                      )?.group_name === t
+                                      accounts.find((a) => a.id === s.manager_id)
+                                        ?.group_name === t
                                   )
                               )
                               .map((t) => `<option value="${t}">${t}</option>`)
@@ -265,14 +272,14 @@ const TitleDefense = () => {
                     <div style="flex: 1;">
                         <label style="font-weight: 600;">Assign Panelists</label>
                         <select id="panelSelect" class="form-select" style="border-radius: 8px; height: 42px;">
-  <option disabled selected value="">Select</option>
-  ${advisers
-    .map((a) => {
-      const tag = a.user_roles === 5 ? " (Guest Panelist)" : "";
-      return `<option value="${a.id}">${a.last_name}, ${a.first_name}${tag}</option>`;
-    })
-    .join("")}
-</select>
+                          <option disabled selected value="">Select</option>
+                          ${advisers
+                            .map((a) => {
+                              const tag = a.user_roles === 5 ? " (Guest Panelist)" : "";
+                              return `<option value="${a.id}">${a.last_name}, ${a.first_name}${tag}</option>`;
+                            })
+                            .join("")}
+                        </select>
                     </div>
                 </div>
  
@@ -313,17 +320,14 @@ const TitleDefense = () => {
           const todayStr = `${yyyy}-${mm}-${dd}`;
           dateInput.setAttribute("min", todayStr);
 
-          const openPicker = () =>
-            dateInput.showPicker && dateInput.showPicker();
+          const openPicker = () => dateInput.showPicker && dateInput.showPicker();
           dateInput.addEventListener("click", openPicker);
           dateInput.addEventListener("focus", openPicker);
         }
 
-        // --- TIME: open picker + enforce min when date is today (+ auto-correct value) ---
         const timeInput = document.getElementById("scheduleTime");
         if (timeInput) {
-          const openTimePicker = () =>
-            timeInput.showPicker && timeInput.showPicker();
+          const openTimePicker = () => timeInput.showPicker && timeInput.showPicker();
           timeInput.addEventListener("click", openTimePicker);
           timeInput.addEventListener("focus", openTimePicker);
 
@@ -340,25 +344,19 @@ const TitleDefense = () => {
               timeInput.removeAttribute("min");
               return;
             }
-
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const picked = new Date(dateVal);
             picked.setHours(0, 0, 0, 0);
-
             if (picked.getTime() === today.getTime()) {
               const min = getNowHHMM();
               timeInput.setAttribute("min", min);
-              // auto-correct if current value is below min
-              if (timeInput.value && timeInput.value < min) {
-                timeInput.value = min;
-              }
+              if (timeInput.value && timeInput.value < min) timeInput.value = min;
             } else {
               timeInput.removeAttribute("min");
             }
           };
 
-          // enforce during typing/scrolling in the time input
           const clampBelowMin = () => {
             const min = timeInput.getAttribute("min");
             if (min && timeInput.value && timeInput.value < min) {
@@ -366,9 +364,7 @@ const TitleDefense = () => {
             }
           };
 
-          document
-            .getElementById("scheduleDate")
-            .addEventListener("change", setTimeMinIfToday);
+          document.getElementById("scheduleDate").addEventListener("change", setTimeMinIfToday);
           timeInput.addEventListener("input", clampBelowMin);
           setTimeMinIfToday();
         }
@@ -378,16 +374,9 @@ const TitleDefense = () => {
           advisers.forEach((a) => {
             const opt = document.createElement("option");
             opt.value = a.id;
-
             const tag = a.user_roles === 5 ? " (Guest Panelist)" : "";
             opt.textContent = `${a.last_name}, ${a.first_name}${tag}`;
-
-            // only disable regular advisers/chairs from the same adviser_group
-            if (
-              adviserGroup &&
-              a.user_roles !== 5 &&
-              a.adviser_group === adviserGroup
-            ) {
+            if (adviserGroup && a.user_roles !== 5 && a.adviser_group === adviserGroup) {
               opt.disabled = true;
               opt.textContent += " (Team Adviser)";
             }
@@ -401,8 +390,7 @@ const TitleDefense = () => {
           const teamAdviserGroup = teamMembers[0]?.adviser_group || null;
 
           selectedPanelists = [];
-          panelList.innerHTML =
-            '<span class="text-muted">No panelist selected</span>';
+          panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
           updatePanelSelectOptions(teamAdviserGroup);
         });
 
@@ -412,18 +400,14 @@ const TitleDefense = () => {
             if (selectedPanelists.length < 3) {
               selectedPanelists.push(selectedId);
               const person = advisers.find((a) => a.id === selectedId);
-              if (panelList.querySelector(".text-muted")) {
-                panelList.innerHTML = "";
-              }
+              if (panelList.querySelector(".text-muted")) panelList.innerHTML = "";
               const tag = document.createElement("span");
               tag.className =
                 "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
               tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${selectedId}">-</button>`;
               panelList.appendChild(tag);
             } else {
-              MySwal.showValidationMessage(
-                "Maximum of 3 panelists can be selected."
-              );
+              MySwal.showValidationMessage("Maximum of 3 panelists can be selected.");
             }
           }
           panelSelect.value = "";
@@ -432,13 +416,10 @@ const TitleDefense = () => {
         panelList.addEventListener("click", (e) => {
           if (e.target.classList.contains("remove-panelist-btn")) {
             const idToRemove = e.target.dataset.id;
-            selectedPanelists = selectedPanelists.filter(
-              (id) => id !== idToRemove
-            );
+            selectedPanelists = selectedPanelists.filter((id) => id !== idToRemove);
             e.target.parentElement.remove();
             if (selectedPanelists.length === 0) {
-              panelList.innerHTML =
-                '<span class="text-muted">No panelist selected</span>';
+              panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
             }
           }
         });
@@ -449,15 +430,11 @@ const TitleDefense = () => {
         const time = document.getElementById("scheduleTime").value;
 
         if (!team || !date || !time || selectedPanelists.length === 0) {
-          MySwal.showValidationMessage(
-            "Please fill all fields and select at least one panelist."
-          );
+          MySwal.showValidationMessage("Please fill all fields and select at least one panelist.");
           return false;
         }
         if (selectedPanelists.length > 3) {
-          MySwal.showValidationMessage(
-            "Maximum of 3 panelists can be selected."
-          );
+          MySwal.showValidationMessage("Maximum of 3 panelists can be selected.");
           return false;
         }
 
@@ -479,19 +456,15 @@ const TitleDefense = () => {
           return false;
         }
         if (pickedDate.getTime() === todayMid.getTime()) {
-          // compare HH:MM
           const [h, m] = time.split(":").map(Number);
-          const picked = new Date(pickedDate);
-          picked.setHours(h, m, 0, 0);
-          if (picked < now) {
-            MySwal.showValidationMessage(
-              "Time cannot be in the past for today's date."
-            );
+          const pickedT = new Date(pickedDate);
+          pickedT.setHours(h, m, 0, 0);
+          if (pickedT < now) {
+            MySwal.showValidationMessage("Time cannot be in the past for today's date.");
             return false;
           }
         }
 
-        // Check for time conflicts
         if (hasTimeConflict(date, time, schedules)) {
           MySwal.showValidationMessage(
             "This time conflicts with an existing schedule. Please choose a time with at least 1 hour gap from other schedules."
@@ -536,6 +509,10 @@ const TitleDefense = () => {
           MySwal.fire("Error", "Failed to create schedule", "error");
         } else {
           setSchedules((prev) => [...prev, data[0]]);
+
+          // >>> Notify EVERYONE since type === 1
+          await createNotificationsForAllUsers(date, time);
+
           MySwal.fire({
             icon: "success",
             title: "✓ Schedule Created",
@@ -575,9 +552,7 @@ const TitleDefense = () => {
       if (result.isConfirmed) {
         const { exportFilter } = result.value;
 
-        // Filter data based on selected option
         let filteredExportData;
-
         if (exportFilter === "all") {
           filteredExportData = filteredSchedules;
         } else {
@@ -587,22 +562,15 @@ const TitleDefense = () => {
           );
         }
 
-        // Prepare data for export
         const exportData = filteredExportData.map((sched, index) => {
           const teamName =
             accounts.find((a) => a.id === sched.manager_id)?.group_name ||
             "Unknown";
-          const panelists = [
-            sched.panelist1_id,
-            sched.panelist2_id,
-            sched.panelist3_id,
-          ]
+          const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
             .filter(Boolean)
             .map((id) => {
               const person = accounts.find((a) => a.id === id);
-              return person
-                ? `${person.last_name}, ${person.first_name}`
-                : "Unknown";
+              return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
             })
             .join("; ");
 
@@ -615,7 +583,7 @@ const TitleDefense = () => {
               year: "numeric",
             }),
             time: sched.time,
-            panelists: panelists,
+            panelists,
             verdict: verdictMap[sched.verdict] || "Pending",
           };
         });
@@ -638,7 +606,6 @@ const TitleDefense = () => {
           return;
         }
 
-        // Export as PDF
         exportTitleDefenseAsPDF(exportData);
 
         MySwal.fire({
@@ -669,9 +636,7 @@ const TitleDefense = () => {
       return;
     }
 
-    const teamName = accounts.find(
-      (a) => a.id === schedToUpdate.manager_id
-    )?.group_name;
+    const teamName = accounts.find((a) => a.id === schedToUpdate.manager_id)?.group_name;
     const teamMembers = accounts.filter((a) => a.group_name === teamName);
     const teamAdviserGroup = teamMembers[0]?.adviser_group || null;
 
@@ -715,14 +680,9 @@ const TitleDefense = () => {
                             ${advisers
                               .map((a) => {
                                 const isDisabled =
-                                  teamAdviserGroup &&
-                                  a.adviser_group === teamAdviserGroup;
-                                return `<option value="${a.id}" ${
-                                  isDisabled ? "disabled" : ""
-                                }>
-                                    ${a.last_name}, ${a.first_name}${
-                                  isDisabled ? " (Team Adviser)" : ""
-                                }
+                                  teamAdviserGroup && a.adviser_group === teamAdviserGroup;
+                                return `<option value="${a.id}" ${isDisabled ? "disabled" : ""}>
+                                    ${a.last_name}, ${a.first_name}${isDisabled ? " (Team Adviser)" : ""}
                                 </option>`;
                               })
                               .join("")}
@@ -731,15 +691,11 @@ const TitleDefense = () => {
                 </div>
                 <div class="mb-3">
                     <label style="font-weight: 600;">Date</label>
-                    <input type="date" id="scheduleDate" class="form-control" value="${
-                      schedToUpdate.date
-                    }" style="border-radius: 8px; height: 42px;"/>
+                    <input type="date" id="scheduleDate" class="form-control" value="${schedToUpdate.date}" style="border-radius: 8px; height: 42px;"/>
                 </div>
                 <div class="mb-3">
                     <label style="font-weight: 600;">Time</label>
-                    <input type="time" id="scheduleTime" class="form-control" value="${
-                      schedToUpdate.time
-                    }" style="border-radius: 8px; height: 42px;"/>
+                    <input type="time" id="scheduleTime" class="form-control" value="${schedToUpdate.time}" style="border-radius: 8px; height: 42px;"/>
                 </div>
                 <div class="mb-2">
                     <label style="font-weight: 600;">Selected Panelists</label>
@@ -748,17 +704,13 @@ const TitleDefense = () => {
                         ${
                           selectedPanelists.length > 0
                             ? selectedPanelists
-                                .map((id) => {
-                                  const person = advisers.find(
-                                    (a) => a.id === id
-                                  );
-                                  if (!person) return ""; // defensive check
+                                .map((id2) => {
+                                  const person = advisers.find((a) => a.id === id2);
+                                  if (!person) return "";
                                   return `<span class="bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1">
                                     ${person.last_name}, ${person.first_name}
-                                    <button type="button" class="remove-panelist-btn ml-1" data-id="${id}">
-                                        -
-                                    </button>
-                                </span>`;
+                                    <button type="button" class="remove-panelist-btn ml-1" data-id="${id2}">-</button>
+                                  </span>`;
                                 })
                                 .join("")
                             : '<span class="text-muted">No panelist selected</span>'
@@ -785,16 +737,14 @@ const TitleDefense = () => {
           const todayStr = `${yyyy}-${mm}-${dd}`;
           dateInput.setAttribute("min", todayStr);
 
-          const openPicker = () =>
-            dateInput.showPicker && dateInput.showPicker();
+          const openPicker = () => dateInput.showPicker && dateInput.showPicker();
           dateInput.addEventListener("click", openPicker);
           dateInput.addEventListener("focus", openPicker);
         }
 
         const timeInput = document.getElementById("scheduleTime");
         if (timeInput) {
-          const openTimePicker = () =>
-            timeInput.showPicker && timeInput.showPicker();
+          const openTimePicker = () => timeInput.showPicker && timeInput.showPicker();
           timeInput.addEventListener("click", openTimePicker);
           timeInput.addEventListener("focus", openTimePicker);
 
@@ -811,18 +761,14 @@ const TitleDefense = () => {
               timeInput.removeAttribute("min");
               return;
             }
-
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const picked = new Date(dateVal);
             picked.setHours(0, 0, 0, 0);
-
             if (picked.getTime() === today.getTime()) {
               const min = getNowHHMM();
               timeInput.setAttribute("min", min);
-              if (timeInput.value && timeInput.value < min) {
-                timeInput.value = min;
-              }
+              if (timeInput.value && timeInput.value < min) timeInput.value = min;
             } else {
               timeInput.removeAttribute("min");
             }
@@ -835,9 +781,7 @@ const TitleDefense = () => {
             }
           };
 
-          document
-            .getElementById("scheduleDate")
-            .addEventListener("change", setTimeMinIfToday);
+          document.getElementById("scheduleDate").addEventListener("change", setTimeMinIfToday);
           timeInput.addEventListener("input", clampBelowMin);
           setTimeMinIfToday();
         }
@@ -848,18 +792,14 @@ const TitleDefense = () => {
             if (selectedPanelists.length < 3) {
               selectedPanelists.push(selectedId);
               const person = advisers.find((a) => a.id === selectedId);
-              if (panelList.querySelector(".text-muted")) {
-                panelList.innerHTML = "";
-              }
+              if (panelList.querySelector(".text-muted")) panelList.innerHTML = "";
               const tag = document.createElement("span");
               tag.className =
                 "bg-gray-200 text-gray-800 rounded-full px-2 py-1 text-sm flex items-center gap-1";
               tag.innerHTML = `${person.last_name}, ${person.first_name} <button type="button" class="remove-panelist-btn ml-1" data-id="${selectedId}">-</button>`;
               panelList.appendChild(tag);
             } else {
-              MySwal.showValidationMessage(
-                "Maximum of 3 panelists can be selected."
-              );
+              MySwal.showValidationMessage("Maximum of 3 panelists can be selected.");
             }
           }
           panelSelect.value = "";
@@ -868,13 +808,10 @@ const TitleDefense = () => {
         panelList.addEventListener("click", (e) => {
           if (e.target.classList.contains("remove-panelist-btn")) {
             const idToRemove = e.target.dataset.id;
-            selectedPanelists = selectedPanelists.filter(
-              (id) => id !== idToRemove
-            );
+            selectedPanelists = selectedPanelists.filter((id3) => id3 !== idToRemove);
             e.target.parentElement.remove();
             if (selectedPanelists.length === 0) {
-              panelList.innerHTML =
-                '<span class="text-muted">No panelist selected</span>';
+              panelList.innerHTML = '<span class="text-muted">No panelist selected</span>';
             }
           }
         });
@@ -884,15 +821,11 @@ const TitleDefense = () => {
         const time = document.getElementById("scheduleTime").value;
 
         if (!date || !time || selectedPanelists.length === 0) {
-          MySwal.showValidationMessage(
-            "Please fill all fields and select at least one panelist."
-          );
+          MySwal.showValidationMessage("Please fill all fields and select at least one panelist.");
           return false;
         }
         if (selectedPanelists.length > 3) {
-          MySwal.showValidationMessage(
-            "Maximum of 3 panelists can be selected."
-          );
+          MySwal.showValidationMessage("Maximum of 3 panelists can be selected.");
           return false;
         }
 
@@ -915,17 +848,14 @@ const TitleDefense = () => {
         }
         if (pickedDate.getTime() === todayMid.getTime()) {
           const [h, m] = time.split(":").map(Number);
-          const picked = new Date(pickedDate);
-          picked.setHours(h, m, 0, 0);
-          if (picked < now) {
-            MySwal.showValidationMessage(
-              "Time cannot be in the past for today's date."
-            );
+          const pickedT = new Date(pickedDate);
+          pickedT.setHours(h, m, 0, 0);
+          if (pickedT < now) {
+            MySwal.showValidationMessage("Time cannot be in the past for today's date.");
             return false;
           }
         }
 
-        // Check for time conflicts (excluding the current schedule being updated)
         const otherSchedules = schedules.filter((s) => s.id !== id);
         if (hasTimeConflict(date, time, otherSchedules)) {
           MySwal.showValidationMessage(
@@ -994,10 +924,7 @@ const TitleDefense = () => {
     });
 
     if (confirm.isConfirmed) {
-      const { error } = await supabase
-        .from("user_titledef")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("user_titledef").delete().eq("id", id);
 
       if (!error) {
         setSchedules((prev) => prev.filter((s) => s.id !== id));
@@ -1009,22 +936,12 @@ const TitleDefense = () => {
   };
 
   const handleCheckboxChange = (id, isChecked) => {
-    setSelectedSchedules((prev) => {
-      if (isChecked) {
-        return [...prev, id];
-      } else {
-        return prev.filter((scheduleId) => scheduleId !== id);
-      }
-    });
+    setSelectedSchedules((prev) => (isChecked ? [...prev, id] : prev.filter((x) => x !== id)));
   };
 
   const handleDeleteSelected = async () => {
     if (selectedSchedules.length === 0) {
-      MySwal.fire(
-        "No schedules selected",
-        "Please select one or more schedules to delete.",
-        "warning"
-      );
+      MySwal.fire("No schedules selected", "Please select one or more schedules to delete.", "warning");
       return;
     }
 
@@ -1039,22 +956,13 @@ const TitleDefense = () => {
     });
 
     if (confirm.isConfirmed) {
-      const { error } = await supabase
-        .from("user_titledef")
-        .delete()
-        .in("id", selectedSchedules);
+      const { error } = await supabase.from("user_titledef").delete().in("id", selectedSchedules);
 
       if (!error) {
-        setSchedules((prev) =>
-          prev.filter((s) => !selectedSchedules.includes(s.id))
-        );
+        setSchedules((prev) => prev.filter((s) => !selectedSchedules.includes(s.id)));
         setSelectedSchedules([]);
         setIsDeleteMode(false);
-        MySwal.fire(
-          "Deleted!",
-          "Selected schedules have been deleted.",
-          "success"
-        );
+        MySwal.fire("Deleted!", "Selected schedules have been deleted.", "success");
       } else {
         MySwal.fire("Error", "Failed to delete selected schedules.", "error");
       }
@@ -1136,9 +1044,7 @@ const TitleDefense = () => {
                     className="form-checkbox h-4 w-4 bg-white border-[#3B0304] text-[#3B0304] rounded transition duration-150 ease-in-out cursor-pointer focus:ring-0 focus:ring-offset-0"
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedSchedules(
-                          filteredSchedules.map((s) => s.id)
-                        );
+                        setSelectedSchedules(filteredSchedules.map((s) => s.id));
                       } else {
                         setSelectedSchedules([]);
                       }
@@ -1150,46 +1056,25 @@ const TitleDefense = () => {
                   />
                 </th>
               )}
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 NO
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 TEAM
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 DATE
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 TIME
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 PANELISTS
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 VERDICT
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ACTION
               </th>
             </tr>
@@ -1200,43 +1085,30 @@ const TitleDefense = () => {
                 accounts.find((a) => a.id === sched.manager_id)?.group_name ||
                 "Unknown";
 
-              const panelists = [
-                sched.panelist1_id,
-                sched.panelist2_id,
-                sched.panelist3_id,
-              ]
+              const panelists = [sched.panelist1_id, sched.panelist2_id, sched.panelist3_id]
                 .filter(Boolean)
                 .map((id) => {
                   const person = accounts.find((a) => a.id === id);
-                  return person
-                    ? `${person.last_name}, ${person.first_name}`
-                    : "Unknown";
+                  return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
                 })
                 .join("; ");
 
               return (
-                <tr
-                  key={sched.id}
-                  className={sched.verdict === 2 ? "bg-red-100" : ""}
-                >
+                <tr key={sched.id} className={sched.verdict === 2 ? "bg-red-100" : ""}>
                   {isDeleteMode && (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
                         className="form-checkbox h-4 w-4 bg-white border-[#3B0304] text-[#3B0304] rounded transition duration-150 ease-in-out cursor-pointer focus:ring-0 focus:ring-offset-0"
                         checked={selectedSchedules.includes(sched.id)}
-                        onChange={(e) =>
-                          handleCheckboxChange(sched.id, e.target.checked)
-                        }
+                        onChange={(e) => handleCheckboxChange(sched.id, e.target.checked)}
                       />
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {index + 1}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {teamName}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{teamName}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(sched.date).toLocaleDateString("en-US", {
                       month: "short",
@@ -1247,9 +1119,7 @@ const TitleDefense = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatTime(sched.time)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {panelists}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">{panelists}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                     <select
                       className="form-select form-select-sm p-2 border border-[#B2B2B2] rounded-lg bg-white text-[#3B0304] font-semibold"
@@ -1275,21 +1145,11 @@ const TitleDefense = () => {
 
                             if (!error) {
                               setSchedules((prev) =>
-                                prev.map((s) =>
-                                  s.id === sched.id ? { ...s, verdict: 2 } : s
-                                )
+                                prev.map((s) => (s.id === sched.id ? { ...s, verdict: 2 } : s))
                               );
-                              MySwal.fire(
-                                "Success!",
-                                "Team marked as Re-Defense.",
-                                "success"
-                              );
+                              MySwal.fire("Success!", "Team marked as Re-Defense.", "success");
                             } else {
-                              MySwal.fire(
-                                "Error",
-                                "Failed to update verdict.",
-                                "error"
-                              );
+                              MySwal.fire("Error", "Failed to update verdict.", "error");
                             }
                           } else {
                             e.target.value = sched.verdict;
@@ -1302,11 +1162,7 @@ const TitleDefense = () => {
 
                           if (!error) {
                             setSchedules((prev) =>
-                              prev.map((s) =>
-                                s.id === sched.id
-                                  ? { ...s, verdict: newVerdict }
-                                  : s
-                              )
+                              prev.map((s) => (s.id === sched.id ? { ...s, verdict: newVerdict } : s))
                             );
                           }
                         }
@@ -1320,32 +1176,25 @@ const TitleDefense = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative text-center">
                     <button
                       id={`action-button-${index}`}
-                      onClick={() =>
-                        setOpenDropdown(openDropdown === index ? null : index)
-                      }
+                      onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
                       className="bg-white border-none focus:outline-none relative z-20"
                     >
                       <FaEllipsisV className="text-[#3B0304] text-sm" />
                     </button>
                     {openDropdown === index && (
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setOpenDropdown(null)}
-                      >
+                      <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)}>
                         <div
                           className="absolute bg-white rounded-md shadow-lg border border-gray-200 w-40 z-50"
                           style={{
                             top: `${
-                              document
-                                .getElementById(`action-button-${index}`)
-                                ?.getBoundingClientRect().bottom +
+                              document.getElementById(`action-button-${index}`)?.getBoundingClientRect()
+                                .bottom +
                               window.scrollY +
                               5
                             }px`,
                             left: `${
-                              document
-                                .getElementById(`action-button-${index}`)
-                                ?.getBoundingClientRect().right +
+                              document.getElementById(`action-button-${index}`)?.getBoundingClientRect()
+                                .right +
                               window.scrollX -
                               160
                             }px`,
@@ -1378,10 +1227,7 @@ const TitleDefense = () => {
             })}
             {filteredSchedules.length === 0 && (
               <tr>
-                <td
-                  colSpan={isDeleteMode ? "8" : "7"}
-                  className="text-center py-4 text-gray-500"
-                >
+                <td colSpan={isDeleteMode ? "8" : "7"} className="text-center py-4 text-gray-500">
                   No schedules found.
                 </td>
               </tr>

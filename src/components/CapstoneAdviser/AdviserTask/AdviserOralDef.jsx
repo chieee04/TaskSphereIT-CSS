@@ -8,11 +8,12 @@ import {
 } from "react-icons/fa";
 
 import { fetchTasksFromDB } from "../../../services/Adviser/AdCapsTask";
+import { supabase } from "../../../supabaseClient"; // <-- ADD THIS
 
 const ACCENT = "#5a0d0e";
 
 const STATUS_OPTS  = ["To Do", "In Progress", "To Review", "Completed", "Missed"];
-const FILTER_OPTS  = ["All", "To Do", "In Progress", "To Review", "Missed"]; // no Completed
+const FILTER_OPTS  = ["All", "To Do", "In Progress", "To Review", "Missed"];
 const REV_OPTS     = ["No Revision", ...Array.from({ length: 10 }, (_, i) => {
   const n = i + 1;
   return n === 1 ? "1st Revision" : n === 2 ? "2nd Revision" : n === 3 ? "3rd Revision" : `${n}th Revision`;
@@ -54,7 +55,7 @@ const AdviserOralDef = () => {
     return `${n}th Revision`;
   };
 
-  // -------- helpers ----------
+  // ——————— helpers ———————
   const uniqList = (arr) =>
     Array.from(
       new Set(
@@ -63,6 +64,75 @@ const AdviserOralDef = () => {
           .filter((v) => v.length > 0)
       )
     );
+
+  // === NEW: notify all members/managers of selected teams ===
+  // === NEW: notify all members/managers of selected teams ===
+const createTeamTaskNotifications = async (teamNames) => {
+  try {
+    if (!teamNames?.length) return;
+
+    // 1) Get recipients: managers (1) + members (2) in those teams
+    const { data: users, error: usersErr } = await supabase
+      .from("user_credentials")
+      .select("id, group_name, user_roles")
+      .in("group_name", teamNames)
+      .in("user_roles", [1, 2]);
+
+    if (usersErr) {
+      console.error("Fetch recipients failed:", usersErr);
+      await Swal.fire({
+        icon: "error",
+        title: "Couldn’t fetch recipients",
+        text: usersErr.message || "Unknown error",
+      });
+      return;
+    }
+
+    const ids = Array.from(new Set((users || []).map((u) => u.id).filter(Boolean)));
+    if (!ids.length) {
+      console.log("No recipients for teams:", teamNames);
+      return;
+    }
+
+    // 2) Current date/time (your table uses TEXT)
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    const rows = ids.map((uid) => ({
+      user_id: uid,         // matches user_credentials.id (uuid)
+      title: "Task",        // <- required: "Task"
+      type: "2",            // <- IMPORTANT: your column is text → insert "2" not 2
+      date,                 // text
+      time,                 // text
+    }));
+
+    console.log("About to insert notifications for user_ids:", ids);
+    // 3) Insert (and show any error)
+    const { error: insErr } = await supabase.from("user_notification").insert(rows);
+    if (insErr) {
+      console.error("user_notification insert failed:", insErr);
+      await Swal.fire({
+        icon: "error",
+        title: "Failed to insert notifications",
+        text: insErr.message || "Unknown error",
+      });
+      return;
+    }
+
+    console.log("Notifications inserted:", rows.length);
+  } catch (e) {
+    console.error("createTeamTaskNotifications exception:", e);
+    await Swal.fire({
+      icon: "error",
+      title: "Unexpected error",
+      text: e?.message || String(e),
+    });
+  }
+};
+
+  // ————————————————
 
   // -------- Create Task ----------
   const openCreate = async () => {
@@ -260,6 +330,10 @@ const AdviserOralDef = () => {
     }));
 
     setTasks((prev) => [...toAdd, ...prev]);
+
+    // >>> NEW: notify all members/managers of selected teams (type = 2, title = "Task")
+    await createTeamTaskNotifications(value.teams);
+
     Swal.fire({
       icon: "success",
       title: "Task(s) created",
@@ -415,10 +489,8 @@ const AdviserOralDef = () => {
         .tbl td{padding:.5rem; border-bottom:1px solid #eee; font-size:.9rem; vertical-align:middle}
       `}</style>
 
-      {/* Content */}
       <div className="flex-1">
         <div className="px-4 sm:px-6 lg:px-8 py-5">
-          {/* Header with Back on the LEFT (same as Final Def) */}
           <div className="flex items-center gap-2 mb-2">
             <button className="primary-button" onClick={backToTasks} title="Back to Tasks">
               <FaChevronLeft /> Back
@@ -429,7 +501,6 @@ const AdviserOralDef = () => {
           </div>
           <hr className="my-3 divider" />
 
-          {/* Controls */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
               <input
@@ -470,7 +541,6 @@ const AdviserOralDef = () => {
             </div>
           </div>
 
-          {/* Table */}
           <div className="bg-white rounded-lg shadow-sm">
             <table className="tbl">
               <thead>
@@ -524,7 +594,6 @@ const AdviserOralDef = () => {
                           <FaClock className="inline mr-1" style={{ color: ACCENT }}/> {formatTime(t.time)}
                         </td>
 
-                        {/* Revision */}
                         <td className="text-center">
                           {frozen ? (
                             <span className="inline-flex items-center gap-1" style={{ color: ACCENT }}>
@@ -544,7 +613,6 @@ const AdviserOralDef = () => {
                           )}
                         </td>
 
-                        {/* Status */}
                         <td className="text-center">
                           {frozen ? (
                             <span className="inline-flex items-center gap-1 text-white px-2 py-1 rounded" style={{ background: ACCENT }}>
@@ -596,7 +664,6 @@ const AdviserOralDef = () => {
             </table>
           </div>
 
-          {/* Kebab menu */}
           {menuFor && (
             <div className="kmenu" style={menuPos(menuFor)}>
               <button className="kitem" onClick={() => openUpdate(menuFor)}>
@@ -627,7 +694,6 @@ const AdviserOralDef = () => {
           )}
         </div>
       </div>
-      {/* Footer stays pinned by min-h-screen + flex-1 in your app layout */}
     </div>
   );
 };
