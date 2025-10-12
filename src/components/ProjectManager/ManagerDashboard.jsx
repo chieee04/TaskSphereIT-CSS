@@ -1,5 +1,5 @@
-// ManagerDashboard.jsx
-import { useState, useEffect } from "react";
+// src/pages/Manager/ManagerDashboard.jsx
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import {
@@ -21,7 +21,6 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useAuthGuard } from "../../components/hooks/useAuthGuard";
 
-
 // Pages
 import Tasks from "./ManagerTask/ManagerTask";
 import AdviserTasks from "./ManagerAdviserTask";
@@ -40,7 +39,6 @@ import ManagerAllocation from "./ManagerTask/ManagerAllocation";
 import ManagerFinalRecord from "./ManagerTaskRecord/ManagerFinalRecord";
 import SoloModeDashboard from "../SoloMode/SoloModeDashboard";
 import Header from "../Header";
-// Import CSS
 import "../Style/ProjectManager/ManagerDB.css";
 import { supabase } from "../../supabaseClient";
 import Footer from "../Footer";
@@ -49,13 +47,54 @@ import SoloModeTasks from "../SoloMode/SoloModeTasks";
 import SoloModeTasksBoard from "../SoloMode/SoloModeTasksBoard";
 import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 
-// Constants
-const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// NEW: ToS modal + auth context
+import TermsOfService from "../../components/TermsOfService";
+import { UserAuth } from "../../Contex/AuthContext";
 
-// ChartJS registration
+// ---- ChartJS
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler, ArcElement);
 
-// Chart.js helpers
+// ---- Constants
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ROLE_MANAGER = 1;                    // managers = 1 in your DB
+const TOS_VERSION = "2025-05-09";          // must match TermsOfService.jsx
+
+// ---- ToS helpers (role-agnostic check) ----
+const getUserKey = (u) =>
+  u?.id ||
+  u?.user_id ||
+  u?.uuid ||
+  u?.email ||
+  u?.user_email ||
+  u?.username ||
+  u?.user_key ||
+  null;
+
+// check ONLY by (user_key, version) → role is ignored
+async function hasAcceptedTos(userKey) {
+  const { data, error } = await supabase
+    .from("tos_acceptance")
+    .select("id")
+    .eq("user_key", String(userKey))
+    .eq("version", TOS_VERSION)
+    .order("accepted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  return !!data;
+}
+
+// insert a row; ignore duplicate key error if you add a unique index later
+async function acceptTos(userKey, role) {
+  const { error } = await supabase.from("tos_acceptance").insert({
+    user_key: String(userKey),
+    role: Number(role || 0),
+    version: TOS_VERSION
+  });
+  if (error && error.code !== "23505") throw error;
+}
+
+// ---- Chart helpers
 function getLineColor(ctx) {
   const colors = {
     "To Do": "#FABC3F",
@@ -66,18 +105,16 @@ function getLineColor(ctx) {
   };
   return colors[ctx.dataset.label] || "#000000";
 }
-
 function makeHalfAsOpaque(ctx) {
   const color = getLineColor(ctx);
-  return color + "80"; // 50% opacity
+  return color + "80";
 }
-
 function adjustRadiusBasedOnData(ctx) {
   const v = ctx.parsed.y;
   return v < 10 ? 5 : v < 25 ? 7 : v < 50 ? 9 : v < 75 ? 11 : 15;
 }
 
-// Team Progress Pie Chart
+// ---- Team progress pie chart
 const TeamProgressChart = () => {
   const [statusCounts, setStatusCounts] = useState({
     "To Do": 0, "In Progress": 0, "To Review": 0, "Completed": 0, "Missed": 0
@@ -132,37 +169,89 @@ const TeamProgressChart = () => {
 };
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
-useAuthGuard();
+  useAuthGuard();
+
+  const { logout } = UserAuth?.() || { logout: null };
   const location = useLocation();
+  const navigate = useNavigate();
+  const { subPage } = useParams();
+
+  // ===== ToS state (role-agnostic check) =====
+  const storedUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("customUser") || "null"); }
+    catch { return null; }
+  }, []);
+  const userKey = getUserKey(storedUser);
+  const role = Number(storedUser?.user_roles || ROLE_MANAGER);
+
+  const [checkingTos, setCheckingTos] = useState(true);
+  const [showTos, setShowTos] = useState(false);
+  const [tosSaving, setTosSaving] = useState(false); // double-click guard
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (!userKey) { if (alive) setShowTos(false); return; }
+        const accepted = await hasAcceptedTos(userKey); // 👈 role ignored here
+        if (alive) setShowTos(!accepted);
+      } catch (e) {
+        console.error("ToS check failed:", e);
+        if (alive) setShowTos(true);
+      } finally {
+        if (alive) setCheckingTos(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [userKey]);
+
+  const handleTosAccept = async () => {
+    if (tosSaving) return;
+    setTosSaving(true);
+    try {
+      if (!userKey) return;
+      await acceptTos(userKey, role);
+      setShowTos(false);
+    } catch (e) {
+      console.error("ToS accept failed:", e);
+      // keep modal open so user can retry
+    } finally {
+      setTosSaving(false);
+    }
+  };
+
+  const handleTosDecline = () => {
+    localStorage.removeItem("customUser");
+    localStorage.removeItem("user_id");
+    if (typeof logout === "function") logout();
+    navigate("/Signin", { replace: true });
+  };
+
+  // ===== Dashboard state =====
   const [activePage, setActivePage] = useState(location.state?.activePage || activePageFromHeader || "Dashboard");
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [allWeeklyTasks, setAllWeeklyTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
-  const [isSoloMode, setIsSoloMode] = useState(false); //
+  const [isSoloMode, setIsSoloMode] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(70);
-  const navigate = useNavigate();
-  const { subPage } = useParams();
+
   const handlePageChange = (page) => {
     setActivePage(page);
     navigate(`/Manager/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
   };
 
-useEffect(() => {
-  if (subPage) {
-    setActivePage(subPage); // gamitin na lang raw string, walang formatting
-  } else if (isSoloMode) {
-    setActivePage("SoloModeDashboard");
-  } else {
-    setActivePage("Dashboard");
-  }
-}, [isSoloMode, subPage])
+  useEffect(() => {
+    if (subPage) setActivePage(subPage);
+    else if (isSoloMode) setActivePage("SoloModeDashboard");
+    else setActivePage("Dashboard");
+  }, [isSoloMode, subPage]);
 
-
+  // Fetch all weekly tasks
   useEffect(() => {
     const fetchAllWeeklyTasks = async () => {
-      const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) return;
-      const currentUser = JSON.parse(storedUser);
+      const stored = localStorage.getItem("customUser");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
       const managerUUID = currentUser.uuid || currentUser.id;
       if (!managerUUID) return;
 
@@ -173,7 +262,7 @@ useEffect(() => {
           select: "id, task_name, due_date, due_time, status, created_date, member_id, project_phase",
           mapTask: t => t.task_name,
           mapCreated: t => t.created_date,
-          mapTime: t => t.due_time?.slice(0, 5) // HH:MM
+          mapTime: t => t.due_time?.slice(0, 5)
         },
         {
           name: "manager_oral_task",
@@ -227,9 +316,9 @@ useEffect(() => {
   // Fetch upcoming tasks
   useEffect(() => {
     const fetchUpcomingTasks = async () => {
-      const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) return;
-      const currentUser = JSON.parse(storedUser);
+      const stored = localStorage.getItem("customUser");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
       const managerUUID = currentUser.uuid || currentUser.id;
       if (!managerUUID) return;
 
@@ -297,7 +386,7 @@ useEffect(() => {
     fetchUpcomingTasks();
   }, []);
 
-  // Weekly Summary
+  // Weekly summary → chart data
   const weeklyData = WEEK_DAYS.map(day => {
     const dayTasks = allWeeklyTasks.filter(task => {
       const taskDay = new Date(task.due_date).toLocaleDateString("en-US", { weekday: "long" });
@@ -345,8 +434,6 @@ useEffect(() => {
             : "#FABC3F"
   }));
 
-  
-
   const renderContent = () => {
     switch (activePage) {
       case "AdviserTasks": return <AdviserTasks />;
@@ -367,15 +454,10 @@ useEffect(() => {
 
       case "Events": return <ManagerEvents />;
       case "Profile": return <Profile />;
-
-       case "SoloModeDashboard":
-        return <SoloModeDashboard />;
-      case "SolomodeTasks":
-        return <SoloModeTasks />;
-      case "SolomodeTasksBoard":
-        return <SoloModeTasksBoard />;
-      case "SolomodeTasksRecord":
-        return <SoloModeTasksRecord />;
+      case "SoloModeDashboard": return <SoloModeDashboard />;
+      case "SolomodeTasks": return <SoloModeTasks />;
+      case "SolomodeTasksBoard": return <SoloModeTasksBoard />;
+      case "SolomodeTasksRecord": return <SoloModeTasksRecord />;
       default:
         return (
           <div className="dashboard-content">
@@ -470,7 +552,6 @@ useEffect(() => {
       <Header
         isSoloMode={isSoloMode}
         setIsSoloMode={setIsSoloMode}
-
       />
       <div className="d-flex">
         <Sidebar
@@ -485,15 +566,19 @@ useEffect(() => {
             marginLeft: `${sidebarWidth}px`,
             transition: "margin-left 0.3s",
           }}
-          id="main-content-wrapper" // New wrapper for content and footer
+          id="main-content-wrapper"
         >
           <main className="flex-grow-1 p-3">
             {renderContent()}
           </main>
-          {/* ✨ ADD THE FOOTER COMPONENT HERE */}
           <Footer />
         </div>
       </div>
+
+      {/* Show ToS only after the DB check completes */}
+      {!checkingTos && (
+        <TermsOfService open={showTos} onAccept={handleTosAccept} onDecline={handleTosDecline} />
+      )}
     </div>
   );
 };

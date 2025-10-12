@@ -1,4 +1,8 @@
 import React from 'react';
+import { Link } from "react-router-dom";
+// ...
+<Link to="/TermsOfService" className="hover:underline">Terms of Service</Link>
+
  
 // NOTE: This component assumes its parent container uses a layout system (like Flexbox or Grid) 
 // to push it to the very bottom of the screen when content is short.
