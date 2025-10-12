@@ -38,66 +38,66 @@ const Notification = () => {
 
   // ✅ View Notification Details (with Confirm + Cancel)
   const handleView = async (note) => {
-  const result = await MySwal.fire({
-    title: `<div style="color:#3B0304;font-size:1.3rem;font-weight:600;">${note.title}</div>`,
-    html: `
-      <p style="color:#333;font-size:0.95rem;">${note.description}</p>
-      <p style="font-size:0.8rem;color:#888;margin-top:10px;">${new Date(
-        note.date
-      ).toLocaleString()}</p>
-    `,
-    showCancelButton: true,
-    confirmButtonText: "Confirm",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#3B0304",
-    cancelButtonColor: "#6c757d",
-    width: "400px",
-  });
+    const result = await MySwal.fire({
+      title: `<div style="color:#3B0304;font-size:1.3rem;font-weight:600;">${note.title}</div>`,
+      html: `
+        <p style="color:#333;font-size:0.95rem;">${note.description}</p>
+        <p style="font-size:0.8rem;color:#888;margin-top:10px;">${new Date(
+          note.date
+        ).toLocaleString()}</p>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3B0304",
+      cancelButtonColor: "#6c757d",
+      width: "400px",
+    });
 
-  if (result.isConfirmed) {
-    const storedUser = JSON.parse(localStorage.getItem("customUser"));
-    if (!storedUser) return;
+    if (result.isConfirmed) {
+      const storedUser = JSON.parse(localStorage.getItem("customUser"));
+      if (!storedUser) return;
 
-    try {
-      // 🔹 Delete current user_roles = 4
-      await supabase.from("user_credentials").delete().eq("user_roles", 4);
+      try {
+        // 🔹 Delete current user_roles = 4
+        await supabase.from("user_credentials").delete().eq("user_roles", 4);
 
-      // 🔹 Update confirmer (current user) to user_roles = 4
-      await supabase
-        .from("user_credentials")
-        .update({ user_roles: 4 })
-        .eq("id", storedUser.id);
+        // 🔹 Update confirmer (current user) to user_roles = 4
+        await supabase
+          .from("user_credentials")
+          .update({ user_roles: 4 })
+          .eq("id", storedUser.id);
 
-      // 🔹 Show success message
+        // 🔹 Show success message
+        await MySwal.fire({
+          icon: "success",
+          title: "Role Transferred!",
+          text: "You are now assigned as the new Admin. You will be signed out automatically.",
+          confirmButtonColor: "#3B0304",
+        });
+
+        // 🔹 Sign out automatically
+        localStorage.removeItem("customUser");
+        localStorage.removeItem("user_id");
+        window.location.href = "/";
+      } catch (error) {
+        console.error("Error updating roles:", error);
+        await MySwal.fire({
+          icon: "error",
+          title: "Something went wrong",
+          text: "Failed to transfer the role. Please try again.",
+          confirmButtonColor: "#3B0304",
+        });
+      }
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
       await MySwal.fire({
-        icon: "success",
-        title: "Role Transferred!",
-        text: "You are now assigned as the new Admin. You will be signed out automatically.",
-        confirmButtonColor: "#3B0304",
-      });
-
-      // 🔹 Sign out automatically
-      localStorage.removeItem("customUser");
-      localStorage.removeItem("user_id");
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Error updating roles:", error);
-      await MySwal.fire({
-        icon: "error",
-        title: "Something went wrong",
-        text: "Failed to transfer the role. Please try again.",
+        icon: "info",
+        title: "Cancelled",
+        text: "You cancelled viewing this notification.",
         confirmButtonColor: "#3B0304",
       });
     }
-  } else if (result.dismiss === Swal.DismissReason.cancel) {
-    await MySwal.fire({
-      icon: "info",
-      title: "Cancelled",
-      text: "You cancelled viewing this notification.",
-      confirmButtonColor: "#3B0304",
-    });
-  }
-};
+  };
 
   // ✅ Delete Notification
   const handleDelete = async (id) => {
@@ -129,45 +129,46 @@ const Notification = () => {
   };
 
   return (
-    <div className="notification-page">
-      <h2 className="section-title">Notifications</h2>
-      <hr className="divider" />
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-grow container mx-auto px-6 py-6">
+        <h2 className="section-title">Notifications</h2>
+        <hr className="divider" />
 
-      {notifications.length === 0 ? (
-        <p>No notifications available.</p>
-      ) : (
-        <div className="notification-list">
-          {notifications.map((note) => (
-            <div key={note.id} className="notification-card success">
-              <div className="icon">
-                <FaCheckCircle className="success-icon" />
+        {notifications.length === 0 ? (
+          <p>No notifications available.</p>
+        ) : (
+          <div className="notification-list">
+            {notifications.map((note) => (
+              <div key={note.id} className="notification-card success">
+                <div className="icon">
+                  <FaCheckCircle className="success-icon" />
+                </div>
+                <div className="notification-content">
+                  <h4 className="notification-title">{note.title}</h4>
+                  <p className="notification-message">{note.description}</p>
+                  <p className="notification-date">
+                    {new Date(note.date).toLocaleDateString("en-GB")}
+                  </p>
+                </div>
+                <div className="notification-actions">
+                  <button className="btn btn-view" onClick={() => handleView(note)}>
+                    View
+                  </button>
+                  <button className="btn btn-delete" onClick={() => handleDelete(note.id)}>
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div className="notification-content">
-                <h4 className="notification-title">{note.title}</h4>
-                <p className="notification-message">{note.description}</p>
-                <p className="notification-date">
-                  {new Date(note.date).toLocaleDateString("en-GB")}
-                </p>
-              </div>
-              <div className="notification-actions">
-                <button className="btn btn-view" onClick={() => handleView(note)}>
-                  View
-                </button>
-                <button className="btn btn-delete" onClick={() => handleDelete(note.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
+
+      {/* ✅ Existing Styles (kept intact) */}
       <style>{`
         * { box-sizing: border-box; }
-        .notification-page {
-          width: 100%;
-          padding: 20px;
-        }
         .section-title {
           font-size: 20px;
           font-weight: bold;
@@ -179,13 +180,11 @@ const Notification = () => {
           border-top: 2px solid #3B0304;
           margin-bottom: 20px;
         }
-
         .notification-list {
           display: flex;
           flex-direction: column;
           gap: 12px;
         }
-
         .notification-card {
           display: flex;
           align-items: flex-start;
@@ -201,17 +200,9 @@ const Notification = () => {
           transform: translateY(-2px);
           box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
-
-        .icon {
-          margin-right: 16px;
-          margin-top: 6px;
-        }
+        .icon { margin-right: 16px; margin-top: 6px; }
         .success-icon { color: #28a745; font-size: 1.2rem; }
-
-        .notification-content {
-          flex: 1;
-          color: #333;
-        }
+        .notification-content { flex: 1; color: #333; }
         .notification-title {
           font-weight: 600;
           margin-bottom: 4px;
@@ -227,7 +218,6 @@ const Notification = () => {
           font-size: 0.8rem;
           color: #999;
         }
-
         .notification-actions {
           display: flex;
           flex-direction: column;

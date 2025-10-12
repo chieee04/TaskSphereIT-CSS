@@ -45,6 +45,12 @@ ChartJS.register(Tooltip, Legend, ArcElement);
 // === TOS VERSION must match TermsOfService.jsx ===
 const TOS_VERSION = "2025-05-09";
 
+// Define the primary color constants for consistency
+const TASKSPHERE_PRIMARY = "#5a0d0e";
+const TASKSPHERE_LIGHT = "#7a1d1e";
+const TASKSPHERE_LIGHTER = "#9a3d3e";
+const TASKSPHERE_LIGHTEST = "#ba5d5e";
+
 // ---------------- Team Progress card ----------------
 const AdviserTeamProgress = ({ teamsProgress }) => {
   const calculateCompletionPercentage = (counts) => {
@@ -59,6 +65,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
         <div className="progress-grid">
           {teamsProgress.map((team, index) => {
             const completionPercentage = calculateCompletionPercentage(team.counts);
+            const totalTasks = Object.values(team.counts).reduce((sum, count) => sum + count, 0);
 
             const chartData = {
               labels: ["Completed", "Remaining"],
@@ -67,13 +74,12 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   label: "Tasks",
                   data: [
                     team.counts["Completed"] || 0,
-                    Object.values(team.counts).reduce((sum, count) => sum + count, 0) -
-                      (team.counts["Completed"] || 0),
+                    Math.max(0, totalTasks - (team.counts["Completed"] || 0)),
                   ],
-                  backgroundColor: ["#AA60C8", "#e9ecef"],
+                  backgroundColor: [TASKSPHERE_PRIMARY, "#f0f0f0"],
                   borderColor: "#ffffff",
-                  borderWidth: 2,
-                  cutout: "70%",
+                  borderWidth: 3,
+                  cutout: "75%",
                 },
               ],
             };
@@ -81,39 +87,30 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
             const chartOptions = {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  enabled: false,
+                },
+              },
             };
 
             return (
-              <div key={index} className="progress-card">
-                <h5>{team.group_name}</h5>
-                <div className="chart-container">
-                  <div style={{ width: "200px", height: "200px", margin: "auto", position: "relative" }}>
-                    <Doughnut data={chartData} options={chartOptions} />
-                    <div className="chart-center-percentage">
-                      <span className="percentage-value">{completionPercentage}%</span>
-                      <span className="percentage-label">Completed</span>
-                    </div>
-                  </div>
+              <div key={index} className="progress-card-new">
+                <div className="team-member-info">
+                  <i className="fas fa-users"></i>
+                  <span className="team-name">{team.group_name}</span>
                 </div>
-                <div className="progress-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Completed:</span>
-                    <span className="stat-value">{team.counts["Completed"] || 0}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">In Progress:</span>
-                    <span className="stat-value">{team.counts["In Progress"] || 0}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">To Do:</span>
-                    <span className="stat-value">{team.counts["To Do"] || 0}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Total Tasks:</span>
-                    <span className="stat-value">
-                      {Object.values(team.counts).reduce((sum, count) => sum + count, 0)}
-                    </span>
+                <div className="chart-wrapper">
+                  <div className="chart-container-large">
+                    <Doughnut data={chartData} options={chartOptions} />
+                    <div className="chart-percentage-center">
+                      <span className="percentage-num">
+                        {completionPercentage}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -122,14 +119,10 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
         </div>
       ) : (
         <div className="no-teams-message">
-          <i className="fas fa-users fa-2x text-muted mb-2"></i>
-          <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
-          <small className="text-muted">This could be because:</small>
-          <ul className="text-muted small">
-            <li>No teams are assigned to you</li>
-            <li>Your teams don't have any tasks yet</li>
-            <li>There might be a data mismatch in adviser_group</li>
-          </ul>
+          <i className="fas fa-users fa-3x text-muted mb-3"></i>
+          <p className="fst-italic text-muted">
+            No teams with tasks to display progress.
+          </p>
         </div>
       )}
     </div>
@@ -232,6 +225,15 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     else setActivePage("Dashboard");
   }, [isSoloMode, subPage]);
 
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    const [hour, minute] = timeString.split(":");
+    let h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${minute} ${ampm}`;
+  };
+
   // Fetch dashboard data
   useEffect(() => {
     const fetchAdviserData = async () => {
@@ -253,10 +255,10 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         ]);
 
         if (oralTasksResult.data) {
-          allAdviserTasks = [...allAdviserTasks, ...oralTasksResult.data.map((t) => ({ ...t, type: "oral" }))];
+          allAdviserTasks = [...allAdviserTasks, ...oralTasksResult.data.map((t) => ({ ...t, type: "Oral Defense" }))];
         }
         if (finalTasksResult.data) {
-          allAdviserTasks = [...allAdviserTasks, ...finalTasksResult.data.map((t) => ({ ...t, type: "final" }))];
+          allAdviserTasks = [...allAdviserTasks, ...finalTasksResult.data.map((t) => ({ ...t, type: "Final Defense" }))];
         }
 
         // upcoming
@@ -288,8 +290,20 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         // recent
         const recent = [...allAdviserTasks]
           .sort((a, b) => new Date(b.date_created || b.created_at) - new Date(a.date_created || a.created_at))
-          .slice(0, 5);
-        setRecentTasks(recent);
+          .slice(0, 4);
+        
+        const recentWithNames = await Promise.all(
+          recent.map(async (task) => {
+            if (!task.manager_id) return { ...task, managerName: "N/A" };
+            const { data: manager } = await supabase
+              .from("user_credentials")
+              .select("first_name, last_name")
+              .eq("id", task.manager_id)
+              .single();
+            return { ...task, managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" };
+          })
+        );
+        setRecentTasks(recentWithNames);
 
         // teams progress
         const { data: teams, error: teamsError } = await supabase
@@ -362,16 +376,7 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
           id: task.id,
           title: `${task.task} (${task.status})`,
           start: task.due_date,
-          color:
-            task.status === "Completed"
-              ? "#4BC0C0"
-              : task.status === "Missed"
-              ? "#FF6384"
-              : task.status === "In Progress"
-              ? "#809D3C"
-              : task.status === "To Review"
-              ? "#578FCA"
-              : "#FABC3F",
+          color: TASKSPHERE_PRIMARY,
         }));
         setCalendarEvents(events);
       } catch (error) {
@@ -432,50 +437,39 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
         return <SoloModeTasksRecord />;
       default:
         return (
-          <div className="adviser-dashboard-content">
+          <div className="adviser-dashboard-modern">
             {isLoading ? (
               <div className="loading-container">
-                <div className="spinner-border text-primary" role="status">
+                <div className="spinner-border" role="status">
                   <span className="visually-hidden">Loading...</span>
                 </div>
                 <p>Loading dashboard data...</p>
               </div>
             ) : (
               <>
-                {/* Section 1: UPCOMING */}
-                <div className="dashboard-section">
-                  <h4>ADVISER UPCOMING ACTIVITY</h4>
-                  <div className="upcoming-activity">
+                {/* Section 1: UPCOMING ACTIVITY */}
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">UPCOMING ACTIVITY</h4>
+                  <div className="upcoming-cards-grid">
                     {upcomingTasks.length === 0 ? (
                       <p className="fst-italic text-muted">No upcoming tasks.</p>
                     ) : (
                       upcomingTasks.map((t, i) => (
-                        <div key={i} className="activity-card">
-                          <div className="activity-header">
-                            <i className="fas fa-user-tag" />
+                        <div key={i} className="upcoming-card-modern">
+                          <div className="card-header-badge">{t.type}</div>
+                          <div className="card-manager-info">
+                            <i className="fas fa-users"></i>
                             <span>{t.managerName}</span>
                           </div>
-                          <div className="activity-body">
-                            <h5>
-                              <i className="fas fa-tasks" /> {t.task}
-                            </h5>
-                            <p>
-                              <i className="fas fa-calendar-alt" />{" "}
-                              {new Date(t.due_date).toLocaleDateString()}
-                            </p>
-                            <p>
-                              <i className="fas fa-clock" /> {t.time || "No Time"}
-                            </p>
-                            <p>
-                              <i className="fas fa-flag" /> {t.type === "oral" ? "Oral Defense" : "Final Defense"}
-                            </p>
-                            <span
-                              className={`status-badge status-${
-                                t.status ? t.status.toLowerCase().replace(" ", "-") : "to-do"
-                              }`}
-                            >
-                              {t.status || "To Do"}
-                            </span>
+                          <div className="card-details">
+                            <div className="detail-row">
+                              <i className="fas fa-calendar-alt"></i>
+                              <span>{new Date(t.due_date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="fas fa-clock"></i>
+                              <span>{formatTime(t.time) || "No Time"}</span>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -484,55 +478,54 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
                 </div>
 
                 {/* Section 2: TEAMS' PROGRESS */}
-                <div className="dashboard-section">
-                  <div className="section-header">
-                    <h4>ADVISER TEAMS' PROGRESS</h4>
-                    <span className="teams-count">{teamsProgress.length} team(s) with tasks</span>
-                  </div>
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">TEAMS' PROGRESS</h4>
                   <AdviserTeamProgress teamsProgress={teamsProgress} />
                 </div>
 
-                {/* Section 3: RECENT TASKS */}
-                <div className="dashboard-section">
-                  <h4>RECENT ADVISER TASKS CREATED</h4>
+                {/* Section 3: RECENT ACTIVITY CREATED */}
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">RECENT ACTIVITY CREATED</h4>
                   {recentTasks.length === 0 ? (
-                    <p className="fst-italic text-muted">No recent tasks.</p>
+                    <p className="fst-italic text-muted">No recent activities.</p>
                   ) : (
-                    <div className="recent-table-container">
+                    <div className="recent-table-modern">
                       <table>
                         <thead>
                           <tr>
                             <th>NO</th>
-                            <th>Task</th>
-                            <th>Type</th>
+                            <th>Team</th>
                             <th>Date Created</th>
-                            <th>Due Date</th>
+                            <th>Date</th>
                             <th>Time</th>
-                            <th>Project Phase</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {recentTasks.map((t, i) => (
-                            <tr key={t.id}>
+                            <tr key={t.id || i}>
                               <td>{i + 1}.</td>
-                              <td>{t.task}</td>
+                              <td>{t.managerName || "—"}</td>
                               <td>
-                                <span className={`task-type-badge ${t.type}`}>
-                                  {t.type === "oral" ? "Oral Defense" : "Final Defense"}
-                                </span>
+                                {new Date(t.date_created || t.created_at).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
                               </td>
-                              <td>{new Date(t.date_created || t.created_at).toLocaleDateString()}</td>
-                              <td>{t.due_date ? new Date(t.due_date).toLocaleDateString() : "-"}</td>
-                              <td>{t.time || "-"}</td>
-                              <td>{t.project_phase || "-"}</td>
                               <td>
-                                <span
-                                  className={`status-badge status-${
-                                    t.status ? t.status.toLowerCase().replace(" ", "-") : "to-do"
-                                  }`}
-                                >
-                                  {t.status || "To Do"}
+                                {t.due_date
+                                  ? new Date(t.due_date).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })
+                                  : "—"}
+                              </td>
+                              <td>{formatTime(t.time) || "—"}</td>
+                              <td>
+                                <span className="status-badge-modern">
+                                  {t.status}
                                 </span>
                               </td>
                             </tr>
@@ -544,9 +537,9 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
                 </div>
 
                 {/* Section 4: CALENDAR */}
-                <div className="dashboard-section">
-                  <h4>ADVISER CALENDAR</h4>
-                  <div className="calendar-container">
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">CALENDAR</h4>
+                  <div className="calendar-wrapper-modern">
                     <FullCalendar
                       plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                       initialView="dayGridMonth"
@@ -556,62 +549,470 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
                         right: "dayGridMonth,timeGridWeek,timeGridDay",
                       }}
                       events={calendarEvents}
-                      height="400px"
+                      height="auto"
+                      eventDisplay="block"
                     />
                   </div>
                 </div>
               </>
             )}
 
-            {/* Styles */}
+            {/* CSS Styles - Matching Instructor Dashboard */}
             <style>{`
-              .adviser-dashboard-content { display:flex; flex-direction:column; gap:25px; }
-              .loading-container { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:15px; }
-              .dashboard-section { background:white; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-              .dashboard-section h4 { margin-bottom:15px; color:#333; border-bottom:2px solid #f0f0f0; padding-bottom:8px; }
-              .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #f0f0f0; padding-bottom:8px; }
-              .teams-count { color:#666; font-size:.9rem; font-style:italic; }
-              .upcoming-activity { display:flex; flex-direction:column; gap:12px; max-height:300px; overflow-y:auto; }
-              .activity-card { border:1px solid #e0e0e0; border-radius:6px; padding:15px; background:#f9f9f9; transition:all .3s ease; }
-              .activity-card:hover { box-shadow:0 4px 8px rgba(0,0,0,0.1); transform:translateY(-2px); }
-              .activity-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-weight:bold; color:#333; }
-              .activity-body h5 { margin:0 0 8px 0; color:#444; font-size:1rem; }
-              .activity-body p { margin:4px 0; color:#666; display:flex; align-items:center; gap:5px; }
-              .progress-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap:20px; padding:10px 0; }
-              .progress-card { background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef; text-align:center; transition:all .3s ease; position:relative; }
-              .progress-card:hover { box-shadow:0 4px 8px rgba(0,0,0,0.1); }
-              .progress-card h5 { margin-bottom:15px; color:#333; font-size:1rem; }
-              .chart-container { position:relative; display:flex; justify-content:center; align-items:center; }
-              .chart-center-percentage { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
-              .percentage-value { display:block; font-size:1.5rem; font-weight:bold; color:#333; line-height:1.2; }
-              .percentage-label { display:block; font-size:.8rem; color:#666; margin-top:2px; }
-              .progress-stats { margin-top:15px; display:flex; flex-direction:column; gap:8px; }
-              .stat-item { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #f0f0f0; }
-              .stat-label { font-size:.85rem; color:#666; }
-              .stat-value { font-weight:bold; color:#333; }
-              .no-teams-message { text-align:center; padding:30px 20px; color:#666; }
-              .no-teams-message ul { text-align:left; max-width:300px; margin:10px auto; }
-              .recent-table-container { max-height:400px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:6px; }
-              table { width:100%; border-collapse:collapse; }
-              th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #ddd; }
-              th { background:#f8f9fa; font-weight:bold; position:sticky; top:0; z-index:10; }
-              tr:hover { background:#f5f5f5; }
-              .status-badge { padding:4px 8px; border-radius:4px; font-size:.8em; font-weight:bold; white-space:nowrap; }
-              .task-type-badge { padding:4px 8px; border-radius:4px; font-size:.8em; font-weight:bold; white-space:nowrap; }
-              .task-type-badge.oral { background:#578FCA; color:white; }
-              .task-type-badge.final { background:#AA60C8; color:white; }
-              .status-to-do { background:#FABC3F; color:white; }
-              .status-in-progress { background:#809D3C; color:white; }
-              .status-to-review { background:#578FCA; color:white; }
-              .status-completed { background:#4BC0C0; color:white; }
-              .status-missed { background:#FF6384; color:white; }
-              .calendar-container { background:white; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0; }
+              .adviser-dashboard-modern {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+                background: #ffffff;
+              }
+              
+              .loading-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 60px;
+                gap: 20px;
+                background: #ffffff;
+              }
+              
+              .loading-container .spinner-border {
+                color: ${TASKSPHERE_PRIMARY};
+                width: 3rem;
+                height: 3rem;
+              }
+              
+              .dashboard-section-modern {
+                background: #ffffff;
+                padding: 0;
+                border-radius: 16px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+                overflow: hidden;
+                border: 1px solid #e8e8e8;
+              }
+              
+              .section-title-modern {
+                background: #ffffff;
+                margin: 0;
+                padding: 20px 25px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                letter-spacing: 1px;
+                color: #333;
+                border-bottom: 1px solid #e8e8e8;
+              }
+              
+              /* Upcoming Activity Cards */
+              .upcoming-cards-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding: 25px;
+                background: #ffffff;
+              }
+              
+              .upcoming-card-modern {
+                background: #ffffff;
+                border: 2px solid #e8e8e8;
+                border-radius: 12px;
+                padding: 0;
+                overflow: hidden;
+                transition: all 0.3s ease;
+              }
+              
+              .upcoming-card-modern:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
+                border-color: ${TASKSPHERE_LIGHTER};
+              }
+              
+              .card-header-badge {
+                background: ${TASKSPHERE_PRIMARY};
+                color: white;
+                padding: 12px 16px;
+                font-size: 0.85rem;
+                font-weight: 600;
+              }
+              
+              .card-manager-info {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 16px;
+                border-bottom: 1px solid #f0f0f0;
+                background: #ffffff;
+              }
+              
+              .card-manager-info i {
+                color: ${TASKSPHERE_PRIMARY};
+                font-size: 1.1rem;
+              }
+              
+              .card-manager-info span {
+                font-weight: 600;
+                color: #333;
+                font-size: 0.95rem;
+              }
+              
+              .card-details {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                background: #ffffff;
+              }
+              
+              .detail-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: #666;
+                font-size: 0.9rem;
+              }
+              
+              .detail-row i {
+                color: ${TASKSPHERE_PRIMARY};
+                width: 16px;
+              }
+              
+              /* Teams Progress */
+              .team-progress-container {
+                padding: 25px;
+                background: #ffffff;
+              }
+              
+              .progress-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 25px;
+              }
+              
+              .progress-card-new {
+                background: white;
+                border-radius: 12px;
+                padding: 25px 20px;
+                text-align: center;
+                border: 2px solid #e8e8e8;
+                transition: all 0.3s ease;
+                min-height: 280px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+              }
+              
+              .progress-card-new:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
+                border-color: ${TASKSPHERE_PRIMARY};
+              }
+              
+              .team-member-info {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #f0f0f0;
+              }
+              
+              .team-member-info i {
+                color: ${TASKSPHERE_PRIMARY};
+                font-size: 1.2rem;
+              }
+              
+              .team-name {
+                font-weight: 600;
+                color: #333;
+                font-size: 0.95rem;
+              }
+              
+              .chart-wrapper {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-grow: 1;
+              }
+              
+              .chart-container-large {
+                width: 160px;
+                height: 160px;
+                margin: auto;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              
+              .chart-percentage-center {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                pointer-events: none;
+                width: 100%;
+              }
+              
+              .percentage-num {
+                display: block;
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: ${TASKSPHERE_PRIMARY};
+                line-height: 1.2;
+              }
+              
+              /* Recent Activity Table */
+              .recent-table-modern {
+                padding: 25px;
+                overflow-x: auto;
+                background: #ffffff;
+              }
+              
+              .recent-table-modern table {
+                width: 100%;
+                border-collapse: collapse;
+                background: #ffffff;
+              }
+              
+              .recent-table-modern th,
+              .recent-table-modern td {
+                padding: 14px 16px;
+                text-align: left;
+                border-bottom: 1px solid #f0f0f0;
+                background: #ffffff;
+              }
+              
+              .recent-table-modern th {
+                background: #fafafa;
+                font-weight: 600;
+                color: #666;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              }
+              
+              .recent-table-modern tbody tr {
+                transition: background-color 0.2s ease;
+                background: #ffffff;
+              }
+              
+              .recent-table-modern tbody tr:hover {
+                background-color: #fafafa;
+              }
+              
+              .status-badge-modern {
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                border: 2px solid ${TASKSPHERE_LIGHTER};
+                color: ${TASKSPHERE_PRIMARY};
+                background: rgba(90, 13, 14, 0.05);
+              }
+              
+              /* Calendar */
+              .calendar-wrapper-modern {
+                padding: 25px;
+                background: #ffffff;
+              }
+              
+              .fc {
+                border: none;
+                background: #ffffff;
+              }
+              
+              .fc .fc-toolbar-title {
+                font-size: 1.3rem;
+                font-weight: 700;
+                color: #333;
+              }
+              
+              .fc .fc-button {
+                background-color: ${TASKSPHERE_PRIMARY} !important;
+                border-color: ${TASKSPHERE_PRIMARY} !important;
+                color: white !important;
+                text-transform: capitalize;
+                font-weight: 600;
+                padding: 8px 16px;
+                border-radius: 6px;
+              }
+              
+              .fc .fc-button:hover {
+                background-color: ${TASKSPHERE_LIGHT} !important;
+                border-color: ${TASKSPHERE_LIGHT} !important;
+              }
+              
+              .fc .fc-button:disabled {
+                background-color: #cccccc !important;
+                border-color: #cccccc !important;
+                opacity: 0.5;
+              }
+              
+              .fc .fc-button-active {
+                background-color: ${TASKSPHERE_LIGHT} !important;
+                border-color: ${TASKSPHERE_LIGHT} !important;
+              }
+              
+              .fc-theme-standard .fc-scrollgrid {
+                border: 1px solid #e8e8e8;
+                border-radius: 8px;
+                background: #ffffff;
+              }
+              
+              .fc-theme-standard td,
+              .fc-theme-standard th {
+                border-color: #f0f0f0;
+                background: #ffffff;
+              }
+              
+              .fc .fc-col-header-cell {
+                background: #fafafa;
+                font-weight: 600;
+                color: #666;
+                padding: 12px 8px;
+              }
+              
+              .fc .fc-daygrid-day-number {
+                color: #333;
+                font-weight: 600;
+                padding: 8px;
+              }
+              
+              .fc .fc-daygrid-day.fc-day-today {
+                background-color: rgba(90, 13, 14, 0.05) !important;
+              }
+              
+              .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+                background: ${TASKSPHERE_PRIMARY};
+                color: white;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              
+              .fc .fc-event {
+                background-color: ${TASKSPHERE_PRIMARY};
+                border-color: ${TASKSPHERE_PRIMARY};
+                border-radius: 4px;
+                padding: 2px 4px;
+                font-size: 0.85rem;
+              }
+              
+              .fc .fc-event:hover {
+                background-color: ${TASKSPHERE_LIGHT};
+                border-color: ${TASKSPHERE_LIGHT};
+              }
+              
+              .fc .fc-daygrid-event-dot {
+                border-color: white;
+              }
+              
+              /* No Teams Message */
+              .no-teams-message {
+                text-align: center;
+                padding: 60px 20px;
+                color: #999;
+                background: #ffffff;
+              }
+              
+              .no-teams-message i {
+                color: rgba(90, 13, 14, 0.2);
+              }
+              
+              /* Responsive Design */
+              @media (max-width: 1024px) {
+                .upcoming-cards-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                  gap: 15px;
+                }
+                
+                .progress-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                  gap: 20px;
+                }
+
+                .chart-container-large {
+                  width: 140px;
+                  height: 140px;
+                }
+
+                .percentage-num {
+                  font-size: 1.6rem;
+                }
+              }
+              
               @media (max-width: 768px) {
-                .dashboard-section { padding:15px; }
-                .section-header { flex-direction:column; align-items:flex-start; gap:8px; }
-                .progress-grid { grid-template-columns:1fr; gap:15px; }
-                .recent-table-container { overflow-x:auto; }
-                table { min-width:800px; }
+                .adviser-dashboard-modern {
+                  padding: 15px;
+                  gap: 20px;
+                }
+                
+                .dashboard-section-modern {
+                  border-radius: 12px;
+                }
+                
+                .section-title-modern {
+                  padding: 15px 20px;
+                  font-size: 0.85rem;
+                }
+                
+                .upcoming-cards-grid {
+                  grid-template-columns: 1fr;
+                  padding: 20px;
+                }
+                
+                .team-progress-container {
+                  padding: 20px;
+                }
+                
+                .progress-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                  gap: 15px;
+                }
+
+                .progress-card-new {
+                  padding: 20px 15px;
+                  min-height: 260px;
+                }
+
+                .chart-container-large {
+                  width: 130px;
+                  height: 130px;
+                }
+
+                .percentage-num {
+                  font-size: 1.5rem;
+                }
+                
+                .recent-table-modern {
+                  padding: 20px;
+                }
+                
+                .recent-table-modern table {
+                  min-width: 600px;
+                }
+                
+                .calendar-wrapper-modern {
+                  padding: 20px;
+                }
+                
+                .fc .fc-toolbar {
+                  flex-direction: column;
+                  gap: 10px;
+                }
+                
+                .fc .fc-toolbar-chunk {
+                  display: flex;
+                  justify-content: center;
+                }
               }
             `}</style>
           </div>
