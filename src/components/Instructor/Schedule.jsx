@@ -9,7 +9,7 @@ const Schedule = ({ setActivePage }) => {
     {
       title: 'Title Defense',
       icon: <FaCalendarAlt size={36} color="#3B0304" />,
-      onClick: () => setActivePage('Title Defense'), // ✅ Switches view in Dashboard
+      onClick: () => setActivePage('Title Defense'), 
     },
     {
       title: 'Manuscript Submission',

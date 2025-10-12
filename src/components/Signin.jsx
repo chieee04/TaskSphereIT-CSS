@@ -18,15 +18,11 @@ const Signin = () => {
   const { setIsLoggedIn } = useOutletContext();
   const { login } = UserAuth();
 
-  // Hard lock page scroll (belt-and-suspenders)
+  // Lock scroll on mount
   useEffect(() => {
-    const prevDoc = document.documentElement.style.overflow;
-    const prevBody = document.body.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.documentElement.style.overflow = prevDoc;
-      document.body.style.overflow = prevBody;
+      document.body.style.overflow = 'unset';
     };
   }, []);
 
@@ -114,32 +110,37 @@ const Signin = () => {
   }, [navigate]);
 
   return (
-    // Lock the page height; no scroll
-    <div className="h-screen w-full bg-neutral-100 flex flex-col overflow-hidden">
-      <SigninHead />
+    <div className="h-screen w-full bg-white flex flex-col overflow-hidden select-none fixed inset-0">
+      {/* Fixed Header */}
+      <div className="flex-none">
+        <SigninHead />
+      </div>
 
-      {/* Main fills remaining height; internal overflow hidden */}
-      <main className="flex-1 bg-white flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <div className="mx-auto h-full w-full max-w-[1200px] px-6 md:px-8 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-            {/* Left: taller login card */}
-            <div className="flex justify-start">
-              <div className="w-full max-w-[440px] rounded-xl border border-neutral-200 bg-white p-8 shadow-sm min-h-[640px]">
-                <h2 className="text-center text-[32px] md:text-[34px] font-extrabold leading-8 text-[#611A11]">
+      {/* Main Content - Completely locked, content scales to fit */}
+      <main className="flex-1 flex items-center justify-center px-2 sm:px-3 lg:px-4 overflow-hidden">
+        <div className="w-full max-w-6xl h-full flex items-center justify-center">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10 w-full max-h-full">
+            
+            {/* Left: Login Card */}
+            <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
+              <div className="w-full max-w-[300px] xs:max-w-[320px] sm:max-w-[340px] md:max-w-[360px] lg:max-w-[380px] rounded-lg sm:rounded-xl border border-neutral-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm">
+                <h2 className="text-center text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-[#611A11] mb-0.5">
                   Welcome to
-                  <br />
-                  <span className="text-[32px] md:text-[34px] font-extrabold">TaskSphere IT</span>
+                </h2>
+                <h2 className="text-center text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-[#611A11] mb-2 sm:mb-3 md:mb-4">
+                  TaskSphere IT
                 </h2>
 
                 <img
                   src={Logo1}
                   alt="TaskSphere icon"
-                  className="mx-auto mt-5 h-[150px] w-[150px] object-contain"
+                  className="mx-auto h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-18 lg:w-18 object-contain mb-2 sm:mb-3 md:mb-4 pointer-events-none"
+                  draggable="false"
                 />
 
-                <form onSubmit={handleSignIn} className="mt-8 space-y-6">
+                <form onSubmit={handleSignIn} className="space-y-2 sm:space-y-2.5 md:space-y-3">
                   <div>
-                    <label htmlFor="userID" className="mb-1 block text-sm font-semibold text-neutral-700">
+                    <label htmlFor="userID" className="block text-[10px] xs:text-xs sm:text-sm font-semibold text-neutral-700 mb-0.5 sm:mb-1">
                       Username
                     </label>
                     <input
@@ -147,13 +148,13 @@ const Signin = () => {
                       type="text"
                       value={userID}
                       onChange={(e) => setUserID(e.target.value)}
-                      className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-black outline-none focus:border-[#611A11] focus:ring-1 focus:ring-[#611A11]"
+                      className="w-full rounded-md sm:rounded-lg border border-neutral-300 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black outline-none focus:border-[#611A11] focus:ring-1 sm:focus:ring-2 focus:ring-[#611A11]/20"
                       required
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="password" className="mb-1 block text-sm font-semibold text-neutral-700">
+                    <label htmlFor="password" className="block text-[10px] xs:text-xs sm:text-sm font-semibold text-neutral-700 mb-0.5 sm:mb-1">
                       Password
                     </label>
                     <input
@@ -161,16 +162,16 @@ const Signin = () => {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-black outline-none focus:border-[#611A11] focus:ring-1 focus:ring-[#611A11]"
+                      className="w-full rounded-md sm:rounded-lg border border-neutral-300 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black outline-none focus:border-[#611A11] focus:ring-1 sm:focus:ring-2 focus:ring-[#611A11]/20"
                       required
                     />
-                    <div className="mt-1 text-right">
+                    <div className="mt-0.5 sm:mt-1 text-right">
                       <button
                         type="button"
                         onClick={() => navigate("/ForgotPassword")}
-                        className="text-[11px] font-medium text-black hover:underline focus:outline-none bg-transparent p-0 m-0"
+                        className="text-[10px] xs:text-xs sm:text-sm font-medium text-[#611A11] hover:underline focus:outline-none bg-transparent p-0 m-0 cursor-pointer"
                       >
-                        Forgot Password
+                        Forgot Password?
                       </button>
                     </div>
                   </div>
@@ -178,7 +179,7 @@ const Signin = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mt-2 w-full rounded-full bg-[#611A11] py-2 text-sm font-semibold text-white shadow hover:opacity-95 active:opacity-90 disabled:opacity-60"
+                    className="w-full rounded-md sm:rounded-lg bg-[#611A11] py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm md:text-base font-semibold text-white shadow hover:bg-[#7a2218] active:bg-[#4a140e] disabled:opacity-60 transition-colors mt-1.5 sm:mt-2 md:mt-3 cursor-pointer"
                   >
                     {loading ? "Signing in..." : "Sign In"}
                   </button>
@@ -186,20 +187,26 @@ const Signin = () => {
               </div>
             </div>
 
-            {/* Right: seal + headline */}
-            <div className="flex flex-col items-center justify-center text-center">
-              <img src={Logo2} alt="CCS Seal" className="h-32 w-32 md:h-36 md:w-36 object-contain" />
-              <p className="mt-6 text-[30px] md:text-[34px] font-semibold leading-tight text-neutral-800">
-                A Task Management System for
-                <br />
-                Capstone Project Development
+            {/* Right: Seal and Description */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center text-center mt-2 sm:mt-3 lg:mt-0">
+              <img 
+                src={Logo2} 
+                alt="CCS Seal" 
+                className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28 object-contain pointer-events-none" 
+                draggable="false"
+              />
+              <p className="mt-1.5 sm:mt-2 md:mt-3 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-semibold text-neutral-800 leading-tight px-3 sm:px-4">
+                A Task Management System for<br />Capstone Project Development
               </p>
             </div>
           </div>
         </div>
       </main>
 
-      <SigninFoot />
+      {/* Fixed Footer */}
+      <div className="flex-none">
+        <SigninFoot />
+      </div>
     </div>
   );
 };
