@@ -55,7 +55,10 @@ const TASKSPHERE_LIGHTEST = "#ba5d5e";
 // ---------- Team Progress (kept as in your file) ----------
 const AdviserTeamProgress = ({ teamsProgress }) => {
   const calculateCompletionPercentage = (counts) => {
-    const totalTasks = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    const totalTasks = Object.values(counts).reduce(
+      (sum, count) => sum + count,
+      0
+    );
     const completedTasks = counts["Completed"] || 0;
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
@@ -65,8 +68,13 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
       {teamsProgress.length > 0 ? (
         <div className="progress-grid">
           {teamsProgress.map((team, index) => {
-            const completionPercentage = calculateCompletionPercentage(team.counts);
-            const totalTasks = Object.values(team.counts).reduce((sum, count) => sum + count, 0);
+            const completionPercentage = calculateCompletionPercentage(
+              team.counts
+            );
+            const totalTasks = Object.values(team.counts).reduce(
+              (sum, count) => sum + count,
+              0
+            );
 
             const chartData = {
               labels: ["Completed", "Remaining"],
@@ -88,7 +96,10 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
             const chartOptions = {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false },
+              },
             };
 
             return (
@@ -101,7 +112,9 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   <div className="chart-container-large">
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="chart-percentage-center">
-                      <span className="percentage-num">{completionPercentage}%</span>
+                      <span className="percentage-num">
+                        {completionPercentage}%
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -112,7 +125,9 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
       ) : (
         <div className="no-teams-message">
           <i className="fas fa-users fa-3x text-muted mb-3"></i>
-          <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
+          <p className="fst-italic text-muted">
+            No teams with tasks to display progress.
+          </p>
         </div>
       )}
     </div>
@@ -213,7 +228,9 @@ const InstructorDashboard = () => {
   // ===== Page switching =====
   const handlePageChange = (page) => {
     setActivePage(page);
-    navigate(`/Instructor/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
+    navigate(`/Instructor/${page.replace(/\s+/g, "")}`, {
+      state: { activePage: page },
+    });
   };
 
   useEffect(() => {
@@ -223,11 +240,14 @@ const InstructorDashboard = () => {
   }, [isSoloMode, subPage]);
 
   // ==== NEW STATES FOR TASKS ====
-  const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [upcomingTasks, setUpcomingTasks] = useState([]); // kept for other sections if needed
   const [recentTasks, setRecentTasks] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [teamsProgress, setTeamsProgress] = useState([]);
   const [adviserGroups, setAdviserGroups] = useState([]);
+
+  // NEW: Upcoming Activity (from three user_* tables)
+  const [upcomingActivity, setUpcomingActivity] = useState([]);
 
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
@@ -245,27 +265,101 @@ const InstructorDashboard = () => {
         setIsLoading(true);
         setDebugInfo("Fetching instructor dashboard data...");
 
-        const [oralTasksResult, finalTasksResult] = await Promise.all([
+        // -------- Upcoming Activity (3 tables) --------
+        // We’ll fetch from user_titledef, user_oraldef, user_final_sched.
+        // Expected columns:
+        // - user_titledef: id, date, time (no "title")
+        // - user_oraldef: id, date, time, title
+        // - user_final_sched: id, date, time, title
+        const [
+          titleRes,
+          oralRes,
+          finalRes,
+          // keep your other dashboard queries
+          oralTasksResult,
+          finalTasksResult,
+        ] = await Promise.all([
+          supabase.from("user_titledef").select("id, date, time"),
+          supabase.from("user_oraldef").select("id, date, time, title"),
+          supabase.from("user_final_sched").select("id, date, time, title"),
+          // existing sections still rely on these:
           supabase.from("adviser_oral_def").select("*"),
           supabase.from("adviser_final_def").select("*"),
         ]);
 
-        if (oralTasksResult.error) console.error("Error fetching oral tasks:", oralTasksResult.error);
-        if (finalTasksResult.error) console.error("Error fetching final tasks:", finalTasksResult.error);
+        // Build a unified array with type + normalized fields
+        const normalizeDate = (d) => (d ? new Date(d) : null);
+        const today = new Date();
+        const onlyFuture = (item) => {
+          if (!item.dateObj) return false;
+          // consider "upcoming" as today and forward
+          const atMidnight = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate()
+          );
+          return item.dateObj >= atMidnight;
+        };
+
+        const listTitle = (titleRes.data || []).map((row) => ({
+          id: row.id,
+          type: "Title Defense",
+          title: null, // no title column here
+          date: row.date,
+          time: row.time,
+          dateObj: normalizeDate(row.date),
+        }));
+
+        const listOral = (oralRes.data || []).map((row) => ({
+          id: row.id,
+          type: "Oral Defense",
+          title: row.title || null,
+          date: row.date,
+          time: row.time,
+          dateObj: normalizeDate(row.date),
+        }));
+
+        const listFinal = (finalRes.data || []).map((row) => ({
+          id: row.id,
+          type: "Final Defense",
+          title: row.title || null,
+          date: row.date,
+          time: row.time,
+          dateObj: normalizeDate(row.date),
+        }));
+
+        const mergedUpcoming = [...listTitle, ...listOral, ...listFinal]
+          .filter(onlyFuture)
+          .sort((a, b) => a.dateObj - b.dateObj)
+          .slice(0, 3);
+
+        setUpcomingActivity(mergedUpcoming);
+
+        // -------- Existing sections (Recent/Calendar/Progress) ----------
+        if (oralTasksResult.error)
+          console.error("Error fetching oral tasks:", oralTasksResult.error);
+        if (finalTasksResult.error)
+          console.error("Error fetching final tasks:", finalTasksResult.error);
 
         const allAdviserTasks = [
-          ...(oralTasksResult.data || []).map((t) => ({ ...t, type: "Oral Defense" })),
-          ...(finalTasksResult.data || []).map((t) => ({ ...t, type: "Final Defense" })),
+          ...(oralTasksResult.data || []).map((t) => ({
+            ...t,
+            type: "Oral Defense",
+          })),
+          ...(finalTasksResult.data || []).map((t) => ({
+            ...t,
+            type: "Final Defense",
+          })),
         ];
 
-        const today = new Date();
+        const today2 = new Date();
 
-        // 1. Upcoming Tasks
+        // 1. Upcoming Tasks (kept for other parts of the dashboard if needed)
         const upcoming = allAdviserTasks
           .filter(
             (task) =>
               task.due_date &&
-              new Date(task.due_date) >= today &&
+              new Date(task.due_date) >= today2 &&
               task.status !== "Completed"
           )
           .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
@@ -281,7 +375,9 @@ const InstructorDashboard = () => {
               .single();
             return {
               ...task,
-              managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager",
+              managerName: manager
+                ? `${manager.first_name} ${manager.last_name}`
+                : "Unknown Manager",
             };
           })
         );
@@ -306,7 +402,9 @@ const InstructorDashboard = () => {
               .single();
             return {
               ...task,
-              managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager",
+              managerName: manager
+                ? `${manager.first_name} ${manager.last_name}`
+                : "Unknown Manager",
             };
           })
         );
@@ -354,8 +452,14 @@ const InstructorDashboard = () => {
 
                 const allTeamTasks = [
                   ...managerTasks.map((t) => ({ ...t, source: "manager" })),
-                  ...adviserOralTasks.map((t) => ({ ...t, source: "adviser_oral" })),
-                  ...adviserFinalTasks.map((t) => ({ ...t, source: "adviser_final" })),
+                  ...adviserOralTasks.map((t) => ({
+                    ...t,
+                    source: "adviser_oral",
+                  })),
+                  ...adviserFinalTasks.map((t) => ({
+                    ...t,
+                    source: "adviser_final",
+                  })),
                 ];
 
                 if (allTeamTasks.length === 0) return null;
@@ -390,7 +494,10 @@ const InstructorDashboard = () => {
                   },
                 };
               } catch (error) {
-                console.error(`❌ Error processing team ${team.group_name}:`, error);
+                console.error(
+                  `❌ Error processing team ${team.group_name}:`,
+                  error
+                );
                 return null;
               }
             })
@@ -399,42 +506,56 @@ const InstructorDashboard = () => {
           const filteredTeamsProgress = teamsProgressData.filter(Boolean);
           setTeamsProgress(filteredTeamsProgress);
 
-          const groupedByAdviser = filteredTeamsProgress.reduce((groups, team) => {
-            const ag = team.adviser_group || "Ungrouped";
-            if (!groups[ag]) groups[ag] = [];
-            groups[ag].push(team);
-            return groups;
-          }, {});
+          const groupedByAdviser = filteredTeamsProgress.reduce(
+            (groups, team) => {
+              const ag = team.adviser_group || "Ungrouped";
+              if (!groups[ag]) groups[ag] = [];
+              groups[ag].push(team);
+              return groups;
+            },
+            {}
+          );
 
           const adviserGroupsWithNames = await Promise.all(
-            Object.entries(groupedByAdviser).map(async ([adviserGroup, teams]) => {
-              let adviserName = `Adviser Group: ${adviserGroup}`;
+            Object.entries(groupedByAdviser).map(
+              async ([adviserGroup, teams]) => {
+                let adviserName = `Adviser Group: ${adviserGroup}`;
 
-              if (adviserGroup && adviserGroup !== "Ungrouped") {
-                const { data: adviser } = await supabase
-                  .from("user_credentials")
-                  .select("first_name, last_name")
-                  .eq("adviser_group", adviserGroup)
-                  .eq("user_roles", 3) // adviser role
-                  .single();
+                if (adviserGroup && adviserGroup !== "Ungrouped") {
+                  const { data: adviser } = await supabase
+                    .from("user_credentials")
+                    .select("first_name, last_name")
+                    .eq("adviser_group", adviserGroup)
+                    .eq("user_roles", 3) // adviser role
+                    .single();
 
-                if (adviser) adviserName = `${adviser.first_name} ${adviser.last_name}`;
+                  if (adviser)
+                    adviserName = `${adviser.first_name} ${adviser.last_name}`;
+                }
+
+                return { adviserGroup, adviserName, teams };
               }
-
-              return { adviserGroup, adviserName, teams };
-            })
+            )
           );
 
           setAdviserGroups(adviserGroupsWithNames);
         }
 
         // 4. Calendar Events - uniform color
-        const events = allAdviserTasks.map((task) => ({
-          id: task.id,
-          title: `${task.task} (${task.status})`,
-          start: task.due_date,
-          color: TASKSPHERE_PRIMARY,
-        }));
+        const events = [
+          ...(oralTasksResult.data || []).map((task) => ({
+            id: task.id,
+            title: `${task.task} (${task.status})`,
+            start: task.due_date,
+            color: TASKSPHERE_PRIMARY,
+          })),
+          ...(finalTasksResult.data || []).map((task) => ({
+            id: task.id,
+            title: `${task.task} (${task.status})`,
+            start: task.due_date,
+            color: TASKSPHERE_PRIMARY,
+          })),
+        ];
         setCalendarEvents(events);
       } catch (error) {
         console.error("❌ Error loading instructor dashboard data:", error);
@@ -498,24 +619,45 @@ const InstructorDashboard = () => {
                 <div className="dashboard-section-modern">
                   <h4 className="section-title-modern">UPCOMING ACTIVITY</h4>
                   <div className="upcoming-cards-grid">
-                    {upcomingTasks.length === 0 ? (
-                      <p className="fst-italic text-muted">No upcoming tasks.</p>
+                    {upcomingActivity.length === 0 ? (
+                      <p className="fst-italic text-muted">
+                        No upcoming activities.
+                      </p>
                     ) : (
-                      upcomingTasks.map((t, i) => (
-                        <div key={i} className="upcoming-card-modern">
-                          <div className="card-header-badge">Title Defense</div>
-                          <div className="card-manager-info">
-                            <i className="fas fa-users"></i>
-                            <span>{t.managerName}</span>
-                          </div>
+                      upcomingActivity.map((item, i) => (
+                        <div
+                          key={`${item.type}-${item.id}-${i}`}
+                          className="upcoming-card-modern"
+                        >
+                          <div className="card-header-badge">{item.type}</div>
+
+                          {/* Title (only for Oral/Final where title exists) */}
+                          {item.title && (
+                            <div
+                              className="card-details"
+                              style={{ paddingBottom: 0 }}
+                            >
+                              <div className="detail-row">
+                                <i className="fas fa-book"></i>
+                                <span style={{ fontWeight: 600 }}>
+                                  {item.title}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="card-details">
                             <div className="detail-row">
                               <i className="fas fa-calendar-alt"></i>
-                              <span>{new Date(t.due_date).toLocaleDateString()}</span>
+                              <span>
+                                {item.date
+                                  ? new Date(item.date).toLocaleDateString()
+                                  : "No Date"}
+                              </span>
                             </div>
                             <div className="detail-row">
                               <i className="fas fa-clock"></i>
-                              <span>{formatTime(t.time) || "No Time"}</span>
+                              <span>{formatTime(item.time) || "No Time"}</span>
                             </div>
                           </div>
                         </div>
@@ -542,16 +684,22 @@ const InstructorDashboard = () => {
                   ) : (
                     <div className="no-teams-message">
                       <i className="fas fa-users fa-3x text-muted mb-3"></i>
-                      <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
+                      <p className="fst-italic text-muted">
+                        No teams with tasks to display progress.
+                      </p>
                     </div>
                   )}
                 </div>
 
                 {/* Section 3: RECENT ACTIVITY CREATED */}
                 <div className="dashboard-section-modern">
-                  <h4 className="section-title-modern">RECENT ACTIVITY CREATED</h4>
+                  <h4 className="section-title-modern">
+                    RECENT ACTIVITY CREATED
+                  </h4>
                   {recentTasks.length === 0 ? (
-                    <p className="fst-italic text-muted">No recent activities.</p>
+                    <p className="fst-italic text-muted">
+                      No recent activities.
+                    </p>
                   ) : (
                     <div className="recent-table-modern">
                       <table>
@@ -571,7 +719,9 @@ const InstructorDashboard = () => {
                               <td>{i + 1}.</td>
                               <td>{t.managerName || "—"}</td>
                               <td>
-                                {new Date(t.date_created || t.created_at).toLocaleDateString("en-US", {
+                                {new Date(
+                                  t.date_created || t.created_at
+                                ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
@@ -579,16 +729,21 @@ const InstructorDashboard = () => {
                               </td>
                               <td>
                                 {t.due_date
-                                  ? new Date(t.due_date).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
+                                  ? new Date(t.due_date).toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      }
+                                    )
                                   : "—"}
                               </td>
                               <td>{formatTime(t.time) || "—"}</td>
                               <td>
-                                <span className="status-badge-modern">{t.status}</span>
+                                <span className="status-badge-modern">
+                                  {t.status}
+                                </span>
                               </td>
                             </tr>
                           ))}
@@ -603,7 +758,11 @@ const InstructorDashboard = () => {
                   <h4 className="section-title-modern">CALENDAR</h4>
                   <div className="calendar-wrapper-modern">
                     <FullCalendar
-                      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                      plugins={[
+                        dayGridPlugin,
+                        timeGridPlugin,
+                        interactionPlugin,
+                      ]}
                       initialView="dayGridMonth"
                       headerToolbar={{
                         left: "prev,next today",
@@ -689,16 +848,6 @@ const InstructorDashboard = () => {
                 font-size: 0.85rem;
                 font-weight: 600;
               }
-              .card-manager-info {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 16px;
-                border-bottom: 1px solid #f0f0f0;
-                background: #ffffff;
-              }
-              .card-manager-info i { color: ${TASKSPHERE_PRIMARY}; font-size: 1.1rem; }
-              .card-manager-info span { font-weight: 600; color: #333; font-size: 0.95rem; }
               .card-details { padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
               .detail-row { display: flex; align-items: center; gap: 10px; color: #666; font-size: 0.9rem; }
               .detail-row i { color: ${TASKSPHERE_PRIMARY}; width: 16px; }
@@ -789,7 +938,6 @@ const InstructorDashboard = () => {
                 .section-title-modern { padding: 12px 15px; font-size: 0.8rem; }
                 .upcoming-card-modern { border-radius: 8px; }
                 .card-header-badge { padding: 10px 12px; font-size: 0.8rem; }
-                .card-manager-info, .card-details { padding: 12px; }
                 .adviser-name-badge { padding: 8px 16px; font-size: 0.9rem; }
                 .progress-card-new { padding: 15px; min-height: 240px; }
                 .progress-grid { grid-template-columns: 1fr; gap: 15px; }
@@ -813,7 +961,14 @@ const InstructorDashboard = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#ffffff" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        background: "#ffffff",
+      }}
+    >
       <Header isSoloMode={isSoloMode} setIsSoloMode={setIsSoloMode} />
       <div className="d-flex" style={{ marginTop: "30px" }}></div>
       <div className="d-flex" style={{ flexGrow: 1, background: "#ffffff" }}>
@@ -844,12 +999,13 @@ const InstructorDashboard = () => {
       </div>
 
       {/* ToS portal modal – sits above everything */}
-      <TermsOfService open={showTos} onAccept={handleTosAccept} onDecline={handleTosDecline} />
+      <TermsOfService
+        open={showTos}
+        onAccept={handleTosAccept}
+        onDecline={handleTosDecline}
+      />
     </div>
   );
 };
 
- 
 export default InstructorDashboard;
-
-
