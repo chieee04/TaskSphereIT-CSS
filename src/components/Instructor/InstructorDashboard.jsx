@@ -281,12 +281,22 @@ const InstructorDashboard = () => {
     }
   }, [isSoloMode, subPage]);
 
+
   // ==== NEW STATES FOR TASKS ====
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [teamsProgress, setTeamsProgress] = useState([]);
   const [adviserGroups, setAdviserGroups] = useState([]);
+
+   const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    const [hour, minute] = timeString.split(":");
+    let h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12; // Convert to 12-hour format
+    return `${h}:${minute} ${ampm}`;
+    };
 
   // ==== FETCH ALL PROJECT MANAGERS PROGRESS AND GROUP BY ADVISER ====
   useEffect(() => {
@@ -335,7 +345,21 @@ const InstructorDashboard = () => {
         const recent = [...allAdviserTasks]
           .sort((a, b) => new Date(b.date_created || b.created_at) - new Date(a.date_created || a.created_at))
           .slice(0, 5);
-        setRecentTasks(recent);
+        const recentWithNames = await Promise.all(
+  recent.map(async (task) => {
+    if (!task.manager_id) return { ...task, managerName: "N/A" };
+    const { data: manager } = await supabase
+      .from("user_credentials")
+      .select("first_name, last_name")
+      .eq("id", task.manager_id)
+      .single();
+    return { 
+      ...task, 
+      managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" 
+    };
+  })
+);
+setRecentTasks(recentWithNames);
 
         // 3. Teams' Progress - Fetch ALL project managers with ALL their tasks
         console.log("👥 Fetching all project managers...");
@@ -524,11 +548,13 @@ const InstructorDashboard = () => {
         setIsLoading(false);
       }
     };
+    
 
     if (!isSoloMode) {
-      fetchInstructorData();
+     ; fetchInstructorData()
     }
   }, [isSoloMode]);
+
 
   // ==== MAIN CONTENT RENDER ====
   const renderContent = () => {
@@ -593,7 +619,7 @@ const InstructorDashboard = () => {
                           <div className="activity-body">
                             <h5><i className="fas fa-tasks"></i> {t.task}</h5>
                             <p><i className="fas fa-calendar-alt"></i> {new Date(t.due_date).toLocaleDateString()}</p>
-                            <p><i className="fas fa-clock"></i> {t.time || "No Time"}</p>
+                            <p><i className="fas fa-clock"></i> {formatTime(t.time) || "No Time"}</p>
                             <p><i className="fas fa-flag"></i> {t.type}</p>
                             <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
                               {t.status}
@@ -660,7 +686,7 @@ const InstructorDashboard = () => {
                               <td>{t.task}</td>
                               <td>{new Date(t.date_created || t.created_at).toLocaleDateString()}</td>
                               <td>{t.due_date ? new Date(t.due_date).toLocaleDateString() : "—"}</td>
-                              <td>{t.time || "—"}</td>
+                              <td>{formatTime(t.time) || "—"}</td>
                               <td>
                                 <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
                                   {t.status}

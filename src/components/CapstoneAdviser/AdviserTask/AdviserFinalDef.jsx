@@ -33,6 +33,15 @@ const AdviserFinalDef = () => {
     return `${num}th Revision`;
   })];
 
+   const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    const [hour, minute] = timeString.split(":");
+    let h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12; // Convert to 12-hour format
+    return `${h}:${minute} ${ampm}`;
+    };
+
   // ✅ Function to get the correct color code
   const getStatusColor = (value) => {
     switch (value) {
@@ -309,43 +318,65 @@ const AdviserFinalDef = () => {
 
   // ✅ Updated handleStatusChange to set date_completed when status is "Completed"
   const handleStatusChange = async (taskId, newStatus) => {
-    // If status is being changed to "Completed", set the date_completed
-    if (newStatus === "Completed") {
-      const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
-      
-      // Update the task with completed status and completion date
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId 
-            ? { 
-                ...t, 
-                status: newStatus,
-                date_completed: currentDate // Set the completion date
-              } 
-            : t
-        )
-      );
-      
-      // Show success message
-      Swal.fire({
-        title: 'Task Completed!',
-        text: 'The task has been marked as completed and moved to records.',
-        icon: 'success',
-        confirmButtonColor: '#3B0304'
-      });
-    } else {
-      // For other status changes, just update the status
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId ? { ...t, status: newStatus } : t
-        )
-      );
-    }
-    
-    // Call the original handleUpdateStatus function for database update
-    handleUpdateStatus(taskId, newStatus, setTasks);
-  };
+  const task = tasks.find((t) => t.id === taskId);
 
+  if (newStatus === "Completed") {
+    // Ask for confirmation first
+    const result = await Swal.fire({
+      title: "Mark as Completed?",
+      text: `Are you sure you want to mark "${cleanTaskName(task.task)}" as completed?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Complete It",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3B0304",
+      cancelButtonColor: "#6c757d",
+      reverseButtons: true,
+      customClass: {
+        popup: "custom-swal-popup-center",
+      },
+    });
+
+    if (!result.isConfirmed) return; // Stop if user cancels
+
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    // Update state after confirmation
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: newStatus,
+              date_completed: currentDate,
+            }
+          : t
+      )
+    );
+
+    // Centered success alert
+    await Swal.fire({
+      title: "Task Completed!",
+      text: "The task has been marked as completed and moved to records.",
+      icon: "success",
+      confirmButtonColor: "#3B0304",
+      position: "center",
+      customClass: {
+        popup: "custom-swal-popup-center",
+      },
+    });
+  } else {
+    // For other status changes, just update the status normally
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, status: newStatus } : t
+      )
+    );
+  }
+
+  // Update status in database
+  handleUpdateStatus(taskId, newStatus, setTasks);
+};
   // ✅ filtered tasks - exclude completed tasks from main view
   const filteredAndSearchedTasks = (tasks || [])
     .filter((t) => t.group_name && t.group_name.trim() !== "")
@@ -477,7 +508,7 @@ const AdviserFinalDef = () => {
                   <td className="center-text">
                     <div className="center-content-flex">
                       <FaClock size={14} style={{ color: "#3B0304" }} />
-                      {task.time || "-"}
+                      {formatTime(task.time) || "-"}
                     </div>
                   </td>
 

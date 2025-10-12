@@ -306,7 +306,10 @@ export const handleCreateTask = async (setTasks) => {
 
     element.innerHTML = buildOptions(elementOptions);
     element.disabled = elementOptions.length === 0 ? true : false;
+    
   });
+  const event = new Event("change");
+methodology.dispatchEvent(event);
 },
     preConfirm: async () => {
       const methodology = document.getElementById("methodology").value;
@@ -404,5 +407,6 @@ export const handleCreateTask = async (setTasks) => {
 
     Swal.fire("Success", `${data.length} Tasks Created!`, "success");
     setTasks((prev) => [...prev, ...data]);
+    window.dispatchEvent(new Event("taskCreated"));
   }
 };

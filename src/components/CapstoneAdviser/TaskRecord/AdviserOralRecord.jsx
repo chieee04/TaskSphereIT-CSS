@@ -16,6 +16,14 @@ export default function AdviserOralRecord() {
   const [currentView, setCurrentView] = useState(0); // 0 = first view, 1 = second view
 
   const kebabRefs = useRef({});
+   const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    const [hour, minute] = timeString.split(":");
+    let h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12; // Convert to 12-hour format
+    return `${h}:${minute} ${ampm}`;
+    };
 
   const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed", "Missed"];
   const REVISION_OPTIONS = ["No Revision", ...Array.from({ length: 10 }, (_, i) => {
@@ -390,7 +398,7 @@ export default function AdviserOralRecord() {
                 <strong>Due Date:</strong><br>${formatDate(task.due_date)}
               </div>
               <div>
-                <strong>Time:</strong><br>${task.time || "N/A"}
+                <strong>Time:</strong><br>${formatTime(task.time) || "N/A"}
               </div>
               <div>
                 <strong>Date Completed:</strong><br>${formatDate(task.date_completed)}
@@ -579,7 +587,7 @@ export default function AdviserOralRecord() {
                     <td className="center-text">
                       <div className="center-content-flex">
                         <FaClock size={14} style={{ color: '#3B0304' }} />
-                        {task.time || "N/A"}
+                        {formatTime(task.time) || "N/A"}
                       </div>
                     </td>
 
