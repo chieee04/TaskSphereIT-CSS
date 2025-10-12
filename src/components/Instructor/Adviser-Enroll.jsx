@@ -14,9 +14,7 @@ import {
   FaTrash,
   FaSearch,
 } from "react-icons/fa";
-// Assuming this file contains generic Bootstrap/CSS overrides, keeping import for now
 import "../Style/Instructor/Enroll-Member.css";
-import { openAddAdviser } from "../../services/instructor/addAdviser";
 
 const MySwal = withReactContent(Swal);
 
@@ -50,18 +48,17 @@ const Adviser = () => {
     }
   };
 
-  // Function to start the selection mode
+  // Start/Cancel selection
   const handleStartSelection = () => {
     setIsSelectionMode(true);
     setSelectedRows([]);
   };
-
-  // Function to cancel selection mode
   const handleCancelSelection = () => {
     setIsSelectionMode(false);
     setSelectedRows([]);
   };
 
+  // ✅ FIXED: proper delete selected (was adding rows before)
   const handleDeleteSelected = () => {
     if (selectedRows.length === 0) {
       MySwal.fire({
@@ -73,8 +70,10 @@ const Adviser = () => {
     }
 
     MySwal.fire({
-      title: `Delete ${selectedRows.length} Advisers?`,
-      text: "This will remove the advisers from the list before final upload.",
+      title: `Delete ${selectedRows.length} Adviser${
+        selectedRows.length > 1 ? "s" : ""
+      }?`,
+      text: "This will remove the adviser(s) from the list before final upload.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3B0304",
@@ -82,15 +81,17 @@ const Adviser = () => {
       confirmButtonText: "Yes, delete them!",
     }).then((result) => {
       if (result.isConfirmed) {
-        const newRow = { id: uuidv4(), ...result.value }; // includes role
-        setImportedData((prev) => [...prev, newRow]);
-        MySwal.fire("Added!", "New record added successfully.", "success");
+        const updated = importedData.filter(
+          (row) => !selectedRows.includes(row.id)
+        );
+        setImportedData(updated);
+        handleCancelSelection();
+        MySwal.fire("Deleted!", "Selected adviser(s) removed.", "success");
       }
     });
   };
 
-  // --- Add Adviser (Updated to match Add Student modal design) ---
-  // --- Add Adviser / Guest Panel (UI with role toggle) ---
+  // --- Add Adviser / Guest Panel ---
   const handleAddAdviser = async () => {
     MySwal.fire({
       title: "",
@@ -133,7 +134,7 @@ const Adviser = () => {
         </div>
       </div>
 
-      <!-- Common: Name fields (shown for both roles) -->
+      <!-- Common name fields -->
       <div id="name-fields" style="padding:0 1.2rem;">
         <div style="display:flex;flex-direction:column;margin-bottom:0.9rem;">
           <label for="last_name" style="font-weight:500;margin-bottom:0.3rem;font-size:0.85rem;color:#333;">Last Name</label>
@@ -160,7 +161,7 @@ const Adviser = () => {
         </button>
         <button id="enroll-btn" class="swal2-confirm"
           style="background-color:#3B0304;color:#fff;font-weight:500;padding:0.5rem 1.8rem;border-radius:6px;cursor:pointer;font-size:0.85rem;border:1.5px solid #3B0304;">
-          Enroll
+          Add
         </button>
       </div>
     `,
@@ -175,9 +176,8 @@ const Adviser = () => {
         const adviserOnly = popup.querySelector("#adviser-only");
         const radios = popup.querySelectorAll('input[name="roleType"]');
         const adviserIdInput = popup.querySelector("#user_id");
-        const passwordInput = popup.querySelector("#password");
 
-        // --- Adviser ID constraints (numeric only, max 9) ---
+        // Adviser ID constraints (numeric only, max 9)
         adviserIdInput.setAttribute("maxlength", "9");
         const validationMsg = document.createElement("div");
         validationMsg.style.color = "red";
@@ -204,28 +204,22 @@ const Adviser = () => {
           }
         });
 
-        // --- Toggle UI when role changes ---
+        // Toggle UI when role changes
         const applyRole = () => {
           const role =
             popup.querySelector('input[name="roleType"]:checked')?.value ??
             "adviser";
-
-          if (role === "adviser") {
-            adviserOnly.style.display = "block";
-          } else {
-            adviserOnly.style.display = "none";
-            // clear & hide any validation residuals
-            validationMsg.style.display = "none";
-          }
+          adviserOnly.style.display = role === "adviser" ? "block" : "none";
+          if (role !== "adviser") validationMsg.style.display = "none";
         };
         radios.forEach((r) => r.addEventListener("change", applyRole));
-        applyRole(); // initial
+        applyRole();
 
         // Buttons
         popup.querySelector("#cancel-btn").onclick = () => Swal.close();
         popup.querySelector("#enroll-btn").onclick = () => Swal.clickConfirm();
 
-        // Minor focus styling
+        // Focus styling
         popup.querySelectorAll("input").forEach((inp) => {
           inp.addEventListener("focus", (e) => {
             e.target.style.borderColor = "#3B0304";
@@ -238,58 +232,13 @@ const Adviser = () => {
         });
       },
 
-      /*preConfirm: () => {
-        const role =
-          document.querySelector('input[name="roleType"]:checked')?.value ??
-          "adviser";
-
-        const payload = {
-          role,
-          user_id: document.getElementById("user_id")?.value || "",
-          password: document.getElementById("password")?.value || "",
-          first_name: document.getElementById("first_name")?.value || "",
-          last_name: document.getElementById("last_name")?.value || "",
-          middle_name: document.getElementById("middle_name")?.value || "",
-        };
-
-        // Minimal validation per role (you can expand later)
-        if (role === "adviser") {
-          if (
-            !payload.user_id ||
-            !payload.password ||
-            !payload.first_name ||
-            !payload.last_name
-          ) {
-            MySwal.showValidationMessage(
-              "Please fill Adviser ID, Password, First Name, and Last Name."
-            );
-            return false;
-          }
-          if (/\d/.test(payload.first_name) || /\d/.test(payload.last_name)) {
-            MySwal.showValidationMessage("Names cannot contain numbers.");
-            return false;
-          }
-        } else {
-          // guest panel: only names required
-          if (!payload.first_name || !payload.last_name) {
-            MySwal.showValidationMessage(
-              "Please fill First Name and Last Name."
-            );
-            return false;
-          }
-          if (/\d/.test(payload.first_name) || /\d/.test(payload.last_name)) {
-            MySwal.showValidationMessage("Names cannot contain numbers.");
-            return false;
-          }
-        }
-
-        return payload; // delivered to .then
-      },*/
       preConfirm: () => {
         const role = (
           document.querySelector("input[name='roleType']:checked")?.value ||
           "adviser"
-        ).toLowerCase();
+        )
+          .toLowerCase()
+          .trim();
 
         const user_id = document.getElementById("user_id")?.value?.trim() || "";
         const password =
@@ -301,7 +250,7 @@ const Adviser = () => {
         const middle_name =
           document.getElementById("middle_name")?.value?.trim() || "";
 
-        // Shared validations
+        // Name validations
         if (!first_name || !last_name) {
           MySwal.showValidationMessage(
             "Please fill out First Name and Last Name."
@@ -325,25 +274,17 @@ const Adviser = () => {
           }
         }
 
-        return {
-          role, // <-- keep this
-          user_id, // may be empty for guest
-          password, // may be empty for guest
-          first_name,
-          last_name,
-          middle_name,
-        };
+        return { role, user_id, password, first_name, last_name, middle_name };
       },
     }).then((result) => {
       if (!result.isConfirmed) return;
 
-      // You said “functionality later”, so we only push into the temporary list for now
       const incoming = result.value; // { role, user_id, password, first_name, last_name, middle_name }
 
       const newRow = {
         id: uuidv4(),
-        user_id: incoming.user_id,
-        password: incoming.password,
+        user_id: incoming.user_id || "",
+        password: incoming.password || "",
         first_name: incoming.first_name,
         last_name: incoming.last_name,
         middle_name: incoming.middle_name,
@@ -361,12 +302,12 @@ const Adviser = () => {
     });
   };
 
-  // --- Core Functionality (Import/Download/Upload) ---
+  // --- Template Download ---
   const handleDownload = () => {
     const wsData = [
       [
         "PASTE HERE : FULL NAME (LastN, FirstN, MiddleI)",
-        "", // Spacer
+        "",
         "ID Number",
         "Password",
         "Last Name",
@@ -378,7 +319,6 @@ const Adviser = () => {
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // ✅ Column width setup
     ws["!cols"] = [
       { wch: 45 }, // A - Full Name
       { wch: 5 }, // B - Spacer
@@ -389,15 +329,11 @@ const Adviser = () => {
       { wch: 15 }, // G - Middle Initial
     ];
 
-    // ✅ Apply parsing formulas (rows 2–500)
     for (let row = 2; row <= 500; row++) {
-      // Last Name (E)
       ws[`E${row}`] = {
         t: "s",
         f: `=IF(A${row}="","",TRIM(LEFT(A${row},FIND(",",A${row})-1)))`,
       };
-
-      // First Name (F)
       ws[`F${row}`] = {
         t: "s",
         f: `=IF(A${row}="","",
@@ -414,8 +350,6 @@ const Adviser = () => {
         )
       )`,
       };
-
-      // Middle Initial (G)
       ws[`G${row}`] = {
         t: "s",
         f: `=IF(A${row}="","",
@@ -432,13 +366,11 @@ const Adviser = () => {
       };
     }
 
-    // ✅ Workbook setup
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Adviser_Template");
     ws["!ref"] = "A1:G500";
     wb.Workbook = { CalcPr: { fullCalcOnLoad: true } };
 
-    // ✅ Save file
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     saveAs(
       new Blob([wbout], { type: "application/octet-stream" }),
@@ -446,6 +378,7 @@ const Adviser = () => {
     );
   };
 
+  // --- Import from Excel ---
   const handleImport = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -458,9 +391,8 @@ const Adviser = () => {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-      // ✅ Process imported Excel rows
       const processedData = jsonData
-        .filter((row) => row["ID Number"] || row["Last Name"]) // skip empty
+        .filter((row) => row["ID Number"] || row["Last Name"])
         .map((row) => ({
           id: uuidv4(),
           user_id: row["ID Number"] ? String(row["ID Number"]).trim() : "",
@@ -470,9 +402,10 @@ const Adviser = () => {
           middle_name: row["Middle Initial"]
             ? String(row["Middle Initial"]).trim()
             : "",
+          role: "adviser", // default if importing via template
         }));
 
-      // ✅ Validation: numeric characters in names
+      // Validate names
       const invalidRow = processedData.find(
         (r) => /\d/.test(r.first_name) || /\d/.test(r.last_name)
       );
@@ -486,7 +419,7 @@ const Adviser = () => {
         return;
       }
 
-      // ✅ Validation: duplicate IDs
+      // Validate duplicate IDs (when present)
       const idCounts = processedData.reduce((acc, r) => {
         const id = r.user_id;
         if (id) acc[id] = (acc[id] || 0) + 1;
@@ -503,7 +436,6 @@ const Adviser = () => {
         return;
       }
 
-      // ✅ Import ready
       setImportedData(processedData);
       setSelectedRows([]);
       setSearchTerm("");
@@ -512,6 +444,7 @@ const Adviser = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  // --- Upload to DB ---
   const handleUpload = async () => {
     if (importedData.length === 0) {
       MySwal.fire(
@@ -522,7 +455,6 @@ const Adviser = () => {
       return;
     }
 
-    // 1) Build academic year options
     const currentYear = new Date().getFullYear();
     const maxFutureYears = 1;
     const yearOptions = [];
@@ -531,7 +463,6 @@ const Adviser = () => {
       yearOptions.push(`${start}-${start + 1}`);
     }
 
-    // 2) Ask for year
     const { value: selectedYear } = await MySwal.fire({
       title: `
       <div style="color:#3B0304; font-weight:600; font-size:1.1rem;">
@@ -594,14 +525,13 @@ const Adviser = () => {
       return;
     }
 
-    // 3) Build rows with correct user_roles (3 = Adviser, 5 = Guest Panel)
     const normalizeRole = (v) =>
       (v ?? "adviser").toString().trim().toLowerCase().replace(/\s+/g, "");
 
     try {
       const rows = importedData.map((r) => {
         const norm = normalizeRole(r.role);
-        const isGuest = norm.includes("guest"); // matches "guest", "guestpanel", etc.
+        const isGuest = norm.includes("guest");
 
         return {
           user_id: isGuest ? r.user_id || null : (r.user_id ?? "").trim(),
@@ -609,7 +539,7 @@ const Adviser = () => {
           first_name: (r.first_name ?? "").trim(),
           last_name: (r.last_name ?? "").trim(),
           middle_name: (r.middle_name ?? "").trim(),
-          user_roles: isGuest ? 5 : 3, // ✅ correct mapping
+          user_roles: isGuest ? 5 : 3,
           year: selectedYear,
         };
       });
@@ -630,7 +560,7 @@ const Adviser = () => {
     }
   };
 
-  // --- Edit Row (Updated to match Add Adviser modal design) ---
+  // --- Edit Row ---
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
 
@@ -640,7 +570,7 @@ const Adviser = () => {
         <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
           <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
-              <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
+              <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
               <path d="m14.207 2.5l-.707.707L13.5 3.707l.707-.707.646.646a.5.5 0 0 1 0 .708l-3 3-.707.707-.707-.707.707-.707 3-3 .707.707.646-.646a.5.5 0 0 1 0-.708l-3-3z"/>
             </svg>
             Edit Adviser
@@ -651,35 +581,45 @@ const Adviser = () => {
           <!-- Adviser ID -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Adviser ID</label>
-            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder=""
+            <input id="user_id" class="swal2-input" value="${
+              row.user_id || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- Password -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
+            <input id="password" class="swal2-input" value="${
+              row.password || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
-            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder=""
+            <input id="last_name" class="swal2-input" value="${
+              row.last_name || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- First Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
-            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
+            <input id="first_name" class="swal2-input" value="${
+              row.first_name || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
             <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
-            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
+            <input id="middle_name" class="swal2-input" value="${
+              row.middle_name || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
@@ -699,16 +639,13 @@ const Adviser = () => {
       showConfirmButton: false,
       showCancelButton: false,
       width: "460px",
-      customClass: {
-        popup: "custom-swal-popup",
-      },
+      customClass: { popup: "custom-swal-popup" },
       didOpen: () => {
         const popup = Swal.getPopup();
 
         const adviserIdInput = popup.querySelector("#user_id");
         adviserIdInput.setAttribute("maxlength", "9");
 
-        // 🔹 Create inline validation message element
         const validationMessage = document.createElement("div");
         validationMessage.style.color = "red";
         validationMessage.style.fontSize = "0.8rem";
@@ -719,8 +656,6 @@ const Adviser = () => {
 
         adviserIdInput.addEventListener("input", (e) => {
           let value = e.target.value;
-
-          // Auto-remove non-numeric characters
           const cleanedValue = value.replace(/[^0-9]/g, "");
           if (value !== cleanedValue) {
             e.target.value = cleanedValue;
@@ -730,8 +665,6 @@ const Adviser = () => {
           } else {
             validationMessage.style.display = "none";
           }
-
-          // Enforce max length of 9 digits
           if (cleanedValue.length > 9) {
             e.target.value = cleanedValue.slice(0, 9);
             validationMessage.textContent =
@@ -739,39 +672,31 @@ const Adviser = () => {
             validationMessage.style.display = "block";
           }
         });
-        // Cancel button functionality
-        popup.querySelector("#cancel-btn").onclick = () => {
-          Swal.close();
-        };
 
-        // Save button functionality
-        popup.querySelector("#save-btn").onclick = () => {
-          Swal.clickConfirm();
-        };
+        popup.querySelector("#cancel-btn").onclick = () => Swal.close();
+        popup.querySelector("#save-btn").onclick = () => Swal.clickConfirm();
 
-        // Hover effects
-        popup
-          .querySelector("#cancel-btn")
-          .addEventListener("mouseenter", (e) => {
-            e.target.style.backgroundColor = "#f8f8f8";
+        ["#cancel-btn", "#save-btn"].forEach((sel) => {
+          const btn = popup.querySelector(sel);
+          btn.addEventListener("mouseenter", (e) => {
+            if (sel === "#save-btn") {
+              e.target.style.backgroundColor = "#2a0203";
+              e.target.style.borderColor = "#2a0203";
+            } else {
+              e.target.style.backgroundColor = "#f8f8f8";
+            }
           });
-        popup
-          .querySelector("#cancel-btn")
-          .addEventListener("mouseleave", (e) => {
-            e.target.style.backgroundColor = "#fff";
+          btn.addEventListener("mouseleave", (e) => {
+            if (sel === "#save-btn") {
+              e.target.style.backgroundColor = "#3B0304";
+              e.target.style.borderColor = "#3B0304";
+            } else {
+              e.target.style.backgroundColor = "#fff";
+            }
           });
-        popup.querySelector("#save-btn").addEventListener("mouseenter", (e) => {
-          e.target.style.backgroundColor = "#2a0203";
-          e.target.style.borderColor = "#2a0203";
-        });
-        popup.querySelector("#save-btn").addEventListener("mouseleave", (e) => {
-          e.target.style.backgroundColor = "#3B0304";
-          e.target.style.borderColor = "#3B0304";
         });
 
-        // Add focus effects to inputs
-        const inputs = popup.querySelectorAll("input");
-        inputs.forEach((input) => {
+        popup.querySelectorAll("input").forEach((input) => {
           input.addEventListener("focus", (e) => {
             e.target.style.borderColor = "#3B0304";
             e.target.style.boxShadow = "0 0 0 2px rgba(59, 3, 4, 0.1)";
@@ -783,10 +708,11 @@ const Adviser = () => {
         });
       },
       preConfirm: () => {
-        const user_id = document.getElementById("user_id").value;
-        const password = document.getElementById("password").value;
-        const first_name = document.getElementById("first_name").value;
-        const last_name = document.getElementById("last_name").value;
+        const user_id = document.getElementById("user_id").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const first_name = document.getElementById("first_name").value.trim();
+        const last_name = document.getElementById("last_name").value.trim();
+        const middle_name = document.getElementById("middle_name").value.trim();
 
         if (!user_id || !password || !first_name || !last_name) {
           MySwal.showValidationMessage(
@@ -794,8 +720,6 @@ const Adviser = () => {
           );
           return false;
         }
-
-        // Number check
         if (/\d/.test(first_name) || /\d/.test(last_name)) {
           MySwal.showValidationMessage(
             "Numbers in First Name or Last Name are not allowed."
@@ -803,13 +727,7 @@ const Adviser = () => {
           return false;
         }
 
-        return {
-          user_id,
-          password,
-          first_name,
-          last_name,
-          middle_name: document.getElementById("middle_name").value,
-        };
+        return { user_id, password, first_name, last_name, middle_name };
       },
     }).then((result) => {
       if (result.isConfirmed) {
@@ -821,9 +739,9 @@ const Adviser = () => {
     });
   };
 
+  // --- Delete single row ---
   const handleDeleteRow = (index) => {
     setOpenDropdown(null);
-
     MySwal.fire({
       title: "Are you sure?",
       text: "This will remove the adviser from the list.",
@@ -837,7 +755,6 @@ const Adviser = () => {
         const updatedData = importedData.filter((_, i) => i !== index);
         const deletedId = importedData[index].id;
         setSelectedRows((prev) => prev.filter((id) => id !== deletedId));
-
         setImportedData(updatedData);
         MySwal.fire("Deleted!", "Adviser removed.", "success");
       }
@@ -851,18 +768,21 @@ const Adviser = () => {
     MySwal.fire("Cancelled", "Import cancelled.", "info");
   };
 
-  // --- Filtering ---
+  // --- Filtering (also searches role) ---
   const filteredData = importedData.filter((row) => {
     const userId = String(row.user_id ?? "").toLowerCase();
     const firstName = String(row.first_name ?? "").toLowerCase();
     const lastName = String(row.last_name ?? "").toLowerCase();
     const middleName = String(row.middle_name ?? "").toLowerCase();
+    const role = String(row.role ?? "").toLowerCase();
 
+    const q = searchTerm.toLowerCase();
     return (
-      userId.includes(searchTerm.toLowerCase()) ||
-      firstName.includes(searchTerm.toLowerCase()) ||
-      lastName.includes(searchTerm.toLowerCase()) ||
-      middleName.includes(searchTerm.toLowerCase())
+      userId.includes(q) ||
+      firstName.includes(q) ||
+      lastName.includes(q) ||
+      middleName.includes(q) ||
+      role.includes(q)
     );
   });
 
@@ -873,19 +793,14 @@ const Adviser = () => {
   // --- Render ---
   return (
     <div className="container-fluid px-4 py-3">
-      {/* Scrollbar Fix for Webkit (Chrome/Safari) */}
       <style>{`
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .table-scroll-area::-webkit-scrollbar {
-          display: none;
-        }
-        /* Style for the custom dropdown menu */
+        .table-scroll-area::-webkit-scrollbar { display: none; }
         .enroll-dropdown {
           position: absolute;
           right: 30px;
           top: 0;
           z-index: 20;
-          min-width: 100px;
+          min-width: 120px;
           padding: 4px 0;
           margin: 0;
           list-style: none;
@@ -894,24 +809,20 @@ const Adviser = () => {
           background-color: #fff;
           border: 1px solid #ccc;
           border-radius: 4px;
-          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+          box-shadow: 0 6px 12px rgba(0,0,0,0.175);
         }
         .enroll-dropdown .dropdown-item {
           display: block;
           width: 100%;
           padding: 8px 12px;
-          clear: both;
           font-weight: 400;
           color: #212529;
-          text-align: inherit;
-          white-space: nowrap;
           background-color: transparent;
           border: 0;
           cursor: pointer;
+          text-align: left;
         }
-        .enroll-dropdown .dropdown-item:hover {
-          background-color: #f8f9fa;
-        }
+        .enroll-dropdown .dropdown-item:hover { background-color: #f8f9fa; }
       `}</style>
 
       <div className="row">
@@ -1067,7 +978,7 @@ const Adviser = () => {
                 }
                 onClick={handleAddAdviser}
               >
-                + Add Adviser
+                + Add Adviser / Guest
               </button>
             </div>
           </div>
@@ -1092,7 +1003,7 @@ const Adviser = () => {
               className="bg-white rounded-lg shadow-md relative"
               ref={tableWrapperRef}
             >
-              {/* Table Controls (Search and Delete Selected) */}
+              {/* Table Controls */}
               <div className="d-flex justify-content-between align-items-center p-3 flex-wrap gap-2">
                 <div className="position-relative">
                   <input
@@ -1103,7 +1014,7 @@ const Adviser = () => {
                     className="form-control ps-5"
                     style={{
                       fontSize: "0.9rem",
-                      maxWidth: "200px",
+                      maxWidth: "220px",
                       borderRadius: "6px",
                       border: "1px solid #ccc",
                       height: "38px",
@@ -1120,7 +1031,6 @@ const Adviser = () => {
                   />
                 </div>
 
-                {/* Conditional Delete Buttons */}
                 {!isSelectionMode ? (
                   <button
                     className="btn d-flex align-items-center gap-1 text-[#3B0304] border-[#3B0304]"
@@ -1201,7 +1111,7 @@ const Adviser = () => {
                 )}
               </div>
 
-              {/* Table Body with Scrolling */}
+              {/* Table Body */}
               <div
                 className="table-scroll-area overflow-x-auto overflow-y-auto"
                 style={{
@@ -1213,7 +1123,6 @@ const Adviser = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      {/* Checkbox Header (Conditional) */}
                       {isSelectionMode && (
                         <th
                           scope="col"
@@ -1228,44 +1137,28 @@ const Adviser = () => {
                           />
                         </th>
                       )}
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         NO
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Adviser ID
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Password
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         First Name
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Last Name
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Middle Initial
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                      </th>
                       <th
-                        scope="col"
                         className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                         style={{ width: "100px" }}
                       >
@@ -1285,7 +1178,6 @@ const Adviser = () => {
                               : "hover:bg-gray-50 transition duration-150"
                           }
                         >
-                          {/* Checkbox Cell (Conditional) */}
                           {isSelectionMode && (
                             <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                               <input
@@ -1314,8 +1206,10 @@ const Adviser = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {row.middle_name}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {row.role === "guest" ? "Guest Panel" : "Adviser"}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center position-relative">
-                            {/* Action Button only visible when not in selection mode */}
                             {!isSelectionMode && (
                               <button
                                 className="text-gray-500 hover:text-[#3B0304] p-1 rounded transition duration-150"
@@ -1326,7 +1220,6 @@ const Adviser = () => {
                               </button>
                             )}
 
-                            {/* Detached Dropdown Menu */}
                             {openDropdown === index && !isSelectionMode && (
                               <ul
                                 className="enroll-dropdown"
@@ -1366,7 +1259,7 @@ const Adviser = () => {
                     {filteredData.length === 0 && (
                       <tr>
                         <td
-                          colSpan={isSelectionMode ? "9" : "8"}
+                          colSpan={isSelectionMode ? "10" : "9"}
                           className="text-center py-4 text-gray-500"
                         >
                           No advisers match your search.

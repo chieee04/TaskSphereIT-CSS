@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import {
-  FaUserCircle,
-  FaSave,
-  FaTimes,
-  FaLock,
-  FaEnvelope,
-} from "react-icons/fa";
+import { FaUserCircle, FaSave, FaTimes } from "react-icons/fa";
+import { FaLock, FaEnvelope } from "react-icons/fa6";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Swal from "sweetalert2";
 import { showChangePasswordModal } from "../services/profile";
@@ -38,11 +33,11 @@ const Profile = () => {
           return;
         }
 
-        // Fetch core profile
+        // Fetch core profile (now also get hasChanged just in case you need it in UI later)
         const { data, error } = await supabase
           .from("user_credentials")
           .select(
-            "user_id, first_name, last_name, middle_name, user_roles, password, email"
+            "user_id, first_name, last_name, middle_name, user_roles, password, email, hasChanged"
           )
           .eq("user_id", customUser.user_id)
           .single();
@@ -312,6 +307,47 @@ const Profile = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 🔑 Change Password → if successful, mark hasChanged = 1
+  const handleChangePasswordClick = async () => {
+    if (!userData?.user_id) return;
+
+    try {
+      // Call your existing modal helper. Adjust the argument if your helper needs different params
+      const result = await showChangePasswordModal(userData);
+
+      // Accept a few common success shapes; tweak if your helper returns something else
+      const success =
+        result?.success === true ||
+        result?.isChanged === true ||
+        result?.isConfirmed === true;
+
+      if (success) {
+        const { error } = await supabase
+          .from("user_credentials")
+          .update({ hasChanged: 1 })
+          .eq("user_id", userData.user_id);
+
+        if (error) throw error;
+
+        // reflect in local state
+        setUserData((prev) => ({ ...prev, hasChanged: 1 }));
+
+        Swal.fire({
+          icon: "success",
+          title: "Password changed",
+          text: "Your password was updated successfully.",
+        });
+      }
+    } catch (err) {
+      console.error("❌ Error during password change:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Password change failed",
+        text: err?.message || "Please try again.",
+      });
     }
   };
 
@@ -789,7 +825,7 @@ const Profile = () => {
                       <button
                         className="btn btn-change-password"
                         type="button"
-                        onClick={showChangePasswordModal}
+                        onClick={handleChangePasswordClick}
                       >
                         Change Password
                       </button>

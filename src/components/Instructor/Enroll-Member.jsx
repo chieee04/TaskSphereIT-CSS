@@ -121,8 +121,8 @@ const Enroll = () => {
         <!-- Password (prefilled + disabled) -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-          <input id="password" class="swal2-input" value="Pass_123" disabled
-            style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #f5f5f5; color:#666; margin-left: 0;" />
+          <input id="password" class="swal2-input"
+              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
 
         <!-- Last Name -->
@@ -206,8 +206,6 @@ const Enroll = () => {
         // 🔒 Ensure password is defaulted + locked even if DOM changes
         const passInput = popup.querySelector("#password");
         if (passInput) {
-          passInput.value = "Pass_123";
-          passInput.disabled = true;
           passInput.style.backgroundColor = "#f5f5f5";
           passInput.style.color = "#666";
         }
@@ -561,45 +559,35 @@ const Enroll = () => {
           <!-- Student ID -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Student ID</label>
-            <input id="user_id" class="swal2-input" value="${
-              row.user_id
-            }" placeholder=""
+            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 
           <!-- Password (editable in edit modal) -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${
-              row.password || "Pass_123"
-            }" placeholder=""
+            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
-            <input id="last_name" class="swal2-input" value="${
-              row.last_name
-            }" placeholder=""
+            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 
           <!-- First Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
-            <input id="first_name" class="swal2-input" value="${
-              row.first_name
-            }" placeholder=""
+            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 
           <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
             <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
-            <input id="middle_name" class="swal2-input" value="${
-              row.middle_name
-            }" placeholder=""
+            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 

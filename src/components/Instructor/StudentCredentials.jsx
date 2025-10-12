@@ -1,3 +1,4 @@
+// StudentCredentials.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   FaDownload,
@@ -35,6 +36,21 @@ const StudentCredentials = () => {
   const headerKebabRef = useRef(null);
   const tableKebabRefs = useRef([]);
 
+  // Helpers
+  const isMasked = (val) => Number(val) === 1;
+
+  // Function to generate random password
+  const generateRandomPassword = () => {
+    const length = 8;
+    const charset =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
   // Fetch available years from database
   const fetchAvailableYears = async () => {
     try {
@@ -51,10 +67,7 @@ const StudentCredentials = () => {
       // Extract unique years and sort them in descending order
       const uniqueYears = [
         ...new Set(
-          data.map((item) => {
-            // Extract the first part of the year format (e.g., "2024" from "2024-2025")
-            return item.year ? item.year.split("-")[0] : null;
-          })
+          data.map((item) => (item.year ? item.year.split("-")[0] : null))
         ),
       ]
         .filter((year) => year !== null)
@@ -67,7 +80,7 @@ const StudentCredentials = () => {
     }
   };
 
-  // Fetch credentials based on selected year
+  // Fetch credentials based on selected year (includes hasChanged)
   const fetchCredentials = async (year) => {
     setLoading(true);
 
@@ -79,12 +92,11 @@ const StudentCredentials = () => {
       }
 
       const academicYear = `${year}-${parseInt(year) + 1}`;
-      console.log("Fetching credentials for:", academicYear);
 
       const { data, error } = await supabase
         .from("user_credentials")
         .select(
-          "id, last_name, first_name, middle_name, user_id, password, user_roles, year"
+          "id, last_name, first_name, middle_name, user_id, password, user_roles, year, hasChanged"
         )
         .eq("year", academicYear)
         .in("user_roles", [1, 2])
@@ -96,7 +108,6 @@ const StudentCredentials = () => {
         setCredentials([]);
       } else {
         setCredentials(data || []);
-        console.log(`Loaded ${data?.length || 0} students for ${academicYear}`);
       }
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -113,18 +124,6 @@ const StudentCredentials = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
-
-  // Function to generate random password
-  const generateRandomPassword = () => {
-    const length = 8;
-    const charset =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let password = "";
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return password;
-  };
 
   // Selection functions
   const handleToggleSelect = (id) => {
@@ -275,17 +274,22 @@ const StudentCredentials = () => {
     }
   }, [selectedYear]);
 
-  // Log year changes for debugging
+  // Log year changes for debugging (optional)
   useEffect(() => {
     if (selectedYear) {
-      console.log(`Selected Academic Year: ${selectedYear}-${secondYear}`);
+      // console.log(`Selected Academic Year: ${selectedYear}-${secondYear}`);
     }
-    console.log(`Available years:`, availableYears);
-    console.log(`Current user:`, currentUser);
-  }, [selectedYear, availableYears, currentUser]);
+  }, [selectedYear, secondYear]);
 
   const handleEditRow = (row, index) => {
     setOpenDropdown(null);
+
+    const maskedNow = isMasked(row.hasChanged);
+    const INITIAL_MASK = "********";
+
+    // Track whether Reset button in modal was used
+    let resetUsed = false;
+    let resetPasswordValue = "";
 
     MySwal.fire({
       title: "",
@@ -304,14 +308,18 @@ const StudentCredentials = () => {
           <!-- User ID -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="user_id" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">User ID</label>
-            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder=""
+            <input id="user_id" class="swal2-input" value="${
+              row.user_id
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Password -->
+          <!-- Password (masked if hasChanged==1) -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem; position: relative;">
             <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
+            <input id="password" class="swal2-input" value="${
+              maskedNow ? INITIAL_MASK : row.password || ""
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
             <button id="reset-password-btn" type="button"
               style="
@@ -335,21 +343,27 @@ const StudentCredentials = () => {
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
             <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
-            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder=""
+            <input id="last_name" class="swal2-input" value="${
+              row.last_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- First Name -->
           <div style="display: flex; flex-direction; column; margin-bottom: 1rem;">
             <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
-            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder=""
+            <input id="first_name" class="swal2-input" value="${
+              row.first_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
           <!-- Middle Initial -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
             <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
-            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder=""
+            <input id="middle_name" class="swal2-input" value="${
+              row.middle_name
+            }" placeholder=""
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
@@ -385,11 +399,13 @@ const StudentCredentials = () => {
           Swal.clickConfirm();
         };
 
-        // Reset password button functionality
+        // Reset password button functionality: generate new password, mark as reset-used
         popup.querySelector("#reset-password-btn").onclick = () => {
           const passwordInput = document.getElementById("password");
           const newPassword = generateRandomPassword();
           passwordInput.value = newPassword;
+          resetUsed = true;
+          resetPasswordValue = newPassword;
           MySwal.showValidationMessage(
             `Password has been reset to: ${newPassword}`
           );
@@ -444,18 +460,28 @@ const StudentCredentials = () => {
       },
       preConfirm: () => {
         const user_id = document.getElementById("user_id").value;
-        const password = document.getElementById("password").value;
-        const first_name = document.getElementById("first_name").value;
-        const last_name = document.getElementById("last_name").value;
+        const passwordInput = document.getElementById("password").value;
+        const first_name =
+          document.getElementById("first_name")?.value || row.first_name;
+        const last_name =
+          document.getElementById("last_name")?.value || row.last_name;
+        const middle_name =
+          document.getElementById("middle_name")?.value || row.middle_name;
 
-        if (!user_id || !password || !first_name || !last_name) {
+        // If masked and still "********" => allow save (password unchanged)
+        const keptMasked = maskedNow && passwordInput === INITIAL_MASK;
+
+        // If reset wasn't used and user typed a new password (unmasked), require non-empty
+        if (!resetUsed && !keptMasked && !passwordInput) {
+          MySwal.showValidationMessage("Password cannot be empty.");
+          return false;
+        }
+        if (!user_id || !first_name || !last_name) {
           MySwal.showValidationMessage(
-            "Please fill out all required fields (User ID, Password, First Name, Last Name)."
+            "Please fill out all required fields (User ID, First Name, Last Name)."
           );
           return false;
         }
-
-        // Number check
         if (/\d/.test(first_name) || /\d/.test(last_name)) {
           MySwal.showValidationMessage(
             "Numbers in First Name or Last Name are not allowed."
@@ -463,30 +489,72 @@ const StudentCredentials = () => {
           return false;
         }
 
+        // Determine if password changed by typing (not via Reset)
+        const passwordChangedByTyping =
+          !resetUsed && !keptMasked && passwordInput !== row.password;
+
         return {
           user_id,
-          password,
           first_name,
           last_name,
-          middle_name: document.getElementById("middle_name").value,
+          middle_name,
+          __resetUsed: resetUsed,
+          __resetPasswordValue: resetPasswordValue,
+          __passwordChangedByTyping: passwordChangedByTyping,
+          __typedPasswordValue: passwordInput,
         };
       },
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const updatedData = { ...row, ...result.value };
-        const { error } = await supabase
-          .from("user_credentials")
-          .update(updatedData)
-          .eq("id", row.id);
+        const {
+          __resetUsed,
+          __resetPasswordValue,
+          __passwordChangedByTyping,
+          __typedPasswordValue,
+          ...baseFields
+        } = result.value;
 
-        if (error) {
+        // Build update payload
+        const updatePayload = { ...baseFields };
+
+        if (__resetUsed) {
+          // Reset path: show again => hasChanged = 0
+          updatePayload.password = __resetPasswordValue;
+          updatePayload.hasChanged = 0;
+        } else if (__passwordChangedByTyping) {
+          // Manual change path: keep masked => hasChanged = 1
+          updatePayload.password = __typedPasswordValue;
+          updatePayload.hasChanged = 1;
+        } // else: password untouched (leave as-is)
+
+        try {
+          const { error } = await supabase
+            .from("user_credentials")
+            .update(updatePayload)
+            .eq("id", row.id);
+
+          if (error) {
+            throw error;
+          }
+
+          // Update UI state
+          const updatedRow = {
+            ...row,
+            ...baseFields,
+            ...(__resetUsed
+              ? { password: __resetPasswordValue, hasChanged: 0 }
+              : __passwordChangedByTyping
+              ? { password: __typedPasswordValue, hasChanged: 1 }
+              : {}),
+          };
+          const updatedCredentials = [...credentials];
+          updatedCredentials[index] = updatedRow;
+          setCredentials(updatedCredentials);
+
+          MySwal.fire("Updated!", "Student updated successfully.", "success");
+        } catch (error) {
           console.error("Update error:", error);
           MySwal.fire("Error", "Failed to update student.", "error");
-        } else {
-          const updatedCredentials = [...credentials];
-          updatedCredentials[index] = updatedData;
-          setCredentials(updatedCredentials);
-          MySwal.fire("Updated!", "Student updated successfully.", "success");
         }
       }
     });
@@ -532,13 +600,14 @@ const StudentCredentials = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // Generate new random passwords for all students
+          // Bulk reset: keep as masked after reset (hasChanged = 1).
+          // If you want them shown again instead, set hasChanged = 0 here.
           const updates = credentials.map((student) => ({
             id: student.id,
             password: generateRandomPassword(),
+            hasChanged: 1,
           }));
 
-          // Update all passwords in the database
           const { error } = await supabase
             .from("user_credentials")
             .upsert(updates);
@@ -546,12 +615,12 @@ const StudentCredentials = () => {
           if (error) throw error;
 
           // Update local state
-          const updatedCredentials = credentials.map((student) => ({
-            ...student,
-            password:
-              updates.find((u) => u.id === student.id)?.password ||
-              student.password,
-          }));
+          const updatedCredentials = credentials.map((student) => {
+            const u = updates.find((x) => x.id === student.id);
+            return u
+              ? { ...student, password: u.password, hasChanged: u.hasChanged }
+              : student;
+          });
           setCredentials(updatedCredentials);
 
           MySwal.fire(
@@ -594,7 +663,7 @@ const StudentCredentials = () => {
         }
         .enroll-dropdown .dropdown-item {
           display: block;
-          width: "100%";
+          width: 100%;
           padding: 8px 12px;
           clear: both;
           font-weight: 400;
@@ -632,7 +701,7 @@ const StudentCredentials = () => {
           />
 
           <div className="col-12 col-md-12 col-lg-12">
-            {/* Export Button */}
+            {/* Export Button & Year Selector */}
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div className="d-flex flex-wrap align-items-center gap-2">
                 {/* Export Button */}
@@ -976,6 +1045,7 @@ const StudentCredentials = () => {
                       ) : (
                         filteredData.map((row, index) => {
                           const isSelected = selectedRows.includes(row.id);
+                          const masked = isMasked(row.hasChanged);
                           return (
                             <tr
                               key={row.id}
@@ -1012,13 +1082,9 @@ const StudentCredentials = () => {
                                 {row.user_id}
                               </td>
 
-                              {/* ONLY CHANGE: mask non-default passwords */}
+                              {/* Password column: mask if hasChanged==1 */}
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {row.password === "Pass_123"
-                                  ? "Pass_123"
-                                  : row.password
-                                  ? "********"
-                                  : ""}
+                                {masked ? "********" : row.password || ""}
                               </td>
 
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center position-relative">
