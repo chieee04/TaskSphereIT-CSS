@@ -1,84 +1,297 @@
+/* src/Style/Member/MemberTask.css */
+
+/* =================== Page baseline =================== */
+html,
+body,
+#root {
+  background: #fff !important;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* Keep page clean; internal boxes own scrolling */
+  /* overflow-x: hidden;  <-- enable if you ever see a page-level horizontal bar */
+}
+
+/* =================== Page shell =================== */
+.content-shell {
+  background: #fff;
+  width: 100%;
+  height: 100%;
+  min-width: 0; /* critical in flex layouts */
+}
+
 .member-task-page {
   padding: 20px;
+  background: #fff;
+  height: calc(100vh - 100px); /* minus header/nav area if any */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* page doesn't scroll; inner container does */
+  min-width: 0;
 }
 
 .member-task-title {
   font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
   color: #3b0304;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.table-wrapper {
+/* === Toolbar above the table (slightly bigger than compact) === */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 10px 0;
+}
+
+.toolbar-input {
+  flex: 0 0 300px; /* slightly wider than compact */
+  max-width: 300px;
+  padding: 9px 11px;
+  font-size: 14px; /* up from 13px */
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #111827;
+}
+.toolbar-input::placeholder {
+  color: #6b7280;
+}
+.toolbar-input:focus {
+  border-color: #3b0304;
+  box-shadow: 0 0 0 3px rgba(59, 3, 4, 0.1);
+}
+
+.toolbar-select {
+  min-width: 150px; /* up from 140px */
+  padding: 9px 11px;
+  font-size: 14px; /* up from 13px */
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+  color: #111827;
+}
+.toolbar-select:focus {
+  border-color: #3b0304;
+  box-shadow: 0 0 0 3px rgba(59, 3, 4, 0.1);
+}
+
+/* =================== Scrollable table box =================== */
+/* Outer wrapper: owns vertical scrolling and box visuals */
+.table-scroll-container {
   border: 1px solid #b2b2b2;
   border-radius: 12px;
-  overflow-x: auto;
+  background: #fff;
+
+  overflow-y: auto; /* vertical scroll */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
+
+  flex: 1;
+  min-height: 0; /* allow flex child to actually scroll */
+  min-width: 0;
+  position: relative;
 }
 
+/* Inner wrapper: owns horizontal scrolling (so bar sits INSIDE the box) */
+.hscroll {
+  overflow-x: auto !important; /* horizontal scroll */
+  overflow-y: hidden; /* no vertical here; outer handles it */
+  max-width: 100%;
+  border-radius: 12px 12px 0 0; /* keep corners nice when bar shows */
+}
+
+/* =================== Table sizing & layout (SLIGHTLY BIGGER) =================== */
 .member-task-table {
-  width: 100%;
+  /* Let the table be wider than the container so a horizontal bar appears inside */
+  width: max-content !important;
+  min-width: 1700px !important; /* slightly bigger than compact (1400) */
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px; /* up from 12px */
+  line-height: 1.28;
+  table-layout: auto;
 }
 
+/* =================== Cells & header =================== */
 .member-task-table th,
 .member-task-table td {
-  padding: 12px 10px;
-  white-space: nowrap;
-  border-bottom: 1px solid #ddd;
+  padding: 8px 10px; /* up from 6px 8px */
+  white-space: nowrap; /* necessary for horizontal scroll behavior */
+  border-bottom: 1px solid #e5e7eb;
   text-align: center;
+  position: relative;
 }
 
 .member-task-table th {
   background-color: #f5f5f5;
   color: #3b0304;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px; /* up from 11px */
+  letter-spacing: 0.02em;
+
+  position: sticky; /* sticky header on vertical scroll */
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 0 #e5e7eb;
 }
 
-.even-row {
+/* Zebra rows */
+.member-task-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+.member-task-table tbody tr:nth-child(even) {
   background-color: #fafafa;
 }
 
-.odd-row {
-  background-color: white;
+.member-task-table tbody tr:hover {
+  background: #f3f4f6;
 }
 
-/* Status badges */
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
+/* Remove vertical lines between columns */
+.member-task-table th,
+.member-task-table td {
+  border-right: 0 !important;
 }
 
-.status-progress {
-  background-color: #f59e0b; /* orange */
+/* First (NO) column a little wider */
+.member-task-table th:first-child,
+.member-task-table td:first-child {
+  min-width: 64px; /* was 56px */
+  max-width: 84px; /* was 64px */
 }
 
-.status-pending {
-  background-color: #ef4444; /* red */
+/* =================== Sticky first column =================== */
+.member-task-table th:first-child,
+.member-task-table td:first-child {
+  position: sticky;
+  left: 0;
+  background-color: #ffffff; /* solid to cover beneath cells */
+  z-index: 5;
 }
 
-.status-completed {
-  background-color: #10b981; /* green */
+.member-task-table th:first-child {
+  z-index: 15;
+  background-color: #f5f5f5;
 }
 
-/* Action buttons */
-.btn-edit,
-.btn-delete {
-  border: none;
-  padding: 6px 10px;
-  margin: 0 3px;
+/* Keep first column background consistent on hover/striping */
+.member-task-table tr:hover td:first-child {
+  background: #f3f4f6;
+}
+.member-task-table tbody tr:nth-child(odd) td:first-child {
+  background-color: #ffffff;
+}
+.member-task-table tbody tr:nth-child(even) td:first-child {
+  background-color: #fafafa;
+}
+
+/* =================== Form controls inside table (slightly bigger) =================== */
+.member-task-table select {
+  padding: 5px 8px; /* up from 4px 6px */
+  font-size: 13px; /* up from 12px */
+  border: 1px solid #d1d5db;
   border-radius: 6px;
+  background: #fff;
+  outline: none;
+  min-width: 110px; /* up from 100px */
+}
+.member-task-table select:focus {
+  border-color: #3b0304;
+  box-shadow: 0 0 0 2px rgba(59, 3, 4, 0.1);
+}
+
+/* =================== Status badges (slightly bigger) =================== */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px; /* up from 3px 8px */
+  border-radius: 999px;
+  font-size: 12px; /* up from 11px */
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.status-progress {
+  background-color: #f59e0b;
+}
+.status-pending {
+  background-color: #ef4444;
+}
+.status-completed {
+  background-color: #10b981;
+}
+
+/* =================== Scrollbar styling (INSIDE the box) =================== */
+.hscroll::-webkit-scrollbar {
+  height: 10px;
+}
+.hscroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+.hscroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+.hscroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Firefox */
+.hscroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* =================== Responsive =================== */
+@media (max-width: 768px) {
+  .member-task-page {
+    padding: 10px;
+    height: calc(100vh - 60px);
+  }
+  .table-toolbar {
+    gap: 8px;
+  }
+  .toolbar-input {
+    flex-basis: 60vw;
+    max-width: 60vw;
+  }
+  .toolbar-select {
+    min-width: 130px;
+  }
+  .table-scroll-container {
+    overflow-y: auto;
+  }
+  .hscroll {
+    overflow-x: auto !important;
+  }
+}
+
+/* =================== Empty state =================== */
+.member-task-table td[colspan] {
+  white-space: normal;
+  padding: 1.25rem !important;
+}
+
+.action-btn {
+  padding: 6px 10px;
   font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
   cursor: pointer;
-  color: white;
 }
-
-.btn-edit {
-  background: #3b82f6; /* blue */
-}
-
-.btn-delete {
-  background: #ef4444; /* red */
+.action-btn:hover {
+  background: #f9fafb;
+  border-color: #c7cdd6;
 }
