@@ -257,9 +257,10 @@ const ManagerOralRecord = () => {
         return `${month}-${day}-${year}`;
     };
     return (
-        <div className="container-fluid px-4 py-3">
- 
-            <style>{`
+        <div className="flex flex-col min-h-screen bg-[#FFFDF9]">
+            {/* Main content grows to push footer down */}
+            <main className="flex-grow container-fluid px-4 py-3">
+                <style>{`
         /* --- General Styles --- */
         .section-title {
           font-weight: 600;
@@ -474,212 +475,213 @@ const ManagerOralRecord = () => {
             z-index: 2; /* Higher z-index to stay on top of body cells */
         }
       `}</style>
- 
-            <div className="row">
-                <div className="col-12">
-                    {/* Header */}
-                    <h2 className="section-title">
-                        <FaTasks className="me-2" size={18} />
-                        Oral Defense (Completed Tasks)
-                    </h2>
-                    <hr className="divider" />
-                </div>
- 
-                <div className="col-12 col-md-12 col-lg-12">
 
- 
-                    {/* Search, Delete Selected, and Filter (Row 2) */}
-                    <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-                        {/* Search Input (Placeholder Fixed) */}
-                        <div className="search-input-container">
-                            <FaSearch className="search-icon" />
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder="Search member"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
- 
-                        {/* Right Side Group: Delete and Filter */}
-                        <div className="d-flex align-items-center gap-2">
- 
-                            {/* Cancel Button (Visible in selection mode, NO ICON) */}
-                            {isSelectionMode && (
+                <div className="row">
+                    <div className="col-12">
+                        {/* Header */}
+                        <h2 className="section-title">
+                            <FaTasks className="me-2" size={18} />
+                            Oral Defense (Completed Tasks)
+                        </h2>
+                        <hr className="divider" />
+                    </div>
+
+                    <div className="col-12 col-md-12 col-lg-12">
+
+                        {/* Search, Delete Selected, and Filter (Row 2) */}
+                        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+                            {/* Search Input (Placeholder Fixed) */}
+                            <div className="search-input-container">
+                                <FaSearch className="search-icon" />
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Search member"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Right Side Group: Delete and Filter */}
+                            <div className="d-flex align-items-center gap-2">
+
+                                {/* Cancel Button (Visible in selection mode, NO ICON) */}
+                                {isSelectionMode && (
+                                    <button
+                                        type="button"
+                                        className="primary-button"
+                                        onClick={() => handleToggleSelectionMode(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+
+                                {/* Delete Button (Now always white/border style) */}
                                 <button
                                     type="button"
-                                    className="primary-button"
-                                    onClick={() => handleToggleSelectionMode(false)}
+                                    className={`primary-button ${isSelectionMode ?
+                                        'delete-selected-button-white' : ''}`}
+                                    onClick={() => {
+                                        if (isSelectionMode) {
+                                            handleDeleteSelectedTasks();
+                                        } else {
+                                            handleToggleSelectionMode(true);
+                                        }
+                                    }}
+                                    disabled={isSelectionMode && selectedTaskIds.length === 0}
                                 >
-                                    Cancel
+                                    <FaTrash size={14} />
+                                    {isSelectionMode ?
+                                        `Delete Selected` : 'Delete'}
                                 </button>
-                            )}
- 
-                            {/* Delete Button (Now always white/border style) */}
-                            <button
-                                type="button"
-                                className={`primary-button ${isSelectionMode ?
-                                    'delete-selected-button-white' : ''}`}
-                                onClick={() => {
-                                    if (isSelectionMode) {
-                                        handleDeleteSelectedTasks();
-                                    } else {
-                                        handleToggleSelectionMode(true);
-                                    }
-                                }}
-                                disabled={isSelectionMode && selectedTaskIds.length === 0}
-                            >
-                                <FaTrash size={14} />
-                                {isSelectionMode ?
-                                    `Delete Selected` : 'Delete'}
-                            </button>
+                            </div>
                         </div>
-                    </div>
- 
- 
-                    {/* Table Section */}
-                    <div className="bg-white rounded-lg shadow-md relative table-scroll-container">
-                        <table className="tasks-table min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0 z-10">
-                                <tr>
-                                    {/* Checkbox for Select All (Only show in selection mode) */}
-                                    {isSelectionMode && (
-                                        <th className="center-text sticky-col" style={{ width: '40px' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={allTasksSelected}
-                                                onChange={(e) => handleSelectAllTasks(e.target.checked)}
-                                                disabled={filteredAndSearchedTasks.length === 0}
-                                            />
-                                        </th>
-                                    )}
-                                    <th className="center-text">NO</th>
-                                    <th className="center-text">Assigned</th>
-                                    <th className="center-text">Tasks</th>
-                                    <th className="center-text">Subtasks</th>
-                                    <th className="center-text">Elements</th>
-                                    <th className="center-text">Due Date</th>
-                                    <th className="center-text">Time</th>
-                                    <th className="center-text">Revision No.</th>
-                                    <th className="center-text" style={{ minWidth: '130px' }}>Status</th>
-                                    <th className="center-text">Methodology</th>
-                                    <th className="center-text">Project Phase</th>
-                                    <th className="center-text" style={{ width: '50px' }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredAndSearchedTasks.map((task, idx) => {
-                                    const statusColor = getStatusColor(task.status);
- 
-                                    return (
-                                        <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
-                                            {/* Checkbox for Single Task Selection (Only show in selection mode) */}
-                                            {isSelectionMode && (
-                                                <td className="center-text sticky-col">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedTaskIds.includes(task.id)}
-                                                        onChange={(e) => handleSelectTask(task.id, e.target.checked)}
-                                                    />
+
+
+                        {/* Table Section */}
+                        <div className="bg-white rounded-lg shadow-md relative table-scroll-container">
+                            <table className="tasks-table min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        {/* Checkbox for Select All (Only show in selection mode) */}
+                                        {isSelectionMode && (
+                                            <th className="center-text sticky-col" style={{ width: '40px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allTasksSelected}
+                                                    onChange={(e) => handleSelectAllTasks(e.target.checked)}
+                                                    disabled={filteredAndSearchedTasks.length === 0}
+                                                />
+                                            </th>
+                                        )}
+                                        <th className="center-text">NO</th>
+                                        <th className="center-text">Assigned</th>
+                                        <th className="center-text">Tasks</th>
+                                        <th className="center-text">Subtasks</th>
+                                        <th className="center-text">Elements</th>
+                                        <th className="center-text">Due Date</th>
+                                        <th className="center-text">Time</th>
+                                        <th className="center-text">Revision No.</th>
+                                        <th className="center-text" style={{ minWidth: '130px' }}>Status</th>
+                                        <th className="center-text">Methodology</th>
+                                        <th className="center-text">Project Phase</th>
+                                        <th className="center-text" style={{ width: '50px' }}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredAndSearchedTasks.map((task, idx) => {
+                                        const statusColor = getStatusColor(task.status);
+
+                                        return (
+                                            <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
+                                                {/* Checkbox for Single Task Selection (Only show in selection mode) */}
+                                                {isSelectionMode && (
+                                                    <td className="center-text sticky-col">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedTaskIds.includes(task.id)}
+                                                            onChange={(e) => handleSelectTask(task.id, e.target.checked)}
+                                                        />
+                                                    </td>
+                                                )}
+                                                <td className="center-text">{idx + 1}.</td>
+                                                <td className="center-text">
+                                                    {task.member?.first_name} {task.member?.last_name}
                                                 </td>
-                                            )}
-                                            <td className="center-text">{idx + 1}.</td>
-                                            <td className="center-text">
-                                                {task.member?.first_name} {task.member?.last_name}
-                                            </td>
-                                            {/* ✅ Apply the new CSS class for text wrapping */}
-                                            <td className="center-text word-wrap-cell">{task.task}</td>
-                                            <td className="center-text word-wrap-cell">{task.subtask}</td>
-                                            <td className="center-text word-wrap-cell">{task.element}</td>
-                                            {/* End of new CSS class application */}
-                                            {/* Due Date Cell */}
-                                            <td className="center-text">
-                                                <div className="center-content-flex">
-                                                    <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
-                                                    {task.due_date}
-                                                </div>
-                                            </td>
- 
-                                            {/* Time Cell */}
-                                            <td className="center-text">
-                                                <div className="center-content-flex">
-                                                    <FaClock size={14} style={{ color: '#3B0304' }} />
-                                                    {task.time}
-                                                </div>
-                                            </td>
- 
-                                            {/* Revision Dropdown */}
-                                            <td className="center-text">
-                                                <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
-                                                    <select
-                                                        value={task.revision}
-                                                        onChange={(e) => handleRevisionChange(task.id, e.target.value)}
-                                                        className="revision-select"
+                                                {/* ✅ Apply the new CSS class for text wrapping */}
+                                                <td className="center-text word-wrap-cell">{task.task}</td>
+                                                <td className="center-text word-wrap-cell">{task.subtask}</td>
+                                                <td className="center-text word-wrap-cell">{task.element}</td>
+                                                {/* End of new CSS class application */}
+                                                {/* Due Date Cell */}
+                                                <td className="center-text">
+                                                    <div className="center-content-flex">
+                                                        <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
+                                                        {task.due_date}
+                                                    </div>
+                                                </td>
+
+                                                {/* Time Cell */}
+                                                <td className="center-text">
+                                                    <div className="center-content-flex">
+                                                        <FaClock size={14} style={{ color: '#3B0304' }} />
+                                                        {task.time}
+                                                    </div>
+                                                </td>
+
+                                                {/* Revision Dropdown */}
+                                                <td className="center-text">
+                                                    <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
+                                                        <select
+                                                            value={task.revision}
+                                                            onChange={(e) => handleRevisionChange(task.id, e.target.value)}
+                                                            className="revision-select"
+                                                        >
+                                                            {REVISION_OPTIONS.map((label, i) => (
+                                                                <option key={i + 1} value={i + 1}>
+                                                                    {label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
+                                                    </div>
+                                                </td>
+
+                                                {/* Status Dropdown / Missed Indicator */}
+                                                <td className="center-text">
+                                                    <div
+                                                        className="status-container"
+                                                        style={{ backgroundColor: statusColor }}
                                                     >
-                                                        {REVISION_OPTIONS.map((label, i) => (
-                                                            <option key={i + 1} value={i + 1}>
-                                                                {label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
-                                                </div>
-                                            </td>
- 
-                                            {/* Status Dropdown / Missed Indicator */}
-                                            <td className="center-text">
-                                                <div
-                                                    className="status-container"
-                                                    style={{ backgroundColor: statusColor }}
-                                                >
-                                                    <span style={{
-                                                        padding: '4px 6px',
-                                                        color: 'white',
-                                                        fontWeight: '500',
-                                                        fontSize: '0.85rem',
-                                                        minWidth: '90px'
-                                                    }}>
-                                                        Completed
-                                                    </span>
-                                                </div>
-                                            </td>
- 
-                                            <td className="center-text">{task.methodology}</td>
-                                            <td className="center-text">{task.project_phase}</td>
- 
-                                            {/* Action Column (Single Delete Button) */}
-                                            <td className="center-text">
-                                                <button
-                                                    onClick={() => handleSingleTaskDelete(task.id)}
-                                                    style={{
-                                                        border: 'none',
-                                                        background: 'none',
-                                                        color: '#3B0304',
-                                                        cursor: 'pointer',
-                                                        padding: '4px',
-                                                        transition: 'color 0.15s'
-                                                    }}
-                                                    title="Delete Task"
-                                                >
-                                                    <FaTrash size={14} />
-                                                </button>
+                                                        <span style={{
+                                                            padding: '4px 6px',
+                                                            color: 'white',
+                                                            fontWeight: '500',
+                                                            fontSize: '0.85rem',
+                                                            minWidth: '90px'
+                                                        }}>
+                                                            Completed
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                <td className="center-text">{task.methodology}</td>
+                                                <td className="center-text">{task.project_phase}</td>
+
+                                                {/* Action Column (Single Delete Button) */}
+                                                <td className="center-text">
+                                                    <button
+                                                        onClick={() => handleSingleTaskDelete(task.id)}
+                                                        style={{
+                                                            border: 'none',
+                                                            background: 'none',
+                                                            color: '#3B0304',
+                                                            cursor: 'pointer',
+                                                            padding: '4px',
+                                                            transition: 'color 0.15s'
+                                                        }}
+                                                        title="Delete Task"
+                                                    >
+                                                        <FaTrash size={14} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {filteredAndSearchedTasks.length === 0 && (
+                                        <tr>
+                                            <td colSpan={isSelectionMode ? "14" : "13"} className="text-center py-4 text-gray-500">
+                                                No active tasks found matching the current search or filter criteria.
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                                {filteredAndSearchedTasks.length === 0 && (
-                                    <tr>
-                                        <td colSpan={isSelectionMode ? "14" : "13"} className="text-center py-4 text-gray-500">
-                                            No active tasks found matching the current search or filter criteria.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </main>
+
         </div>
     );
 };
