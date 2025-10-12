@@ -23,8 +23,9 @@ import {
   Legend,
   Filler,
   ArcElement,
+  BarElement, // ⬅️ NEW
 } from "chart.js";
-import { Line, Pie } from "react-chartjs-2";
+import { Pie, Bar } from "react-chartjs-2"; // ⬅️ Bar instead of Line for summary
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -40,6 +41,7 @@ import SoloModeTasksRecord from "../SoloMode/SoloModeTasksRecord";
 import TermsOfService from "../../components/TermsOfService";
 import { UserAuth } from "../../Contex/AuthContext";
 
+// ---- register core + bar + our pillar background plugin
 ChartJS.register(
   LineElement,
   PointElement,
@@ -49,8 +51,54 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
-  ArcElement
+  ArcElement,
+  BarElement
 );
+
+// ★ Pillar background track (same spacing feel as Manager)
+const PillarBgPlugin = {
+  id: "memberPillarBg",
+  beforeDatasetsDraw(chart, _args, pluginOpts) {
+    const { ctx, scales } = chart;
+    const x = scales.x,
+      y = scales.y;
+    if (!x || !y) return;
+
+    const {
+      color = "#EFEFF3",
+      radius = 12,
+      thickness = 36,
+      maxValue = 10,
+    } = pluginOpts || {};
+
+    const topPx = y.getPixelForValue(maxValue);
+    const bottomPx = y.getPixelForValue(0);
+
+    ctx.save();
+    ctx.fillStyle = color;
+
+    const rr = (rx, ry, w, h, r) => {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(rx + rr, ry);
+      ctx.arcTo(rx + w, ry, rx + w, ry + rr, rr);
+      ctx.arcTo(rx + w, ry + h, rx + w - rr, ry + h, rr);
+      ctx.arcTo(rx, ry + h, rx, ry + h - rr, rr);
+      ctx.arcTo(rx, ry, rx + rr, ry, rr);
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    for (let i = 0; i < x.ticks.length; i++) {
+      const cx = x.getPixelForTick(i);
+      const left = cx - thickness / 2;
+      const height = bottomPx - topPx;
+      rr(left, topPx, thickness, height, radius);
+    }
+    ctx.restore();
+  },
+};
+ChartJS.register(PillarBgPlugin);
 
 const WEEK_DAYS = [
   "Monday",
@@ -64,7 +112,7 @@ const WEEK_DAYS = [
 const ROLE_MEMBER = 2;
 const TOS_VERSION = "2025-05-09";
 
-// TaskSphere colors (match Instructor)
+// TaskSphere colors (match Instructor/Manager)
 const TASKSPHERE_PRIMARY = "#5a0d0e";
 const TASKSPHERE_LIGHT = "#7a1d1e";
 const TASKSPHERE_LIGHTER = "#9a3d3e";
@@ -91,7 +139,6 @@ async function fetchTosAcceptance(userKey, role) {
   if (error && error.code !== "PGRST116") throw error;
   return !!data;
 }
-
 async function acceptTos(userKey, role) {
   const { error } = await supabase.from("tos_acceptance").insert({
     user_key: String(userKey),
@@ -110,7 +157,7 @@ function getLineColor(ctx) {
     Completed: "#4BC0C0",
     Missed: "#FF6384",
   };
-  return colors[ctx.dataset.label] || "#000000";
+  return colors[ctx.dataset?.label] || "#000000";
 }
 function makeHalfAsOpaque(ctx) {
   const color = getLineColor(ctx);
@@ -121,7 +168,7 @@ function adjustRadiusBasedOnData(ctx) {
   return v < 10 ? 5 : v < 25 ? 7 : v < 50 ? 9 : v < 75 ? 11 : 15;
 }
 
-// Pie chart
+// Pie (unchanged)
 const TeamProgressChart = ({ statusCounts }) => {
   const data = {
     labels: ["To Do", "In Progress", "To Review", "Completed", "Missed"],
@@ -150,7 +197,7 @@ const TeamProgressChart = ({ statusCounts }) => {
     plugins: { legend: { position: "bottom" }, title: { display: false } },
   };
   return (
-    <div style={{ width: "220px", height: "220px", margin: "0 auto" }}>
+    <div style={{ width: 220, height: 220, margin: "0 auto" }}>
       <Pie data={data} options={options} />
     </div>
   );
@@ -206,8 +253,7 @@ const MemberDashboard = () => {
         }
         const accepted = await fetchTosAcceptance(userKey, role);
         if (alive) setShowTos(!accepted);
-      } catch (e) {
-        console.error("ToS check failed:", e);
+      } catch {
         if (alive) setShowTos(true);
       } finally {
         if (alive) setCheckingTos(false);
@@ -223,9 +269,7 @@ const MemberDashboard = () => {
       if (!userKey) return;
       await acceptTos(userKey, role);
       setShowTos(false);
-    } catch (e) {
-      console.error("ToS accept failed:", e);
-    }
+    } catch {}
   };
   const handleTosDecline = () => {
     localStorage.removeItem("customUser");
@@ -266,6 +310,7 @@ const MemberDashboard = () => {
     else setActivePage("Dashboard");
   }, [isSoloMode, subPage]);
 
+  // ------- FETCH (UNCHANGED) -------
   useEffect(() => {
     const fetchTasks = async () => {
       const stored = localStorage.getItem("customUser");
@@ -370,10 +415,10 @@ const MemberDashboard = () => {
         .slice(0, 5);
       setUpcomingTasks(upcoming);
     };
-
     fetchTasks();
   }, []);
 
+  // (kept for context but unused for bar values)
   const weeklyData = WEEK_DAYS.map((day) => {
     const dayTasks = allTasks.filter((task) => {
       const taskDay = new Date(task.due_date).toLocaleDateString("en-US", {
@@ -390,35 +435,65 @@ const MemberDashboard = () => {
     };
   });
 
-  const lineData = {
-    labels: WEEK_DAYS,
-    datasets: ["To Do", "In Progress", "To Review", "Completed", "Missed"].map(
-      (status) => ({
-        label: status,
-        data: weeklyData.map((d) => d[status]),
-        borderColor: getLineColor({ dataset: { label: status } }),
-        backgroundColor: "transparent",
-        fill: false,
-        tension: 0.3,
-        pointBackgroundColor: getLineColor({ dataset: { label: status } }),
-        pointHoverBackgroundColor: makeHalfAsOpaque,
-        pointRadius: adjustRadiusBasedOnData,
-        pointHoverRadius: 15,
-      })
-    ),
+  // ====== NEW: Bar chart (Manager spacing/feel, multi-color bars) ======
+  const STATUS_LABELS = [
+    "To Do",
+    "In Progress",
+    "To Review",
+    "Completed",
+    "Missed",
+  ];
+  const BAR_COLORS = ["#FABC3F", "#809D3C", "#578FCA", "#4BC0C0", "#FF6384"]; // keep your palette
+
+  // aggregate per status (weekly-style total)
+  const barCounts = STATUS_LABELS.map((s) => statusCounts[s] || 0);
+  const barMax = Math.max(5, ...barCounts);
+
+  const barData = {
+    labels: STATUS_LABELS,
+    datasets: [
+      {
+        label: "Weekly Summary",
+        data: barCounts,
+        backgroundColor: BAR_COLORS, // per-bar colors
+        borderRadius: 12,
+        borderSkipped: false,
+        grouped: false,
+        barThickness: 24,
+        maxBarThickness: 28,
+      },
+    ],
   };
 
-  const lineOptions = {
+  const barOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { position: "bottom" },
+      legend: { display: false },
       tooltip: { enabled: true },
-      title: { display: false },
+      memberPillarBg: {
+        color: "#EFEFF3",
+        radius: 12,
+        thickness: 36,
+        maxValue: barMax,
+      }, // same spacing/feel
     },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+    scales: {
+      x: {
+        grid: { display: false },
+        offset: true,
+        ticks: { color: "#111827" },
+      },
+      y: {
+        beginAtZero: true,
+        suggestedMax: barMax,
+        ticks: { precision: 0, stepSize: 1, color: "#111827" },
+        grid: { color: "#E5E7EB" },
+      },
+    },
   };
 
-  // Calendar events (uniform TaskSphere color)
+  // Calendar events
   const calendarEvents = allTasks.map((task) => ({
     id: task.id,
     title: `${task.task} (${task.status})`,
@@ -492,8 +567,11 @@ const MemberDashboard = () => {
             <div className="dashboard-section-modern">
               <h4 className="section-title-modern">WEEKLY SUMMARY & STATUS</h4>
               <div className="summary-progress-layout">
+                {/* Bar chart with manager-like spacing */}
                 <div className="weekly-summary-card">
-                  <Line data={lineData} options={lineOptions} />
+                  <div style={{ minHeight: 280 }}>
+                    <Bar data={barData} options={barOptions} />
+                  </div>
                 </div>
                 <div className="team-progress-card">
                   <TeamProgressChart statusCounts={statusCounts} />
