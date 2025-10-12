@@ -166,7 +166,7 @@ const Teams = () => {
       text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3B0304",
+      confirmButtonColor: "#5a0d0e",
       cancelButtonColor: "#999",
       confirmButtonText: "Yes, delete it",
     }).then(async (result) => {
@@ -242,7 +242,7 @@ const Teams = () => {
               gap: 0.25rem;
             ">
               <button class="more-btn" style="
-                color: #3B0304;
+                color: #5a0d0e;
                 font-size: 1.5rem;
                 font-weight: 700;
                 background-color: transparent;
@@ -270,9 +270,9 @@ const Teams = () => {
               border-top-right-radius: 0.75rem;
             ">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users" style="color: #000; margin-bottom: 1rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <span style="font-weight: 700; color: #3B0304; font-size: 0.875rem;">${teamLabel}</span>
+              <span style="font-weight: 700; color: #5a0d0e; font-size: 0.875rem;">${teamLabel}</span>
             </div>
-            <div style="width: 100%; height: 20%; background-color: #830C18; border-bottom-left-radius: 0.75rem; border-bottom-right-radius: 0.75rem;"></div>
+            <div style="width: 100%; height: 20%; background-color: #7a1d1e; border-bottom-left-radius: 0.75rem; border-bottom-right-radius: 0.75rem;"></div>
 
             <div class="card-menu hidden" style="
               display: none;
@@ -326,7 +326,7 @@ const Teams = () => {
       }).join('');
 
       MySwal.fire({
-        title: `<div style='color:#3B0304;'>📁 ${foundTeam.label}</div>`,
+        title: `<div style='color:#5a0d0e;'>📁 ${foundTeam.label}</div>`,
         html: `<div id="adviserTeamList" style="text-align:left; max-height: 300px; overflow-y:auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1rem;">${teamButtons}</div>`,
         showConfirmButton: false,
         width: 800,
@@ -461,7 +461,7 @@ const Teams = () => {
     const eligibleTeams = teamCards.filter(tc => !tc.adviser_group);
 
     MySwal.fire({
-      title: '<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="bi bi-person-lines-fill"></i> Assign Adviser</div>',
+      title: '<div style="color: #5a0d0e; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="bi bi-person-lines-fill"></i> Assign Adviser</div>',
       html: `
         <div style="display: flex; gap: 20px; margin-bottom: 15px;">
           <div style="flex: 1;">
@@ -491,7 +491,7 @@ const Teams = () => {
       showCancelButton: true,
       confirmButtonText: 'Confirm',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#3B0304',
+      confirmButtonColor: '#5a0d0e',
       cancelButtonColor: '#999',
       width: '600px', 
       didOpen: () => {
@@ -707,7 +707,7 @@ const Teams = () => {
       showCancelButton: true,
       confirmButtonText: 'Transfer',
       cancelButtonText: 'Cancel',
-      confirmButtonColor: '#3B0304',
+      confirmButtonColor: '#5a0d0e',
       cancelButtonColor: '#999',
       width: '600px', 
       preConfirm: () => {
@@ -762,35 +762,36 @@ const Teams = () => {
   };
 
   return (
-    <div className="p-6 relative">
-      <h1 className="text-xl font-bold flex items-center gap-2 text-[#3B0304] mb-1">
+    <div className="p-6 relative" style={{ background: '#ffffff', minHeight: '100vh' }}>
+      <h1 className="text-xl font-bold flex items-center gap-2 text-[#5a0d0e] mb-1">
         <FaUsers /> Teams
       </h1>
 
-      <div className="w-[calc(100%-1rem)] border-b border-[#3B0304] mt-2 mb-4"></div>
+      <div className="w-full border-b border-[#5a0d0e] mt-2 mb-4"></div>
 
       <div className="flex gap-2 mb-6">
         <CreateTeam managerList={students} studentList={students} onTeamCreated={fetchAccounts} />
         <button
           onClick={() => handleAssignAdviser()}
-          className="px-4 py-2 bg-[#3B0304] text-white rounded-lg shadow hover:bg-[#5c1b1c] transition"
+          className="px-4 py-2 bg-[#5a0d0e] text-white rounded-lg shadow hover:bg-[#7a1d1e] transition font-medium"
         >
           + Assign Adviser
         </button>
       </div>
+
       {selectedTeam ? (
-        <div className="p-6 bg-white rounded-lg shadow-md">
+        <div className="p-6 bg-white rounded-lg shadow-md border border-gray-200">
           <button
             onClick={() => setSelectedTeam(null)}
-            className="mb-4 px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] transition hover:bg-white hover:text-black"
+            className="mb-4 px-4 py-2 bg-white text-gray-700 rounded-lg shadow-sm border border-gray-300 transition hover:bg-gray-50 hover:text-gray-900 font-medium"
           >
             &larr; Back
           </button>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-[#3B0304]">Team: {selectedTeam.label}</h2>
+            <h2 className="text-lg font-bold text-[#5a0d0e]">Team: {selectedTeam.label}</h2>
             <button
               onClick={handleAddMember}
-              className="px-4 py-2 bg-white text-black rounded-lg shadow-sm border border-[#B2B2B2] flex items-center gap-2 transition hover:bg-white hover:text-black"
+              className="px-4 py-2 bg-white text-gray-700 rounded-lg shadow-sm border border-gray-300 flex items-center gap-2 transition hover:bg-gray-50 hover:text-gray-900 font-medium"
             >
               <FaUserPlus /> Add Member
             </button>
@@ -844,7 +845,7 @@ const Teams = () => {
                       <select
                         value={member.user_roles === 1 ? 'Project Manager' : 'Member'}
                         onChange={(e) => handleUpdateRole(member.id, e.target.value)}
-                        className="p-2 border border-[#B2B2B2] rounded-lg bg-white text-[#3B0304] font-semibold"
+                        className="p-2 border border-gray-300 rounded-lg bg-white text-[#5a0d0e] font-semibold"
                         disabled={member.user_roles === 1 && selectedTeam.members.filter(m => m.user_roles === 1).length === 1}
                       >
                         <option value="Project Manager">Project Manager</option>
@@ -857,7 +858,7 @@ const Teams = () => {
                             e.stopPropagation();
                             handleMemberMenuToggle(index);
                           }}
-                          className="text-[#3B0304] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100"
+                          className="text-[#5a0d0e] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100"
                         >
                           <IoIosMore style={{ transform: 'rotate(90deg)' }} />
                         </button>
@@ -871,7 +872,7 @@ const Teams = () => {
                                 handleDeleteMember(member.id);
                                 setActiveMemberMenu(null);
                               }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-black bg-white focus:outline-none"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-700 bg-white hover:bg-gray-100 focus:outline-none transition"
                             >
                               <FaTrash /> Delete
                             </button>
@@ -880,7 +881,7 @@ const Teams = () => {
                                 handleTransferMember(member.id);
                                 setActiveMemberMenu(null);
                               }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-black bg-white focus:outline-none"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-left text-gray-700 bg-white hover:bg-gray-100 focus:outline-none transition"
                             >
                               <FaExchangeAlt /> Transfer Member
                             </button>
@@ -894,102 +895,125 @@ const Teams = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {teamCards.length === 0 ? (
-            <p className="text-gray-500">No teams available.</p>
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500 text-lg">No teams available.</p>
+            </div>
           ) : (
             teamCards.map((team, idx) => {
               if (team.adviser_group) {
-                const adviserNameParts = team.label.split(' ');
-                const lastName = adviserNameParts.pop();
-                const remainingName = adviserNameParts.join(' ');
+                // Adviser Card - Vertical layout with left strip
                 return (
                   <div
                     key={idx}
-                    className="relative w-full h-56 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg transition cursor-pointer flex"
+                    className="relative w-full h-64 rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition cursor-pointer flex overflow-hidden"
                     onClick={() => handleTeamClick({ detail: team.label })}
                   >
-                    <div className="absolute top-2 right-2 z-10 flex flex-col items-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCardMenuToggle(idx);
-                        }}
-                        className="text-[#3B0304] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <IoIosMore style={{ transform: 'rotate(90deg)' }} />
-                      </button>
-                      {activeMenu === idx && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute z-10 mt-2 right-0 bg-white border border-gray-200 rounded-lg shadow-md w-40 text-sm flex flex-col"
+                    {/* Left colored strip */}
+                    <div className="w-5 h-full bg-[#5a0d0e]"></div>
+                    
+                    {/* Main content */}
+                    <div className="flex-1 flex flex-col">
+                      {/* Three dots menu */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCardMenuToggle(idx);
+                          }}
+                          className="text-[#5a0d0e] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100 transition"
                         >
-                          <button
-                            onClick={() => {
-                              handleDeleteFolder(team);
-                              setActiveMenu(null);
-                            }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-black bg-white focus:outline-none"
+                          <IoIosMore style={{ transform: 'rotate(90deg)' }} />
+                        </button>
+                        {activeMenu === idx && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg w-40 text-sm flex flex-col py-1"
                           >
-                            <FaTrash /> Delete
-                          </button>
+                            <button
+                              onClick={() => {
+                                handleDeleteFolder(team);
+                                setActiveMenu(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 bg-white hover:bg-gray-100 focus:outline-none transition"
+                            >
+                              <FaTrash className="text-red-500" /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Adviser content */}
+                      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                        <FaUserGraduate className="text-gray-700 text-5xl mb-4" />
+                        <div className="font-bold text-[#5a0d0e] text-base leading-tight">
+                          {team.label.split(' ').map((part, i, arr) => 
+                            i === arr.length - 1 ? (
+                              <span key={i} className="block mt-1">{part}</span>
+                            ) : (
+                              <span key={i}>{part} </span>
+                            )
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="w-[20%] h-full bg-[#3B0304] rounded-l-xl"></div>
-                    <div className="w-[80%] h-full bg-white p-4 flex flex-col items-center justify-center text-center rounded-r-xl">
-                      <FaUserGraduate className="text-black text-4xl mb-4" />
-                      <span className="font-bold text-[#3B0304] text-sm">
-                        {remainingName}<br />
-                        {lastName}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 );
               } else {
+                // Team Card - Horizontal layout with bottom strip
                 return (
-                  <div key={idx} className="relative w-full h-56 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg transition cursor-pointer flex flex-col" onClick={() => handleTeamClick({ detail: team.label })}>
-                    <div className="absolute top-2 right-2 z-10 flex flex-col items-center">
+                  <div 
+                    key={idx} 
+                    className="relative w-full h-64 rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition cursor-pointer flex flex-col overflow-hidden"
+                    onClick={() => handleTeamClick({ detail: team.label })}
+                  >
+                    {/* Three dots menu */}
+                    <div className="absolute top-3 right-3 z-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCardMenuToggle(idx);
                         }}
-                        className="text-[#3B0304] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100"
+                        className="text-[#5a0d0e] text-xl font-bold bg-transparent border-none focus:outline-none p-1 rounded-full hover:bg-gray-100 transition"
                       >
                         <IoIosMore style={{ transform: 'rotate(90deg)' }} />
                       </button>
                       {activeMenu === idx && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute z-10 mt-2 right-0 bg-white border border-gray-200 rounded-lg shadow-md w-40 text-sm flex flex-col"
+                          className="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg w-40 text-sm flex flex-col py-1"
                         >
                           <button
                             onClick={() => {
                               handleDeleteFolder(team);
                               setActiveMenu(null);
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-black bg-white focus:outline-none"
+                            className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 bg-white hover:bg-gray-100 focus:outline-none transition"
                           >
-                            <FaTrash /> Delete
+                            <FaTrash className="text-red-500" /> Delete
                           </button>
                           <button
                             onClick={() => {
                               handleTransferTeam(team);
                               setActiveMenu(null);
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-left text-black bg-white focus:outline-none"
+                            className="w-full flex items-center gap-3 px-4 py-2 text-left text-gray-700 bg-white hover:bg-gray-100 focus:outline-none transition"
                           >
-                            <FaExchangeAlt /> Transfer Team
+                            <FaExchangeAlt className="text-blue-500" /> Transfer Team
                           </button>
                         </div>
                       )}
                     </div>
-                    <div className="w-full flex-grow bg-white p-4 flex flex-col items-center justify-center text-center rounded-t-xl">
-                      <FaUsers className="text-black text-4xl mb-4" />
-                      <span className="font-bold text-[#3B0304] text-sm">{team.label}</span>
+
+                    {/* Team content */}
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                      <FaUsers className="text-gray-700 text-5xl mb-4" />
+                      <span className="font-bold text-[#5a0d0e] text-base">{team.label}</span>
                     </div>
-                    <div className="w-full h-[20%] bg-[#830C18] rounded-b-xl"></div>
+                    
+                    {/* Bottom colored strip */}
+                    <div className="w-full h-5 bg-[#7a1d1e]"></div>
                   </div>
                 );
               }
@@ -1000,4 +1024,5 @@ const Teams = () => {
     </div>
   ); 
 };
+
 export default Teams;
