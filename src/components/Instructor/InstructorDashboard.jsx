@@ -30,12 +30,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
 // ADDED CHARTJS IMPORTS
-import {
-  Chart as ChartJS,
-  Tooltip,
-  Legend,
-  ArcElement
-} from "chart.js";
+import { Chart as ChartJS, Tooltip, Legend, ArcElement } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 
 ChartJS.register(Tooltip, Legend, ArcElement);
@@ -48,18 +43,21 @@ const TASKSPHERE_PURPLE = "#805ad5";
 // Enhanced Team Progress Component with detailed stats
 const AdviserTeamProgress = ({ teamsProgress }) => {
   const calculateCompletionPercentage = (counts) => {
-    const totalTasks = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    const totalTasks = Object.values(counts).reduce(
+      (sum, count) => sum + count,
+      0
+    );
     const completedTasks = counts["Completed"] || 0;
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      "Completed": "#4BC0C0",
+      Completed: "#4BC0C0",
       "To Do": "#FABC3F",
       "In Progress": "#809D3C",
       "To Review": "#578FCA",
-      "Missed": "#FF6384"
+      Missed: "#FF6384",
     };
     return colors[status] || "#999999";
   };
@@ -69,20 +67,27 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
       {teamsProgress.length > 0 ? (
         <div className="progress-grid">
           {teamsProgress.map((team, index) => {
-            const completionPercentage = calculateCompletionPercentage(team.counts);
-            const totalTasks = Object.values(team.counts).reduce((sum, count) => sum + count, 0);
-            
+            const completionPercentage = calculateCompletionPercentage(
+              team.counts
+            );
+            const totalTasks = Object.values(team.counts).reduce(
+              (sum, count) => sum + count,
+              0
+            );
+
             const chartData = {
               labels: ["Completed", "Remaining"],
               datasets: [
                 {
                   label: "Tasks",
-                  data: [team.counts["Completed"] || 0, 
-                         (totalTasks - (team.counts["Completed"] || 0))],
+                  data: [
+                    team.counts["Completed"] || 0,
+                    totalTasks - (team.counts["Completed"] || 0),
+                  ],
                   backgroundColor: ["#AA60C8", "#e9ecef"],
                   borderColor: "#ffffff",
                   borderWidth: 2,
-                  cutout: '70%',
+                  cutout: "70%",
                 },
               ],
             };
@@ -92,11 +97,11 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
               maintainAspectRatio: false,
               plugins: {
                 legend: {
-                  display: false
+                  display: false,
                 },
                 tooltip: {
-                  enabled: false
-                }
+                  enabled: false,
+                },
               },
             };
 
@@ -107,10 +112,19 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   <span className="total-tasks">Total: {totalTasks} tasks</span>
                 </div>
                 <div className="chart-container">
-                  <div style={{ width: "200px", height: "200px", margin: "auto", position: "relative" }}>
+                  <div
+                    style={{
+                      width: "200px",
+                      height: "200px",
+                      margin: "auto",
+                      position: "relative",
+                    }}
+                  >
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="chart-center-percentage">
-                      <span className="percentage-value">{completionPercentage}%</span>
+                      <span className="percentage-value">
+                        {completionPercentage}%
+                      </span>
                       <span className="percentage-label">Completed</span>
                     </div>
                   </div>
@@ -118,19 +132,27 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                 <div className="progress-stats">
                   <div className="stat-item">
                     <span className="stat-label">Completed:</span>
-                    <span className="stat-value" style={{color: '#4BC0C0'}}>{team.counts["Completed"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#4BC0C0" }}>
+                      {team.counts["Completed"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">In Progress:</span>
-                    <span className="stat-value" style={{color: '#809D3C'}}>{team.counts["In Progress"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#809D3C" }}>
+                      {team.counts["In Progress"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">To Do:</span>
-                    <span className="stat-value" style={{color: '#FABC3F'}}>{team.counts["To Do"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#FABC3F" }}>
+                      {team.counts["To Do"] || 0}
+                    </span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">To Review:</span>
-                    <span className="stat-value" style={{color: '#578FCA'}}>{team.counts["To Review"] || 0}</span>
+                    <span className="stat-value" style={{ color: "#578FCA" }}>
+                      {team.counts["To Review"] || 0}
+                    </span>
                   </div>
                   {team.task_breakdown && (
                     <div className="task-breakdown">
@@ -149,7 +171,9 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
       ) : (
         <div className="no-teams-message">
           <i className="fas fa-users fa-3x text-muted mb-3"></i>
-          <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
+          <p className="fst-italic text-muted">
+            No teams with tasks to display progress.
+          </p>
         </div>
       )}
     </div>
@@ -160,10 +184,18 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
 const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
   const calculateGroupStats = (teams) => {
     const totalTeams = teams.length;
-    const totalTasks = teams.reduce((sum, team) => sum + Object.values(team.counts).reduce((a, b) => a + b, 0), 0);
-    const completedTasks = teams.reduce((sum, team) => sum + (team.counts["Completed"] || 0), 0);
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
+    const totalTasks = teams.reduce(
+      (sum, team) =>
+        sum + Object.values(team.counts).reduce((a, b) => a + b, 0),
+      0
+    );
+    const completedTasks = teams.reduce(
+      (sum, team) => sum + (team.counts["Completed"] || 0),
+      0
+    );
+    const completionRate =
+      totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
     return { totalTeams, totalTasks, completedTasks, completionRate };
   };
 
@@ -177,7 +209,8 @@ const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
           <div>
             <h4>{adviserName || `Adviser Group: ${adviserGroup}`}</h4>
             <small className="text-muted">
-              {groupStats.totalTeams} team(s) • {groupStats.totalTasks} total tasks • {groupStats.completionRate}% overall completion
+              {groupStats.totalTeams} team(s) • {groupStats.totalTasks} total
+              tasks • {groupStats.completionRate}% overall completion
             </small>
           </div>
         </div>
@@ -268,7 +301,9 @@ const InstructorDashboard = () => {
 
   const handlePageChange = (page) => {
     setActivePage(page);
-    navigate(`/Instructor/${page.replace(/\s+/g, "")}`, { state: { activePage: page } });
+    navigate(`/Instructor/${page.replace(/\s+/g, "")}`, {
+      state: { activePage: page },
+    });
   };
 
   useEffect(() => {
@@ -281,7 +316,6 @@ const InstructorDashboard = () => {
     }
   }, [isSoloMode, subPage]);
 
-
   // ==== NEW STATES FOR TASKS ====
   const [upcomingTasks, setUpcomingTasks] = useState([]);
   const [recentTasks, setRecentTasks] = useState([]);
@@ -289,14 +323,14 @@ const InstructorDashboard = () => {
   const [teamsProgress, setTeamsProgress] = useState([]);
   const [adviserGroups, setAdviserGroups] = useState([]);
 
-   const formatTime = (timeString) => {
+  const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     const [hour, minute] = timeString.split(":");
     let h = parseInt(hour, 10);
     const ampm = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12; // Convert to 12-hour format
     return `${h}:${minute} ${ampm}`;
-    };
+  };
 
   // ==== FETCH ALL PROJECT MANAGERS PROGRESS AND GROUP BY ADVISER ====
   useEffect(() => {
@@ -308,15 +342,23 @@ const InstructorDashboard = () => {
         // Fetch all adviser tasks (oral and final defense)
         const [oralTasksResult, finalTasksResult] = await Promise.all([
           supabase.from("adviser_oral_def").select("*"),
-          supabase.from("adviser_final_def").select("*")
+          supabase.from("adviser_final_def").select("*"),
         ]);
 
-        if (oralTasksResult.error) console.error("Error fetching oral tasks:", oralTasksResult.error);
-        if (finalTasksResult.error) console.error("Error fetching final tasks:", finalTasksResult.error);
+        if (oralTasksResult.error)
+          console.error("Error fetching oral tasks:", oralTasksResult.error);
+        if (finalTasksResult.error)
+          console.error("Error fetching final tasks:", finalTasksResult.error);
 
         const allAdviserTasks = [
-          ...(oralTasksResult.data || []).map((t) => ({ ...t, type: "Oral Defense" })),
-          ...(finalTasksResult.data || []).map((t) => ({ ...t, type: "Final Defense" })),
+          ...(oralTasksResult.data || []).map((t) => ({
+            ...t,
+            type: "Oral Defense",
+          })),
+          ...(finalTasksResult.data || []).map((t) => ({
+            ...t,
+            type: "Final Defense",
+          })),
         ];
 
         console.log("📊 All Adviser Tasks Found:", allAdviserTasks.length);
@@ -334,36 +376,53 @@ const InstructorDashboard = () => {
           .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
           .slice(0, 5);
 
-        const upcomingWithNames = await Promise.all(upcoming.map(async (task) => {
-          if (!task.manager_id) return { ...task, managerName: "N/A" };
-          const { data: manager } = await supabase.from("user_credentials").select("first_name, last_name").eq("id", task.manager_id).single();
-          return { ...task, managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" };
-        }));
+        const upcomingWithNames = await Promise.all(
+          upcoming.map(async (task) => {
+            if (!task.manager_id) return { ...task, managerName: "N/A" };
+            const { data: manager } = await supabase
+              .from("user_credentials")
+              .select("first_name, last_name")
+              .eq("id", task.manager_id)
+              .single();
+            return {
+              ...task,
+              managerName: manager
+                ? `${manager.first_name} ${manager.last_name}`
+                : "Unknown Manager",
+            };
+          })
+        );
         setUpcomingTasks(upcomingWithNames);
 
         // 2. Recent Tasks
         const recent = [...allAdviserTasks]
-          .sort((a, b) => new Date(b.date_created || b.created_at) - new Date(a.date_created || a.created_at))
-          .slice(0, 5);
+          .sort(
+            (a, b) =>
+              new Date(b.date_created || b.created_at) -
+              new Date(a.date_created || a.created_at)
+          )
+          .slice(0, 4);
         const recentWithNames = await Promise.all(
-  recent.map(async (task) => {
-    if (!task.manager_id) return { ...task, managerName: "N/A" };
-    const { data: manager } = await supabase
-      .from("user_credentials")
-      .select("first_name, last_name")
-      .eq("id", task.manager_id)
-      .single();
-    return { 
-      ...task, 
-      managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" 
-    };
-  })
-);
-setRecentTasks(recentWithNames);
+          recent.map(async (task) => {
+            if (!task.manager_id) return { ...task, managerName: "N/A" };
+            const { data: manager } = await supabase
+              .from("user_credentials")
+              .select("first_name, last_name")
+              .eq("id", task.manager_id)
+              .single();
+            return {
+              ...task,
+              managerName: manager
+                ? `${manager.first_name} ${manager.last_name}`
+                : "Unknown Manager",
+            };
+          })
+        );
+        setRecentTasks(recentWithNames);
 
         // 3. Teams' Progress - Fetch ALL project managers with ALL their tasks
         console.log("👥 Fetching all project managers...");
-        
+
         const { data: teams, error: teamsError } = await supabase
           .from("user_credentials")
           .select("id, group_name, first_name, last_name, adviser_group")
@@ -383,21 +442,36 @@ setRecentTasks(recentWithNames);
           setAdviserGroups([]);
         } else {
           setDebugInfo(`Found ${teams.length} project manager(s)`);
-          
+
           // Fetch comprehensive task progress for each project manager
           const teamsProgressData = await Promise.all(
             teams.map(async (team) => {
               try {
-                console.log(`🔍 Checking tasks for team: ${team.group_name} (ID: ${team.id})`);
-                
+                console.log(
+                  `🔍 Checking tasks for team: ${team.group_name} (ID: ${team.id})`
+                );
+
                 // Fetch ALL task types for this project manager
-                const [managerTasksResult, adviserOralTasksResult, adviserFinalTasksResult] = await Promise.all([
+                const [
+                  managerTasksResult,
+                  adviserOralTasksResult,
+                  adviserFinalTasksResult,
+                ] = await Promise.all([
                   // Manager tasks from manager_title_task
-                  supabase.from("manager_title_task").select("status, task_name, due_date").eq("manager_id", team.id),
+                  supabase
+                    .from("manager_title_task")
+                    .select("status, task_name, due_date")
+                    .eq("manager_id", team.id),
                   // Adviser oral defense tasks for this manager (from any adviser)
-                  supabase.from("adviser_oral_def").select("status, task, due_date").eq("manager_id", team.id),
+                  supabase
+                    .from("adviser_oral_def")
+                    .select("status, task, due_date")
+                    .eq("manager_id", team.id),
                   // Adviser final defense tasks for this manager (from any adviser)
-                  supabase.from("adviser_final_def").select("status, task, due_date").eq("manager_id", team.id)
+                  supabase
+                    .from("adviser_final_def")
+                    .select("status, task, due_date")
+                    .eq("manager_id", team.id),
                 ]);
 
                 const managerTasks = managerTasksResult.data || [];
@@ -406,34 +480,42 @@ setRecentTasks(recentWithNames);
 
                 // Combine ALL tasks for this team
                 const allTeamTasks = [
-                  ...managerTasks.map(t => ({ ...t, source: 'manager' })),
-                  ...adviserOralTasks.map(t => ({ ...t, source: 'adviser_oral' })),
-                  ...adviserFinalTasks.map(t => ({ ...t, source: 'adviser_final' }))
+                  ...managerTasks.map((t) => ({ ...t, source: "manager" })),
+                  ...adviserOralTasks.map((t) => ({
+                    ...t,
+                    source: "adviser_oral",
+                  })),
+                  ...adviserFinalTasks.map((t) => ({
+                    ...t,
+                    source: "adviser_final",
+                  })),
                 ];
 
                 console.log(`📋 Team ${team.group_name} tasks:`, {
                   managerTasks: managerTasks.length,
                   adviserOralTasks: adviserOralTasks.length,
                   adviserFinalTasks: adviserFinalTasks.length,
-                  total: allTeamTasks.length
+                  total: allTeamTasks.length,
                 });
 
                 // Only include teams that actually have tasks
                 if (allTeamTasks.length === 0) {
-                  console.log(`ℹ️ Team ${team.group_name} has no tasks, skipping`);
+                  console.log(
+                    `ℹ️ Team ${team.group_name} has no tasks, skipping`
+                  );
                   return null;
                 }
 
                 // Count tasks by status - COMBINE ALL TASK TYPES
-                const counts = { 
-                  "To Do": 0, 
-                  "In Progress": 0, 
-                  "To Review": 0, 
-                  "Completed": 0, 
-                  "Missed": 0 
+                const counts = {
+                  "To Do": 0,
+                  "In Progress": 0,
+                  "To Review": 0,
+                  Completed: 0,
+                  Missed: 0,
                 };
-                
-                allTeamTasks.forEach(task => {
+
+                allTeamTasks.forEach((task) => {
                   if (counts[task.status] !== undefined) {
                     counts[task.status]++;
                   } else {
@@ -452,73 +534,91 @@ setRecentTasks(recentWithNames);
                   task_breakdown: {
                     manager_tasks: managerTasks.length,
                     adviser_oral_tasks: adviserOralTasks.length,
-                    adviser_final_tasks: adviserFinalTasks.length
-                  }
+                    adviser_final_tasks: adviserFinalTasks.length,
+                  },
                 };
 
-                console.log(`✅ Team ${team.group_name} progress:`, teamProgress);
+                console.log(
+                  `✅ Team ${team.group_name} progress:`,
+                  teamProgress
+                );
                 return teamProgress;
-
               } catch (error) {
-                console.error(`❌ Error processing team ${team.group_name}:`, error);
+                console.error(
+                  `❌ Error processing team ${team.group_name}:`,
+                  error
+                );
                 return null;
               }
             })
           );
-          
+
           // Filter out null values (teams with no tasks or errors)
           const filteredTeamsProgress = teamsProgressData.filter(Boolean);
           console.log("🎯 Final teams progress data:", filteredTeamsProgress);
           setTeamsProgress(filteredTeamsProgress);
-          
+
           // Group teams by adviser_group
-          const groupedByAdviser = filteredTeamsProgress.reduce((groups, team) => {
-            const adviserGroup = team.adviser_group || 'Ungrouped';
-            if (!groups[adviserGroup]) {
-              groups[adviserGroup] = [];
-            }
-            groups[adviserGroup].push(team);
-            return groups;
-          }, {});
+          const groupedByAdviser = filteredTeamsProgress.reduce(
+            (groups, team) => {
+              const adviserGroup = team.adviser_group || "Ungrouped";
+              if (!groups[adviserGroup]) {
+                groups[adviserGroup] = [];
+              }
+              groups[adviserGroup].push(team);
+              return groups;
+            },
+            {}
+          );
 
           console.log("👨‍🏫 Teams grouped by adviser:", groupedByAdviser);
 
           // Get adviser names for each group (user_roles = 3 for advisers)
           const adviserGroupsWithNames = await Promise.all(
-            Object.entries(groupedByAdviser).map(async ([adviserGroup, teams]) => {
-              // Try to get adviser name from user_credentials
-              let adviserName = `Adviser Group: ${adviserGroup}`;
-              
-              if (adviserGroup && adviserGroup !== 'Ungrouped') {
-                const { data: adviser } = await supabase
-                  .from("user_credentials")
-                  .select("first_name, last_name")
-                  .eq("adviser_group", adviserGroup)
-                  .eq("user_roles", 3) // FIXED: user_roles = 3 for advisers
-                  .single();
+            Object.entries(groupedByAdviser).map(
+              async ([adviserGroup, teams]) => {
+                // Try to get adviser name from user_credentials
+                let adviserName = `Adviser Group: ${adviserGroup}`;
 
-                if (adviser) {
-                  adviserName = `${adviser.first_name} ${adviser.last_name}`;
-                  console.log(`✅ Found adviser: ${adviserName} for group: ${adviserGroup}`);
-                } else {
-                  console.log(`❌ No adviser found for group: ${adviserGroup} with user_roles = 3`);
+                if (adviserGroup && adviserGroup !== "Ungrouped") {
+                  const { data: adviser } = await supabase
+                    .from("user_credentials")
+                    .select("first_name, last_name")
+                    .eq("adviser_group", adviserGroup)
+                    .eq("user_roles", 3) // FIXED: user_roles = 3 for advisers
+                    .single();
+
+                  if (adviser) {
+                    adviserName = `${adviser.first_name} ${adviser.last_name}`;
+                    console.log(
+                      `✅ Found adviser: ${adviserName} for group: ${adviserGroup}`
+                    );
+                  } else {
+                    console.log(
+                      `❌ No adviser found for group: ${adviserGroup} with user_roles = 3`
+                    );
+                  }
                 }
-              }
 
-              return {
-                adviserGroup,
-                adviserName,
-                teams
-              };
-            })
+                return {
+                  adviserGroup,
+                  adviserName,
+                  teams,
+                };
+              }
+            )
           );
 
           setAdviserGroups(adviserGroupsWithNames);
-          
+
           if (filteredTeamsProgress.length === 0) {
-            setDebugInfo(prev => prev + " - But no teams have tasks yet");
+            setDebugInfo((prev) => prev + " - But no teams have tasks yet");
           } else {
-            setDebugInfo(prev => prev + ` - ${filteredTeamsProgress.length} team(s) across ${adviserGroupsWithNames.length} adviser group(s)`);
+            setDebugInfo(
+              (prev) =>
+                prev +
+                ` - ${filteredTeamsProgress.length} team(s) across ${adviserGroupsWithNames.length} adviser group(s)`
+            );
           }
         }
 
@@ -540,7 +640,6 @@ setRecentTasks(recentWithNames);
         }));
 
         setCalendarEvents(events);
-
       } catch (error) {
         console.error("❌ Error loading instructor dashboard data:", error);
         setDebugInfo(`Error: ${error.message}`);
@@ -548,13 +647,11 @@ setRecentTasks(recentWithNames);
         setIsLoading(false);
       }
     };
-    
 
     if (!isSoloMode) {
-     ; fetchInstructorData()
+      fetchInstructorData();
     }
   }, [isSoloMode]);
-
 
   // ==== MAIN CONTENT RENDER ====
   const renderContent = () => {
@@ -608,7 +705,9 @@ setRecentTasks(recentWithNames);
                   <h4>INSTRUCTOR UPCOMING ACTIVITY</h4>
                   <div className="upcoming-activity">
                     {upcomingTasks.length === 0 ? (
-                      <p className="fst-italic text-muted">No upcoming tasks.</p>
+                      <p className="fst-italic text-muted">
+                        No upcoming tasks.
+                      </p>
                     ) : (
                       upcomingTasks.map((t, i) => (
                         <div key={i} className="activity-card">
@@ -617,11 +716,25 @@ setRecentTasks(recentWithNames);
                             <span>{t.managerName}</span>
                           </div>
                           <div className="activity-body">
-                            <h5><i className="fas fa-tasks"></i> {t.task}</h5>
-                            <p><i className="fas fa-calendar-alt"></i> {new Date(t.due_date).toLocaleDateString()}</p>
-                            <p><i className="fas fa-clock"></i> {formatTime(t.time) || "No Time"}</p>
-                            <p><i className="fas fa-flag"></i> {t.type}</p>
-                            <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
+                            <h5>
+                              <i className="fas fa-tasks"></i> {t.task}
+                            </h5>
+                            <p>
+                              <i className="fas fa-calendar-alt"></i>{" "}
+                              {new Date(t.due_date).toLocaleDateString()}
+                            </p>
+                            <p>
+                              <i className="fas fa-clock"></i>{" "}
+                              {formatTime(t.time) || "No Time"}
+                            </p>
+                            <p>
+                              <i className="fas fa-flag"></i> {t.type}
+                            </p>
+                            <span
+                              className={`status-badge status-${t.status
+                                .toLowerCase()
+                                .replace(" ", "-")}`}
+                            >
                               {t.status}
                             </span>
                           </div>
@@ -636,10 +749,11 @@ setRecentTasks(recentWithNames);
                   <div className="section-header">
                     <h4>TEAMS PROGRESS BY ADVISER</h4>
                     <span className="teams-count">
-                      {teamsProgress.length} team(s) across {adviserGroups.length} adviser group(s)
+                      {teamsProgress.length} team(s) across{" "}
+                      {adviserGroups.length} adviser group(s)
                     </span>
                   </div>
-                  
+
                   {adviserGroups.length > 0 ? (
                     <div className="adviser-groups-container">
                       {adviserGroups.map((group, index) => (
@@ -654,7 +768,9 @@ setRecentTasks(recentWithNames);
                   ) : (
                     <div className="no-teams-message">
                       <i className="fas fa-users fa-3x text-muted mb-3"></i>
-                      <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
+                      <p className="fst-italic text-muted">
+                        No teams with tasks to display progress.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -663,7 +779,9 @@ setRecentTasks(recentWithNames);
                 <div className="dashboard-section">
                   <h4>RECENT ACTIVITY CREATED</h4>
                   {recentTasks.length === 0 ? (
-                    <p className="fst-italic text-muted">No recent activities.</p>
+                    <p className="fst-italic text-muted">
+                      No recent activities.
+                    </p>
                   ) : (
                     <div className="recent-table-container">
                       <table>
@@ -684,11 +802,23 @@ setRecentTasks(recentWithNames);
                             <tr key={t.id}>
                               <td>{i + 1}.</td>
                               <td>{t.task}</td>
-                              <td>{new Date(t.date_created || t.created_at).toLocaleDateString()}</td>
-                              <td>{t.due_date ? new Date(t.due_date).toLocaleDateString() : "—"}</td>
+                              <td>
+                                {new Date(
+                                  t.date_created || t.created_at
+                                ).toLocaleDateString()}
+                              </td>
+                              <td>
+                                {t.due_date
+                                  ? new Date(t.due_date).toLocaleDateString()
+                                  : "—"}
+                              </td>
                               <td>{formatTime(t.time) || "—"}</td>
                               <td>
-                                <span className={`status-badge status-${t.status.toLowerCase().replace(" ", "-")}`}>
+                                <span
+                                  className={`status-badge status-${t.status
+                                    .toLowerCase()
+                                    .replace(" ", "-")}`}
+                                >
                                   {t.status}
                                 </span>
                               </td>
@@ -707,12 +837,16 @@ setRecentTasks(recentWithNames);
                   <h4>INSTRUCTOR CALENDAR</h4>
                   <div className="calendar-container">
                     <FullCalendar
-                      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                      plugins={[
+                        dayGridPlugin,
+                        timeGridPlugin,
+                        interactionPlugin,
+                      ]}
                       initialView="dayGridMonth"
                       headerToolbar={{
                         left: "prev,next today",
                         center: "title",
-                        right: "dayGridMonth,timeGridWeek,timeGridDay"
+                        right: "dayGridMonth,timeGridWeek,timeGridDay",
                       }}
                       events={calendarEvents}
                       height="400px"
@@ -1057,7 +1191,9 @@ setRecentTasks(recentWithNames);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+    >
       <Header isSoloMode={isSoloMode} setIsSoloMode={setIsSoloMode} />
       <div className="d-flex" style={{ marginTop: "30px" }}></div>
       <div className="d-flex" style={{ flexGrow: 1 }}>
@@ -1080,7 +1216,9 @@ setRecentTasks(recentWithNames);
           }}
           id="main-content-wrapper"
         >
-          <main style={{ flexGrow: 1, padding: "20px" }}>{renderContent()}</main>
+          <main style={{ flexGrow: 1, padding: "20px" }}>
+            {renderContent()}
+          </main>
           <Footer />
         </div>
       </div>
