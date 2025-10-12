@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import { useAuthGuard } from "../../components/hooks/useAuthGuard";
 import AdviserTeamSummary from "./AdviserTeamsSummary";
+import AdviserTermsOfService from "./AdviserTermsOfService";
 import AdviserTask from "./AdviserTask/AdviserTask";
 import AdviserOralDef from "./AdviserTask/AdviserOralDef";
 import AdviserFinalDef from "./AdviserTask/AdviserFinalDef";
@@ -361,6 +362,8 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     switch (activePage) {
       case "TeamsSummary":
         return <AdviserTeamSummary />;
+      case "TermsOfService":
+        return <TermsOfService />;
       case "Tasks":
         return <AdviserTask setActivePage={setActivePage} />;
       case "Oral Defense":

@@ -36,11 +36,12 @@ import { Doughnut } from "react-chartjs-2";
 ChartJS.register(Tooltip, Legend, ArcElement);
 
 // Define the primary color constants for consistency
-const TASKSPHERE_DARK_RED = "#5B0A0A";
-const PENDING_TEXT_BROWN = "#795548";
-const TASKSPHERE_PURPLE = "#805ad5";
+const TASKSPHERE_PRIMARY = "#5a0d0e";
+const TASKSPHERE_LIGHT = "#7a1d1e";
+const TASKSPHERE_LIGHTER = "#9a3d3e";
+const TASKSPHERE_LIGHTEST = "#ba5d5e";
 
-// Enhanced Team Progress Component with detailed stats
+// Enhanced Team Progress Component with uniform colors
 const AdviserTeamProgress = ({ teamsProgress }) => {
   const calculateCompletionPercentage = (counts) => {
     const totalTasks = Object.values(counts).reduce(
@@ -51,6 +52,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
+<<<<<<< HEAD
   const getStatusColor = (status) => {
     const colors = {
       Completed: "#4BC0C0",
@@ -62,6 +64,8 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
     return colors[status] || "#999999";
   };
 
+=======
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
   return (
     <div className="team-progress-container">
       {teamsProgress.length > 0 ? (
@@ -80,6 +84,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
               datasets: [
                 {
                   label: "Tasks",
+<<<<<<< HEAD
                   data: [
                     team.counts["Completed"] || 0,
                     totalTasks - (team.counts["Completed"] || 0),
@@ -88,6 +93,14 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   borderColor: "#ffffff",
                   borderWidth: 2,
                   cutout: "70%",
+=======
+                  data: [team.counts["Completed"] || 0, 
+                         (totalTasks - (team.counts["Completed"] || 0))],
+                  backgroundColor: [TASKSPHERE_PRIMARY, "#f0f0f0"],
+                  borderColor: "#ffffff",
+                  borderWidth: 3,
+                  cutout: '75%',
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 },
               ],
             };
@@ -106,11 +119,12 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
             };
 
             return (
-              <div key={index} className="progress-card">
-                <div className="progress-card-header">
-                  <h5>{team.group_name}</h5>
-                  <span className="total-tasks">Total: {totalTasks} tasks</span>
+              <div key={index} className="progress-card-new">
+                <div className="team-member-info">
+                  <i className="fas fa-users"></i>
+                  <span className="team-name">{team.group_name}</span>
                 </div>
+<<<<<<< HEAD
                 <div className="chart-container">
                   <div
                     style={{
@@ -164,6 +178,16 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                     </div>
                   )}
                 </div>
+=======
+                <div className="chart-wrapper">
+                  <div className="chart-container-large">
+                    <Doughnut data={chartData} options={chartOptions} />
+                    <div className="chart-percentage-center">
+                      <span className="percentage-num">{completionPercentage}%</span>
+                    </div>
+                  </div>
+                </div>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
               </div>
             );
           })}
@@ -202,10 +226,11 @@ const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
   const groupStats = calculateGroupStats(teams);
 
   return (
-    <div className="adviser-group-section">
-      <div className="adviser-group-header">
-        <div className="adviser-info">
+    <div className="adviser-group-section-new">
+      <div className="adviser-header-new">
+        <div className="adviser-name-badge">
           <i className="fas fa-user-tie"></i>
+<<<<<<< HEAD
           <div>
             <h4>{adviserName || `Adviser Group: ${adviserGroup}`}</h4>
             <small className="text-muted">
@@ -213,77 +238,12 @@ const AdviserGroupSection = ({ adviserGroup, teams, adviserName }) => {
               tasks • {groupStats.completionRate}% overall completion
             </small>
           </div>
+=======
+          <span>{adviserName || `Adviser Group: ${adviserGroup}`}</span>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         </div>
       </div>
       <AdviserTeamProgress teamsProgress={teams} />
-    </div>
-  );
-};
-
-// SVG-based Circular Progress Bar (kept)
-const ProgressCircle = ({ percentage }) => {
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-  const isFilled = percentage > 0;
-
-  return (
-    <svg width="120" height="120" viewBox="0 0 120 120">
-      <circle
-        cx="60"
-        cy="60"
-        r={radius}
-        fill="none"
-        stroke="#f0f0f0"
-        strokeWidth="12"
-      />
-      {isFilled && (
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke={TASKSPHERE_PURPLE}
-          strokeWidth="12"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
-        />
-      )}
-      <text
-        x="50%"
-        y="50%"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize="1.5rem"
-        fontWeight="bold"
-        fill={isFilled ? TASKSPHERE_PURPLE : "#ccc"}
-      >
-        {percentage}%
-      </text>
-    </svg>
-  );
-};
-
-const TeamCard = ({ adviser, teams }) => {
-  return (
-    <div className="team-card">
-      <div className="adviser-header">
-        <i className="fas fa-user-tie"></i>
-        <span>{adviser}</span>
-      </div>
-      <div className="team-progress-container">
-        {teams.map((team, index) => (
-          <div key={index} className="team-item">
-            <div className="team-name">
-              <i className="fas fa-users"></i>
-              <span>{team.name}</span>
-            </div>
-            <ProgressCircle percentage={team.progress} />
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
@@ -328,7 +288,7 @@ const InstructorDashboard = () => {
     const [hour, minute] = timeString.split(":");
     let h = parseInt(hour, 10);
     const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12; // Convert to 12-hour format
+    h = h % 12 || 12;
     return `${h}:${minute} ${ampm}`;
   };
 
@@ -339,7 +299,6 @@ const InstructorDashboard = () => {
         setIsLoading(true);
         setDebugInfo("Fetching instructor dashboard data...");
 
-        // Fetch all adviser tasks (oral and final defense)
         const [oralTasksResult, finalTasksResult] = await Promise.all([
           supabase.from("adviser_oral_def").select("*"),
           supabase.from("adviser_final_def").select("*"),
@@ -361,11 +320,9 @@ const InstructorDashboard = () => {
           })),
         ];
 
-        console.log("📊 All Adviser Tasks Found:", allAdviserTasks.length);
-
         const today = new Date();
 
-        // 1. Upcoming Tasks with manager names
+        // 1. Upcoming Tasks
         const upcoming = allAdviserTasks
           .filter(
             (task) =>
@@ -410,37 +367,43 @@ const InstructorDashboard = () => {
               .select("first_name, last_name")
               .eq("id", task.manager_id)
               .single();
+<<<<<<< HEAD
             return {
               ...task,
               managerName: manager
                 ? `${manager.first_name} ${manager.last_name}`
                 : "Unknown Manager",
+=======
+            return { 
+              ...task, 
+              managerName: manager ? `${manager.first_name} ${manager.last_name}` : "Unknown Manager" 
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
             };
           })
         );
         setRecentTasks(recentWithNames);
 
+<<<<<<< HEAD
         // 3. Teams' Progress - Fetch ALL project managers with ALL their tasks
         console.log("👥 Fetching all project managers...");
 
+=======
+        // 3. Teams' Progress
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         const { data: teams, error: teamsError } = await supabase
           .from("user_credentials")
           .select("id, group_name, first_name, last_name, adviser_group")
-          .eq("user_roles", 1); // All project managers (user_roles = 1)
-
-        console.log("👥 All Project Managers Found:", teams?.length);
+          .eq("user_roles", 1);
 
         if (teamsError) {
           console.error("❌ Error fetching teams:", teamsError);
-          setDebugInfo(`Error fetching teams: ${teamsError.message}`);
           setTeamsProgress([]);
           setAdviserGroups([]);
         } else if (!teams || teams.length === 0) {
-          console.warn("⚠️ No project managers found");
-          setDebugInfo("No project managers found in the system");
           setTeamsProgress([]);
           setAdviserGroups([]);
         } else {
+<<<<<<< HEAD
           setDebugInfo(`Found ${teams.length} project manager(s)`);
 
           // Fetch comprehensive task progress for each project manager
@@ -472,13 +435,21 @@ const InstructorDashboard = () => {
                     .from("adviser_final_def")
                     .select("status, task, due_date")
                     .eq("manager_id", team.id),
+=======
+          const teamsProgressData = await Promise.all(
+            teams.map(async (team) => {
+              try {
+                const [managerTasksResult, adviserOralTasksResult, adviserFinalTasksResult] = await Promise.all([
+                  supabase.from("manager_title_task").select("status, task_name, due_date").eq("manager_id", team.id),
+                  supabase.from("adviser_oral_def").select("status, task, due_date").eq("manager_id", team.id),
+                  supabase.from("adviser_final_def").select("status, task, due_date").eq("manager_id", team.id)
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 ]);
 
                 const managerTasks = managerTasksResult.data || [];
                 const adviserOralTasks = adviserOralTasksResult.data || [];
                 const adviserFinalTasks = adviserFinalTasksResult.data || [];
 
-                // Combine ALL tasks for this team
                 const allTeamTasks = [
                   ...managerTasks.map((t) => ({ ...t, source: "manager" })),
                   ...adviserOralTasks.map((t) => ({
@@ -491,6 +462,7 @@ const InstructorDashboard = () => {
                   })),
                 ];
 
+<<<<<<< HEAD
                 console.log(`📋 Team ${team.group_name} tasks:`, {
                   managerTasks: managerTasks.length,
                   adviserOralTasks: adviserOralTasks.length,
@@ -513,18 +485,29 @@ const InstructorDashboard = () => {
                   "To Review": 0,
                   Completed: 0,
                   Missed: 0,
+=======
+                if (allTeamTasks.length === 0) {
+                  return null;
+                }
+
+                const counts = { 
+                  "To Do": 0, 
+                  "In Progress": 0, 
+                  "To Review": 0, 
+                  "Completed": 0, 
+                  "Missed": 0 
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 };
 
                 allTeamTasks.forEach((task) => {
                   if (counts[task.status] !== undefined) {
                     counts[task.status]++;
                   } else {
-                    // Handle unknown statuses
                     counts["To Do"]++;
                   }
                 });
 
-                const teamProgress = {
+                return {
                   group_name: team.group_name,
                   manager_id: team.id,
                   manager_name: `${team.first_name} ${team.last_name}`,
@@ -537,12 +520,15 @@ const InstructorDashboard = () => {
                     adviser_final_tasks: adviserFinalTasks.length,
                   },
                 };
+<<<<<<< HEAD
 
                 console.log(
                   `✅ Team ${team.group_name} progress:`,
                   teamProgress
                 );
                 return teamProgress;
+=======
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
               } catch (error) {
                 console.error(
                   `❌ Error processing team ${team.group_name}:`,
@@ -552,11 +538,15 @@ const InstructorDashboard = () => {
               }
             })
           );
+<<<<<<< HEAD
 
           // Filter out null values (teams with no tasks or errors)
+=======
+          
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
           const filteredTeamsProgress = teamsProgressData.filter(Boolean);
-          console.log("🎯 Final teams progress data:", filteredTeamsProgress);
           setTeamsProgress(filteredTeamsProgress);
+<<<<<<< HEAD
 
           // Group teams by adviser_group
           const groupedByAdviser = filteredTeamsProgress.reduce(
@@ -570,11 +560,20 @@ const InstructorDashboard = () => {
             },
             {}
           );
+=======
+          
+          const groupedByAdviser = filteredTeamsProgress.reduce((groups, team) => {
+            const adviserGroup = team.adviser_group || 'Ungrouped';
+            if (!groups[adviserGroup]) {
+              groups[adviserGroup] = [];
+            }
+            groups[adviserGroup].push(team);
+            return groups;
+          }, {});
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
 
-          console.log("👨‍🏫 Teams grouped by adviser:", groupedByAdviser);
-
-          // Get adviser names for each group (user_roles = 3 for advisers)
           const adviserGroupsWithNames = await Promise.all(
+<<<<<<< HEAD
             Object.entries(groupedByAdviser).map(
               async ([adviserGroup, teams]) => {
                 // Try to get adviser name from user_credentials
@@ -598,6 +597,21 @@ const InstructorDashboard = () => {
                       `❌ No adviser found for group: ${adviserGroup} with user_roles = 3`
                     );
                   }
+=======
+            Object.entries(groupedByAdviser).map(async ([adviserGroup, teams]) => {
+              let adviserName = `Adviser Group: ${adviserGroup}`;
+              
+              if (adviserGroup && adviserGroup !== 'Ungrouped') {
+                const { data: adviser } = await supabase
+                  .from("user_credentials")
+                  .select("first_name, last_name")
+                  .eq("adviser_group", adviserGroup)
+                  .eq("user_roles", 3)
+                  .single();
+
+                if (adviser) {
+                  adviserName = `${adviser.first_name} ${adviser.last_name}`;
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                 }
 
                 return {
@@ -610,6 +624,7 @@ const InstructorDashboard = () => {
           );
 
           setAdviserGroups(adviserGroupsWithNames);
+<<<<<<< HEAD
 
           if (filteredTeamsProgress.length === 0) {
             setDebugInfo((prev) => prev + " - But no teams have tasks yet");
@@ -620,23 +635,16 @@ const InstructorDashboard = () => {
                 ` - ${filteredTeamsProgress.length} team(s) across ${adviserGroupsWithNames.length} adviser group(s)`
             );
           }
+=======
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
         }
 
-        // 4. Calendar Events
+        // 4. Calendar Events - with uniform color
         const events = allAdviserTasks.map((task) => ({
           id: task.id,
           title: `${task.task} (${task.status})`,
           start: task.due_date,
-          color:
-            task.status === "Completed"
-              ? "#4BC0C0"
-              : task.status === "Missed"
-              ? "#FF6384"
-              : task.status === "In Progress"
-              ? "#809D3C"
-              : task.status === "To Review"
-              ? "#578FCA"
-              : "#FABC3F",
+          color: TASKSPHERE_PRIMARY,
         }));
 
         setCalendarEvents(events);
@@ -690,31 +698,33 @@ const InstructorDashboard = () => {
         return <Profile />;
       default:
         return (
-          <div className="adviser-dashboard-content">
+          <div className="instructor-dashboard-modern">
             {isLoading ? (
               <div className="loading-container">
-                <div className="spinner-border text-primary" role="status">
+                <div className="spinner-border" role="status">
                   <span className="visually-hidden">Loading...</span>
                 </div>
                 <p>Loading dashboard data...</p>
               </div>
             ) : (
               <>
-                {/* Section 1: INSTRUCTOR UPCOMING ACTIVITY */}
-                <div className="dashboard-section">
-                  <h4>INSTRUCTOR UPCOMING ACTIVITY</h4>
-                  <div className="upcoming-activity">
+                {/* Section 1: UPCOMING ACTIVITY */}
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">UPCOMING ACTIVITY</h4>
+                  <div className="upcoming-cards-grid">
                     {upcomingTasks.length === 0 ? (
                       <p className="fst-italic text-muted">
                         No upcoming tasks.
                       </p>
                     ) : (
                       upcomingTasks.map((t, i) => (
-                        <div key={i} className="activity-card">
-                          <div className="activity-header">
-                            <i className="fas fa-user-tag"></i>
+                        <div key={i} className="upcoming-card-modern">
+                          <div className="card-header-badge">Title Defense</div>
+                          <div className="card-manager-info">
+                            <i className="fas fa-users"></i>
                             <span>{t.managerName}</span>
                           </div>
+<<<<<<< HEAD
                           <div className="activity-body">
                             <h5>
                               <i className="fas fa-tasks"></i> {t.task}
@@ -737,6 +747,17 @@ const InstructorDashboard = () => {
                             >
                               {t.status}
                             </span>
+=======
+                          <div className="card-details">
+                            <div className="detail-row">
+                              <i className="fas fa-calendar-alt"></i>
+                              <span>{new Date(t.due_date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="detail-row">
+                              <i className="fas fa-clock"></i>
+                              <span>{formatTime(t.time) || "No Time"}</span>
+                            </div>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                           </div>
                         </div>
                       ))
@@ -744,6 +765,7 @@ const InstructorDashboard = () => {
                   </div>
                 </div>
 
+<<<<<<< HEAD
                 {/* Section 2: TEAMS' PROGRESS GROUPED BY ADVISER */}
                 <div className="dashboard-section">
                   <div className="section-header">
@@ -754,8 +776,14 @@ const InstructorDashboard = () => {
                     </span>
                   </div>
 
+=======
+                {/* Section 2: TEAMS' PROGRESS */}
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">TEAMS' PROGRESS</h4>
+                  
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                   {adviserGroups.length > 0 ? (
-                    <div className="adviser-groups-container">
+                    <div className="adviser-groups-wrapper">
                       {adviserGroups.map((group, index) => (
                         <AdviserGroupSection
                           key={group.adviserGroup}
@@ -776,31 +804,30 @@ const InstructorDashboard = () => {
                 </div>
 
                 {/* Section 3: RECENT ACTIVITY CREATED */}
-                <div className="dashboard-section">
-                  <h4>RECENT ACTIVITY CREATED</h4>
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">RECENT ACTIVITY CREATED</h4>
                   {recentTasks.length === 0 ? (
                     <p className="fst-italic text-muted">
                       No recent activities.
                     </p>
                   ) : (
-                    <div className="recent-table-container">
+                    <div className="recent-table-modern">
                       <table>
                         <thead>
                           <tr>
                             <th>NO</th>
-                            <th>TASK</th>
-                            <th>DATE CREATED</th>
-                            <th>DUE DATE</th>
-                            <th>TIME</th>
-                            <th>STATUS</th>
-                            <th>TYPE</th>
-                            <th>MANAGER</th>
+                            <th>Team</th>
+                            <th>Date Created</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {recentTasks.map((t, i) => (
                             <tr key={t.id}>
                               <td>{i + 1}.</td>
+<<<<<<< HEAD
                               <td>{t.task}</td>
                               <td>
                                 {new Date(
@@ -821,9 +848,15 @@ const InstructorDashboard = () => {
                                 >
                                   {t.status}
                                 </span>
-                              </td>
-                              <td>{t.type}</td>
+=======
                               <td>{t.managerName || "—"}</td>
+                              <td>{new Date(t.date_created || t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                              <td>{t.due_date ? new Date(t.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "—"}</td>
+                              <td>{formatTime(t.time) || "—"}</td>
+                              <td>
+                                <span className="status-badge-modern">{t.status}</span>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -832,10 +865,10 @@ const InstructorDashboard = () => {
                   )}
                 </div>
 
-                {/* Section 4: INSTRUCTOR CALENDAR */}
-                <div className="dashboard-section">
-                  <h4>INSTRUCTOR CALENDAR</h4>
-                  <div className="calendar-container">
+                {/* Section 4: CALENDAR */}
+                <div className="dashboard-section-modern">
+                  <h4 className="section-title-modern">CALENDAR</h4>
+                  <div className="calendar-wrapper-modern">
                     <FullCalendar
                       plugins={[
                         dayGridPlugin,
@@ -846,10 +879,15 @@ const InstructorDashboard = () => {
                       headerToolbar={{
                         left: "prev,next today",
                         center: "title",
+<<<<<<< HEAD
                         right: "dayGridMonth,timeGridWeek,timeGridDay",
+=======
+                        right: "dayGridMonth"
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
                       }}
                       events={calendarEvents}
-                      height="400px"
+                      height="auto"
+                      eventDisplay="block"
                     />
                   </div>
                 </div>
@@ -858,10 +896,14 @@ const InstructorDashboard = () => {
 
             {/* CSS Styles */}
             <style>{`
-              .adviser-dashboard-content {
+              .instructor-dashboard-modern {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 20px;
                 display: flex;
                 flex-direction: column;
-                gap: 25px;
+                gap: 30px;
+                background: #ffffff;
               }
               
               .loading-container {
@@ -869,319 +911,648 @@ const InstructorDashboard = () => {
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                padding: 40px;
-                gap: 15px;
+                padding: 60px;
+                gap: 20px;
+                background: #ffffff;
               }
               
-              .dashboard-section {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              .loading-container .spinner-border {
+                color: ${TASKSPHERE_PRIMARY};
+                width: 3rem;
+                height: 3rem;
               }
               
-              .dashboard-section h4 {
-                margin-bottom: 15px;
-                color: #333;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
+              .dashboard-section-modern {
+                background: #ffffff;
+                padding: 0;
+                border-radius: 16px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+                overflow: hidden;
+                border: 1px solid #e8e8e8;
               }
               
-              .section-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
-              }
-              
-              .teams-count {
-                color: #666;
-                font-size: 0.9rem;
-                font-style: italic;
-              }
-              
-              .adviser-groups-container {
-                display: flex;
-                flex-direction: column;
-                gap: 25px;
-              }
-              
-              .adviser-group-section {
-                background: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                border: 1px solid #e9ecef;
-              }
-              
-              .adviser-group-header {
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #dee2e6;
-              }
-              
-              .adviser-info {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-              }
-              
-              .adviser-info i {
-                font-size: 1.5rem;
-                color: #805ad5;
-              }
-              
-              .adviser-info h4 {
+              .section-title-modern {
+                background: #ffffff;
                 margin: 0;
+                padding: 20px 25px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                letter-spacing: 1px;
                 color: #333;
-                font-size: 1.25rem;
+                border-bottom: 1px solid #e8e8e8;
               }
               
-              .adviser-info small {
-                font-size: 0.85rem;
+              /* Upcoming Activity Cards */
+              .upcoming-cards-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding: 25px;
+                background: #ffffff;
               }
               
-              .upcoming-activity {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                max-height: 300px;
-                overflow-y: auto;
-              }
-              
-              .activity-card {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 15px;
-                background: #f9f9f9;
+              .upcoming-card-modern {
+                background: #ffffff;
+                border: 2px solid #e8e8e8;
+                border-radius: 12px;
+                padding: 0;
+                overflow: hidden;
                 transition: all 0.3s ease;
               }
               
-              .activity-card:hover {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+              .upcoming-card-modern:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                 transform: translateY(-2px);
+                border-color: ${TASKSPHERE_LIGHTER};
               }
               
-              .activity-header {
+              .card-header-badge {
+                background: ${TASKSPHERE_PRIMARY};
+                color: white;
+                padding: 12px 16px;
+                font-size: 0.85rem;
+                font-weight: 600;
+              }
+              
+              .card-manager-info {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                margin-bottom: 10px;
-                font-weight: bold;
+                gap: 10px;
+                padding: 16px;
+                border-bottom: 1px solid #f0f0f0;
+                background: #ffffff;
+              }
+              
+              .card-manager-info i {
+                color: ${TASKSPHERE_PRIMARY};
+                font-size: 1.1rem;
+              }
+              
+              .card-manager-info span {
+                font-weight: 600;
                 color: #333;
+                font-size: 0.95rem;
               }
               
-              .activity-body h5 {
-                margin: 0 0 8px 0;
-                color: #444;
-                font-size: 1rem;
+              .card-details {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                background: #ffffff;
               }
               
-              .activity-body p {
-                margin: 4px 0;
-                color: #666;
+              .detail-row {
                 display: flex;
                 align-items: center;
-                gap: 5px;
+                gap: 10px;
+                color: #666;
+                font-size: 0.9rem;
+              }
+              
+              .detail-row i {
+                color: ${TASKSPHERE_PRIMARY};
+                width: 16px;
+              }
+              
+              /* Teams Progress - UPDATED CHART CONTAINER SIZE */
+              .adviser-groups-wrapper {
+                padding: 25px;
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+                background: #ffffff;
+              }
+              
+              .adviser-group-section-new {
+                background: #fafafa;
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid #e8e8e8;
+              }
+              
+              .adviser-header-new {
+                margin-bottom: 20px;
+              }
+              
+              .adviser-name-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                background: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                border: 2px solid ${TASKSPHERE_PRIMARY};
+                font-weight: 600;
+                color: ${TASKSPHERE_PRIMARY};
+              }
+              
+              .adviser-name-badge i {
+                font-size: 1.2rem;
               }
               
               .progress-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 20px;
-                padding: 10px 0;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 25px;
               }
               
-              .progress-card {
+              .progress-card-new {
                 background: white;
-                padding: 15px;
-                border-radius: 8px;
-                border: 1px solid #e9ecef;
-                text-align: center;
-                transition: all 0.3s ease;
-                position: relative;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-              }
-              
-              .progress-card:hover {
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-              }
-              
-              .progress-card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-              }
-              
-              .progress-card-header h5 {
-                margin: 0;
-                color: #333;
-                font-size: 1rem;
-              }
-              
-              .total-tasks {
-                font-size: 0.8rem;
-                color: #666;
-                background: #e9ecef;
-                padding: 2px 8px;
                 border-radius: 12px;
+                padding: 25px 20px;
+                text-align: center;
+                border: 2px solid #e8e8e8;
+                transition: all 0.3s ease;
+                min-height: 280px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
               }
               
-              .chart-container {
-                position: relative;
+              .progress-card-new:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                transform: translateY(-2px);
+                border-color: ${TASKSPHERE_PRIMARY};
+              }
+              
+              .team-member-info {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #f0f0f0;
+              }
+              
+              .team-member-info i {
+                color: ${TASKSPHERE_PRIMARY};
+                font-size: 1.2rem;
+              }
+              
+              .team-name {
+                font-weight: 600;
+                color: #333;
+                font-size: 0.95rem;
+              }
+              
+              .chart-wrapper {
                 display: flex;
                 justify-content: center;
                 align-items: center;
+                flex-grow: 1;
               }
               
-              .chart-center-percentage {
+              /* UPDATED: Larger chart container to prevent overlapping */
+              .chart-container-large {
+                width: 160px;
+                height: 160px;
+                margin: auto;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              
+              .chart-percentage-center {
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
                 text-align: center;
                 pointer-events: none;
+                width: 100%;
               }
               
-              .percentage-value {
+              .percentage-num {
                 display: block;
-                font-size: 1.5rem;
-                font-weight: bold;
-                color: #333;
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: ${TASKSPHERE_PRIMARY};
                 line-height: 1.2;
               }
               
-              .percentage-label {
-                display: block;
-                font-size: 0.8rem;
-                color: #666;
-                margin-top: 2px;
+              /* Recent Activity Table */
+              .recent-table-modern {
+                padding: 25px;
+                overflow-x: auto;
+                background: #ffffff;
               }
               
-              .progress-stats {
-                margin-top: 15px;
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
+              .recent-table-modern table {
+                width: 100%;
+                border-collapse: collapse;
+                background: #ffffff;
               }
               
-              .stat-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 4px 0;
+              .recent-table-modern th,
+              .recent-table-modern td {
+                padding: 14px 16px;
+                text-align: left;
                 border-bottom: 1px solid #f0f0f0;
+                background: #ffffff;
               }
               
-              .stat-label {
+              .recent-table-modern th {
+                background: #fafafa;
+                font-weight: 600;
+                color: #666;
                 font-size: 0.85rem;
-                color: #666;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
               }
               
-              .stat-value {
-                font-weight: bold;
+              .recent-table-modern tbody tr {
+                transition: background-color 0.2s ease;
+                background: #ffffff;
               }
               
-              .task-breakdown {
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px dashed #ddd;
+              .recent-table-modern tbody tr:hover {
+                background-color: #fafafa;
               }
               
-              .no-teams-message {
-                text-align: center;
-                padding: 40px 20px;
-                color: #666;
+              .status-badge-modern {
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                border: 2px solid ${TASKSPHERE_LIGHTER};
+                color: ${TASKSPHERE_PRIMARY};
+                background: rgba(90, 13, 14, 0.05);
               }
               
-              .recent-table-container {
-                max-height: 400px;
-                overflow-y: auto;
-                border: 1px solid #e0e0e0;
+              /* Calendar */
+              .calendar-wrapper-modern {
+                padding: 25px;
+                background: #ffffff;
+              }
+              
+              .fc {
+                border: none;
+                background: #ffffff;
+              }
+              
+              .fc .fc-toolbar-title {
+                font-size: 1.3rem;
+                font-weight: 700;
+                color: #333;
+              }
+              
+              .fc .fc-button {
+                background-color: ${TASKSPHERE_PRIMARY} !important;
+                border-color: ${TASKSPHERE_PRIMARY} !important;
+                color: white !important;
+                text-transform: capitalize;
+                font-weight: 600;
+                padding: 8px 16px;
                 border-radius: 6px;
               }
               
-              table {
-                width: 100%;
-                border-collapse: collapse;
+              .fc .fc-button:hover {
+                background-color: ${TASKSPHERE_LIGHT} !important;
+                border-color: ${TASKSPHERE_LIGHT} !important;
               }
               
-              th, td {
-                padding: 10px 12px;
-                text-align: left;
-                border-bottom: 1px solid #ddd;
+              .fc .fc-button:disabled {
+                background-color: #cccccc !important;
+                border-color: #cccccc !important;
+                opacity: 0.5;
               }
               
-              th {
-                background-color: #f8f9fa;
-                font-weight: bold;
-                position: sticky;
-                top: 0;
-                z-index: 10;
+              .fc .fc-button-active {
+                background-color: ${TASKSPHERE_LIGHT} !important;
+                border-color: ${TASKSPHERE_LIGHT} !important;
               }
               
-              tr:hover {
-                background-color: #f5f5f5;
-              }
-              
-              .status-badge {
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.8em;
-                font-weight: bold;
-                white-space: nowrap;
-              }
-              
-              .status-to-do { background-color: #FABC3F; color: white; }
-              .status-in-progress { background-color: #809D3C; color: white; }
-              .status-to-review { background-color: #578FCA; color: white; }
-              .status-completed { background-color: #4BC0C0; color: white; }
-              .status-missed { background-color: #FF6384; color: white; }
-              
-              .calendar-container {
-                background: white;
+              .fc-theme-standard .fc-scrollgrid {
+                border: 1px solid #e8e8e8;
                 border-radius: 8px;
-                overflow: hidden;
-                border: 1px solid #e0e0e0;
+                background: #ffffff;
+              }
+              
+              .fc-theme-standard td,
+              .fc-theme-standard th {
+                border-color: #f0f0f0;
+                background: #ffffff;
+              }
+              
+              .fc .fc-col-header-cell {
+                background: #fafafa;
+                font-weight: 600;
+                color: #666;
+                padding: 12px 8px;
+              }
+              
+              .fc .fc-daygrid-day-number {
+                color: #333;
+                font-weight: 600;
+                padding: 8px;
+              }
+              
+              .fc .fc-daygrid-day.fc-day-today {
+                background-color: rgba(90, 13, 14, 0.05) !important;
+              }
+              
+              .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+                background: ${TASKSPHERE_PRIMARY};
+                color: white;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              
+              .fc .fc-event {
+                background-color: ${TASKSPHERE_PRIMARY};
+                border-color: ${TASKSPHERE_PRIMARY};
+                border-radius: 4px;
+                padding: 2px 4px;
+                font-size: 0.85rem;
+              }
+              
+              .fc .fc-event:hover {
+                background-color: ${TASKSPHERE_LIGHT};
+                border-color: ${TASKSPHERE_LIGHT};
+              }
+              
+              .fc .fc-daygrid-event-dot {
+                border-color: white;
+              }
+              
+              /* No Teams Message */
+              .no-teams-message {
+                text-align: center;
+                padding: 60px 20px;
+                color: #999;
+                background: #ffffff;
+              }
+              
+              .no-teams-message i {
+                color: rgba(90, 13, 14, 0.2);
+              }
+              
+              /* Scrollbar Styling */
+              .upcoming-cards-grid::-webkit-scrollbar,
+              .recent-table-modern::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+              }
+              
+              .upcoming-cards-grid::-webkit-scrollbar-track,
+              .recent-table-modern::-webkit-scrollbar-track {
+                background: #f0f0f0;
+                border-radius: 4px;
+              }
+              
+              .upcoming-cards-grid::-webkit-scrollbar-thumb,
+              .recent-table-modern::-webkit-scrollbar-thumb {
+                background: ${TASKSPHERE_PRIMARY};
+                border-radius: 4px;
+              }
+              
+              .upcoming-cards-grid::-webkit-scrollbar-thumb:hover,
+              .recent-table-modern::-webkit-scrollbar-thumb:hover {
+                background: ${TASKSPHERE_LIGHT};
               }
               
               /* Responsive Design */
+              @media (max-width: 1024px) {
+                .upcoming-cards-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                  gap: 15px;
+                }
+                
+                .progress-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                  gap: 20px;
+                }
+
+                .chart-container-large {
+                  width: 140px;
+                  height: 140px;
+                }
+
+                .percentage-num {
+                  font-size: 1.6rem;
+                }
+              }
+              
               @media (max-width: 768px) {
-                .dashboard-section {
+                .instructor-dashboard-modern {
+                  padding: 15px;
+                  gap: 20px;
+                }
+                
+                .dashboard-section-modern {
+                  border-radius: 12px;
+                }
+                
+                .section-title-modern {
+                  padding: 15px 20px;
+                  font-size: 0.85rem;
+                }
+                
+                .upcoming-cards-grid {
+                  grid-template-columns: 1fr;
+                  padding: 20px;
+                }
+                
+                .adviser-groups-wrapper {
+                  padding: 20px;
+                  gap: 20px;
+                }
+                
+                .progress-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                  gap: 15px;
+                }
+
+                .progress-card-new {
+                  padding: 20px 15px;
+                  min-height: 260px;
+                }
+
+                .chart-container-large {
+                  width: 130px;
+                  height: 130px;
+                }
+
+                .percentage-num {
+                  font-size: 1.5rem;
+                }
+                
+                .recent-table-modern {
+                  padding: 20px;
+                }
+                
+                .recent-table-modern table {
+                  min-width: 600px;
+                }
+                
+                .calendar-wrapper-modern {
+                  padding: 20px;
+                }
+                
+                .fc .fc-toolbar {
+                  flex-direction: column;
+                  gap: 10px;
+                }
+                
+                .fc .fc-toolbar-chunk {
+                  display: flex;
+                  justify-content: center;
+                }
+              }
+              
+              @media (max-width: 480px) {
+                .upcoming-cards-grid,
+                .adviser-groups-wrapper,
+                .recent-table-modern,
+                .calendar-wrapper-modern {
                   padding: 15px;
                 }
                 
-                .section-header {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 8px;
+                .section-title-modern {
+                  padding: 12px 15px;
+                  font-size: 0.8rem;
                 }
                 
-                .adviser-info {
-                  flex-direction: column;
-                  align-items: flex-start;
-                  gap: 8px;
+                .upcoming-card-modern {
+                  border-radius: 8px;
                 }
                 
+                .card-header-badge {
+                  padding: 10px 12px;
+                  font-size: 0.8rem;
+                }
+                
+                .card-manager-info,
+                .card-details {
+                  padding: 12px;
+                }
+                
+                .adviser-name-badge {
+                  padding: 8px 16px;
+                  font-size: 0.9rem;
+                }
+                
+                .progress-card-new {
+                  padding: 15px;
+                  min-height: 240px;
+                }
+
                 .progress-grid {
                   grid-template-columns: 1fr;
                   gap: 15px;
                 }
-                
-                .progress-card-header {
-                  flex-direction: column;
-                  gap: 8px;
-                  align-items: flex-start;
+
+                .chart-container-large {
+                  width: 120px;
+                  height: 120px;
+                }
+
+                .percentage-num {
+                  font-size: 1.4rem;
                 }
                 
-                .recent-table-container {
-                  overflow-x: auto;
+                .fc .fc-button {
+                  padding: 6px 12px;
+                  font-size: 0.85rem;
+                }
+              }
+              
+              /* Animation Effects */
+              @keyframes fadeInUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+              
+              .dashboard-section-modern {
+                animation: fadeInUp 0.5s ease-out;
+              }
+              
+              .upcoming-card-modern,
+              .progress-card-new {
+                animation: fadeInUp 0.5s ease-out;
+              }
+              
+              /* Print Styles */
+              @media print {
+                .dashboard-section-modern {
+                  page-break-inside: avoid;
+                  box-shadow: none;
+                  border: 1px solid #ddd;
                 }
                 
-                table {
-                  min-width: 800px;
+                .upcoming-card-modern,
+                .progress-card-new {
+                  page-break-inside: avoid;
+                }
+                
+                .fc .fc-button {
+                  display: none;
+                }
+              }
+              
+              /* Accessibility */
+              .upcoming-card-modern:focus,
+              .progress-card-new:focus {
+                outline: 3px solid ${TASKSPHERE_PRIMARY};
+                outline-offset: 2px;
+              }
+              
+              /* Loading State Animation */
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              
+              .loading-container .spinner-border {
+                animation: spin 1s linear infinite;
+              }
+              
+              /* Hover Effects for Interactive Elements */
+              .recent-table-modern tbody tr,
+              .upcoming-card-modern,
+              .progress-card-new {
+                cursor: pointer;
+              }
+              
+              /* Custom Focus Styles for Better Accessibility */
+              *:focus {
+                outline: 2px solid ${TASKSPHERE_PRIMARY};
+                outline-offset: 2px;
+              }
+              
+              button:focus,
+              a:focus {
+                outline: 3px solid ${TASKSPHERE_PRIMARY};
+                outline-offset: 3px;
+              }
+              
+              /* Smooth Transitions */
+              * {
+                transition: all 0.3s ease;
+              }
+              
+              /* Reduced Motion Support */
+              @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                  animation-duration: 0.01ms !important;
+                  animation-iteration-count: 1 !important;
+                  transition-duration: 0.01ms !important;
                 }
               }
             `}</style>
@@ -1191,12 +1562,16 @@ const InstructorDashboard = () => {
   };
 
   return (
+<<<<<<< HEAD
     <div
       style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
     >
+=======
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#ffffff" }}>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
       <Header isSoloMode={isSoloMode} setIsSoloMode={setIsSoloMode} />
       <div className="d-flex" style={{ marginTop: "30px" }}></div>
-      <div className="d-flex" style={{ flexGrow: 1 }}>
+      <div className="d-flex" style={{ flexGrow: 1, background: "#ffffff" }}>
         <Sidebar
           activeItem={activePage}
           onSelect={handlePageChange}
@@ -1213,10 +1588,15 @@ const InstructorDashboard = () => {
             flexGrow: 1,
             marginLeft: `${sidebarWidth}px`,
             transition: "margin-left 0.3s",
+            background: "#ffffff"
           }}
           id="main-content-wrapper"
         >
+<<<<<<< HEAD
           <main style={{ flexGrow: 1, padding: "20px" }}>
+=======
+          <main style={{ flexGrow: 1, padding: "20px", background: "#ffffff" }}>
+>>>>>>> 5b15d1d0e9f31e5eab7c8102b1a1dfffbaa33113
             {renderContent()}
           </main>
           <Footer />

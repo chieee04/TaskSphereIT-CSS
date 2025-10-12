@@ -1,10 +1,8 @@
-// src/components/Signin.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import Swal from "sweetalert2";
-import "../components/Style/Style.css";
-import Logo1 from "../assets/img/Dct-Logo.png";
-import Logo2 from "../assets/img/Costum.png";
+import Logo1 from "../assets/img/TaskSphereLogo.png";
+import Logo2 from "../assets/img/Dct-Logo.png";
 import { supabase } from "../supabaseClient";
 import { UserAuth } from "../Contex/AuthContext";
 import SigninHead from "./heade-foot/SigninHead";
@@ -20,13 +18,17 @@ const Signin = () => {
   const { setIsLoggedIn } = useOutletContext();
   const { login } = UserAuth();
 
-  // =====================================================
-  // 🚫 Route Guard (Trap user inside /Signin)
-  // =====================================================
+  // Lock scroll on mount
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // Route guard
   useEffect(() => {
     const storedUser = localStorage.getItem("customUser");
-
-    // 🔹 If user is logged in, redirect to their dashboard
     if (storedUser) {
       const user = JSON.parse(storedUser);
       const roleRoutes = {
@@ -37,27 +39,16 @@ const Signin = () => {
       };
       navigate(roleRoutes[user.user_roles] || "/Signin", { replace: true });
     } else {
-      // 🔹 If user is not logged in, trap them inside /Signin
-      const allowedPaths = ["/", "/Signin", "/signin"];
-      if (!allowedPaths.includes(location.pathname)) {
-        navigate("/Signin", { replace: true });
-      }
-
-      // Disable back/forward navigation
+      const allowed = ["/", "/Signin", "/signin"];
+      if (!allowed.includes(location.pathname)) navigate("/Signin", { replace: true });
       window.history.pushState(null, "", window.location.href);
-      window.onpopstate = () => {
-        window.history.pushState(null, "", window.location.href);
-      };
+      window.onpopstate = () => window.history.pushState(null, "", window.location.href);
     }
   }, [location, navigate]);
 
-  // =====================================================
-  // 🔹 Handle Sign In
-  // =====================================================
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const { data: user, error } = await supabase
         .from("user_credentials")
@@ -67,27 +58,15 @@ const Signin = () => {
         .single();
 
       if (error || !user) {
-        Swal.fire({
-          icon: "error",
-          title: "Login failed",
-          text: "Invalid credentials. Please try again.",
-        });
+        Swal.fire({ icon: "error", title: "Login failed", text: "Invalid credentials. Please try again." });
         return;
       }
 
-      // ✅ Save to context + localStorage
       login(user);
       localStorage.setItem("customUser", JSON.stringify(user));
       localStorage.setItem("user_id", user.user_id);
       setIsLoggedIn(true);
 
-      console.log("✅ User signed in:", {
-        user_id: user.user_id,
-        uuid: user.id,
-        role: user.user_roles,
-      });
-
-      // 🔹 Role-based navigation
       const roleRoutes = {
         1: { path: "/Manager", label: "Manager" },
         2: { path: "/Member", label: "Member" },
@@ -106,109 +85,128 @@ const Signin = () => {
         });
         navigate(target.path);
       } else {
-        Swal.fire({
-          icon: "warning",
-          title: "Unknown role",
-          text: "Please contact the administrator.",
-        });
+        Swal.fire({ icon: "warning", title: "Unknown role", text: "Please contact the administrator." });
       }
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Server Error",
-        text: "Something went wrong. Please try again later.",
-      });
+      Swal.fire({ icon: "error", title: "Server Error", text: "Something went wrong. Please try again later." });
       console.error("❌ SignIn Error:", err.message);
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
-  const storedUser = localStorage.getItem("customUser");
-  if (storedUser) {
-    const user = JSON.parse(storedUser);
-    const roleRoutes = {
-      1: "/Manager/Dashboard",
-      2: "/Member/Dashboard",
-      3: "/Adviser/Dashboard",
-      4: "/Instructor/Dashboard",
-    };
-    navigate(roleRoutes[user.user_roles] || "/Signin", { replace: true });
-  }
-}, []);
+    const storedUser = localStorage.getItem("customUser");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      const roleRoutes = {
+        1: "/Manager/Dashboard",
+        2: "/Member/Dashboard",
+        3: "/Adviser/Dashboard",
+        4: "/Instructor/Dashboard",
+      };
+      navigate(roleRoutes[user.user_roles] || "/Signin", { replace: true });
+    }
+  }, [navigate]);
 
-  // =====================================================
-  // 🔹 UI
-  // =====================================================
   return (
-    <div className="w-full min-h-screen bg-gray-100 flex flex-col">
-      <SigninHead />
+    <div className="h-screen w-full bg-white flex flex-col overflow-hidden select-none fixed inset-0">
+      {/* Fixed Header */}
+      <div className="flex-none">
+        <SigninHead />
+      </div>
 
-      <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color flex-grow">
-        <div className="w-full md:w-1/2 p-6 flex items-center justify-center b-rd bg-white">
-          <form onSubmit={handleSignIn} className="w-full max-w-md text-center">
-            <h2 className="text-2xl font-bold mb-4">Welcome to TaskSphere IT</h2>
-            <img src={Logo1} alt="Logo" className="mx-auto mb-6 w-24 h-24" />
-            <div className="mb-4 text-left">
-              <label htmlFor="userID" className="block font-medium mb-1">
-                ID Number
-              </label>
-              <input
-                onChange={(e) => setUserID(e.target.value)}
-                value={userID}
-                className="w-full p-3 border rounded"
-                type="text"
-                id="userID"
-                placeholder="Enter your ID number"
-                required
-              />
-            </div>
+      {/* Main Content - Completely locked, content scales to fit */}
+      <main className="flex-1 flex items-center justify-center px-2 sm:px-3 lg:px-4 overflow-hidden">
+        <div className="w-full max-w-6xl h-full flex items-center justify-center">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10 w-full max-h-full">
+            
+            {/* Left: Login Card */}
+            <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
+              <div className="w-full max-w-[300px] xs:max-w-[320px] sm:max-w-[340px] md:max-w-[360px] lg:max-w-[380px] rounded-lg sm:rounded-xl border border-neutral-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm">
+                <h2 className="text-center text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-[#611A11] mb-0.5">
+                  Welcome to
+                </h2>
+                <h2 className="text-center text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-[#611A11] mb-2 sm:mb-3 md:mb-4">
+                  TaskSphere IT
+                </h2>
 
-            <div className="mb-2 text-left">
-              <label htmlFor="password" className="block font-medium mb-1">
-                Password
-              </label>
-              <input
-                onChange={(e) => setPassword(e.target.value)}
-                value={password}
-                className="w-full p-3 border rounded"
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                required
-              />
-              <div className="text-right mt-1">
-                <button
-                  type="button"
-                  onClick={() => navigate("/ForgotPassword")}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Forgot Password?
-                </button>
+                <img
+                  src={Logo1}
+                  alt="TaskSphere icon"
+                  className="mx-auto h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-18 lg:w-18 object-contain mb-2 sm:mb-3 md:mb-4 pointer-events-none"
+                  draggable="false"
+                />
+
+                <form onSubmit={handleSignIn} className="space-y-2 sm:space-y-2.5 md:space-y-3">
+                  <div>
+                    <label htmlFor="userID" className="block text-[10px] xs:text-xs sm:text-sm font-semibold text-neutral-700 mb-0.5 sm:mb-1">
+                      Username
+                    </label>
+                    <input
+                      id="userID"
+                      type="text"
+                      value={userID}
+                      onChange={(e) => setUserID(e.target.value)}
+                      className="w-full rounded-md sm:rounded-lg border border-neutral-300 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black outline-none focus:border-[#611A11] focus:ring-1 sm:focus:ring-2 focus:ring-[#611A11]/20"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-[10px] xs:text-xs sm:text-sm font-semibold text-neutral-700 mb-0.5 sm:mb-1">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-md sm:rounded-lg border border-neutral-300 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black outline-none focus:border-[#611A11] focus:ring-1 sm:focus:ring-2 focus:ring-[#611A11]/20"
+                      required
+                    />
+                    <div className="mt-0.5 sm:mt-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => navigate("/ForgotPassword")}
+                        className="text-[10px] xs:text-xs sm:text-sm font-medium text-[#611A11] hover:underline focus:outline-none bg-transparent p-0 m-0 cursor-pointer"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-md sm:rounded-lg bg-[#611A11] py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm md:text-base font-semibold text-white shadow hover:bg-[#7a2218] active:bg-[#4a140e] disabled:opacity-60 transition-colors mt-1.5 sm:mt-2 md:mt-3 cursor-pointer"
+                  >
+                    {loading ? "Signing in..." : "Sign In"}
+                  </button>
+                </form>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded main-bg-color"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
+            {/* Right: Seal and Description */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center text-center mt-2 sm:mt-3 lg:mt-0">
+              <img 
+                src={Logo2} 
+                alt="CCS Seal" 
+                className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28 object-contain pointer-events-none" 
+                draggable="false"
+              />
+              <p className="mt-1.5 sm:mt-2 md:mt-3 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl font-semibold text-neutral-800 leading-tight px-3 sm:px-4">
+                A Task Management System for<br />Capstone Project Development
+              </p>
+            </div>
+          </div>
         </div>
+      </main>
 
-        <div className="w-full md:w-1/2 flex flex-col items-center justify-center main-bg-color text-white rounded-lg p-8 space-y-6">
-          <h1 className="text-3xl font-semibold text-center">
-            Empowering Collaboration,
-            <br />
-            Streamlining IT Capstone Success.
-          </h1>
-          <img src={Logo2} alt="Team" className="w-80 h-auto rounded-lg shadow-md" />
-        </div>
+      {/* Fixed Footer */}
+      <div className="flex-none">
+        <SigninFoot />
       </div>
-
-      <SigninFoot />
     </div>
   );
 };
