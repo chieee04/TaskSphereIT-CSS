@@ -210,7 +210,7 @@ const MemberAdviserTasks = () => {
           </select>
         </div>
 
-        <div className="tasks-table-wrapper">
+        <div className="tasks-table-wrapper min-h-screen flex flex-col bg-white pt-5">
           <table className="tasks-table">
             <thead>
               <tr>

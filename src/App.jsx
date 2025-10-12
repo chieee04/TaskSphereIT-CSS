@@ -1,29 +1,25 @@
-// App.jsx
-import { useState, useEffect } from "react"
-import Signin from "./components/Signin"
-import Header from "./components/Header"
-import Footer from "./components/Footer"
-import { Outlet } from "react-router-dom"
+// src/App.jsx
+import { useState, useEffect } from "react";
+import { Outlet } from "react-router-dom";
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // check once sa mount
-    const customUser = localStorage.getItem("customUser")
-    const adminUser = localStorage.getItem("adminUser")
-    setIsLoggedIn(!!(customUser || adminUser))
-  }, [])
+    const customUser = localStorage.getItem("customUser");
+    const adminUser = localStorage.getItem("adminUser");
+    setIsLoggedIn(!!(customUser || adminUser));
+  }, []);
 
   return (
-  <>
-    <div className="d-flex"> {/* Sidebar is missing here */}
-      <main className="flex-grow-1 p-3">
-        <Outlet context={{ setIsLoggedIn }} />
-      </main>
-    </div>
-  </>
-);
+    <>
+      <div className="d-flex">
+        {/* If you have a Sidebar/Header/Footer, render them here */}
+        <main className="flex-grow-1 p-3">
+          {/* Child routes render here */}
+          <Outlet context={{ setIsLoggedIn }} />
+        </main>
+      </div>
+    </>
+  );
 }
-
-export default App

@@ -146,7 +146,7 @@ const MemberAllocation = () => {
   }
 
   return (
-    <div className="page-wrapper">
+    <div className="min-h-screen flex flex-col bg-white pt-5">
       <h2 className="section-title sc-title">
         <img src={taskIcon} alt="Tasks Icon" className="icon-image sc-icon" />
         Tasks Allocation

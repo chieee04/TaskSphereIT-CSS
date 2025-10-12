@@ -13,7 +13,7 @@ const statusColors = {
   "Missed": "#D32F2F",
 };
 
-const SoloModeTasksBoard = () => {
+export default function SoloModeTasksBoard() {
   const [viewTask, setViewTask] = useState(null);
   const [allTasks, setAllTasks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,28 +27,20 @@ const SoloModeTasksBoard = () => {
   useEffect(() => {
     const fetchSoloModeTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) {
-        console.warn("⚠️ No logged-in user found in localStorage");
-        return;
-      }
-
+      if (!storedUser) return;
       const currentUser = JSON.parse(storedUser);
 
-      // Fetch tasks from solo_mode_task assigned to this user
       const { data, error } = await supabase
         .from("solo_mode_task")
         .select("*")
-        .eq("user_id", currentUser.id); // ⚠️ make sure `customUser` stores `id`
+        .eq("user_id", currentUser.id);
 
       if (error) {
-        console.error("❌ Error fetching solo mode tasks:", error);
+        console.error("Error fetching solo mode tasks:", error);
         return;
       }
-
-      console.log("✅ Solo Mode Tasks:", data);
-
-      setAllTasks(data);
-      groupTasksByStatus(data);
+      setAllTasks(data || []);
+      groupTasksByStatus(data || []);
     };
 
     fetchSoloModeTasks();
@@ -64,7 +56,6 @@ const SoloModeTasksBoard = () => {
 
     tasks.forEach((task) => {
       if (task.status === "Completed") return;
-
       let status = (task.status || "To Do").trim();
       if (!grouped[status]) status = "Missed";
       grouped[status].push(task);
@@ -74,147 +65,179 @@ const SoloModeTasksBoard = () => {
   };
 
   useEffect(() => {
-    const filtered = allTasks.filter((task) =>
-      task.task?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = allTasks.filter((t) =>
+      (t.task || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
     groupTasksByStatus(filtered);
   }, [searchTerm, allTasks]);
 
   return (
-    <div className="container mt-4 adviser-board">
-      {!viewTask ? (
-        <>
-          <div className="d-flex align-items-center mb-3">
-            <img
-              src={boardIcon}
-              alt="Board Icon"
-              style={{ width: "24px", marginRight: "10px" }}
-            />
-            <h2 className="m-0 fs-5 fw-bold">Solo Mode Task Board</h2>
-          </div>
-          <hr />
+    // Page shell mirrors AdviserTask: min-h-screen + flex-col so the footer sits at the bottom
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Content grows to fill the space; footer (from layout) will sit after this and stick to bottom */}
+      <div className="flex-1">
+        <div className="container mx-auto px-6 py-6">
+          {!viewTask ? (
+            <>
+              {/* Header */}
+              <div className="d-flex align-items-center mb-3">
+                <img
+                  src={boardIcon}
+                  alt="Board Icon"
+                  style={{ width: 24, marginRight: 10 }}
+                />
+                <h2 className="m-0 fs-6 fw-bold" style={{ color: "#5a0d0e" }}>
+                  Solo Mode Task Board
+                </h2>
+              </div>
+              <hr className="mb-4" style={{ borderColor: "#5a0d0e" }} />
 
-          {/* 🔍 Search Box */}
-          <div className="mb-4">
-            <div className="input-group" style={{ maxWidth: "300px" }}>
-              <span className="input-group-text">
-                <img src={searchIcon} alt="Search" style={{ width: "18px" }} />
-              </span>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search task"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* 🗂️ Task Columns */}
-          <div className="d-flex gap-3 overflow-auto">
-            {Object.entries(tasksByStatus).map(([status, items]) => (
-              <div
-                className="flex-shrink-0"
-                style={{ width: "280px" }}
-                key={status}
-              >
-                <div
-                  className="text-white px-3 py-2 rounded-top fs-6 fw-bold"
-                  style={{ backgroundColor: statusColors[status] }}
-                >
-                  {status}
-                </div>
-
-                <div className="bg-light p-2 rounded-bottom">
-                  {items.length === 0 ? (
-                    <p className="fst-italic text-muted small">No tasks</p>
-                  ) : (
-                    items.map((task, index) => {
-                      const borderColor = statusColors[status];
-
-                      return (
-                        <div
-                          className="position-relative bg-white mb-3 p-3 rounded shadow-sm"
-                          key={index}
-                          style={{ borderLeft: `6px solid ${borderColor}` }}
-                        >
-                          <button
-                            onClick={() => setViewTask(task)}
-                            title="View Task"
-                            className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light p-1 border-0"
-                          >
-                            <img
-                              src={viewTaskIcon}
-                              alt="View Task"
-                              style={{ width: "18px" }}
-                            />
-                          </button>
-
-                          <strong className="fs-6">
-                            {task.methodology || "No Methodology"}
-                          </strong>
-                          <hr
-                            style={{
-                              margin: "7px 0",
-                              borderColor: "maroon",
-                              borderWidth: "2px",
-                            }}
-                          />
-                          <p className="mb-1">{task.task}</p>
-                          <p className="mb-1">{task.subtask || "No Subtask"}</p>
-                          <hr
-                            style={{
-                              margin: "4px 0",
-                              borderColor: "maroon",
-                              borderWidth: "2px",
-                            }}
-                          />
-                          <div className="d-flex align-items-center gap-2 small">
-                            <span
-                              style={{
-                                display: "inline-block",
-                                width: "12px",
-                                height: "12px",
-                                backgroundColor: "red",
-                                borderRadius: "50%",
-                              }}
-                            ></span>
-                            <strong>
-                              {task.due_date
-                                ? new Date(task.due_date).toLocaleDateString()
-                                : "No Due Date"}{" "}
-                              {task.time ? task.time : ""}
-                            </strong>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+              {/* Search */}
+              <div className="mb-4">
+                <div className="input-group" style={{ maxWidth: 320 }}>
+                  <span className="input-group-text bg-white">
+                    <img src={searchIcon} alt="Search" style={{ width: 18 }} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search task"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div>
-          <button
-            onClick={() => setViewTask(null)}
-            className="btn btn-secondary mb-3"
-          >
-            ← Back
-          </button>
-          <h4>{viewTask.task}</h4>
-          <p>Methodology: {viewTask.methodology || "None"}</p>
-          <p>Phase: {viewTask.project_phase || "N/A"}</p>
-          <p>Task Type: {viewTask.task_type || "N/A"}</p>
-          <p>Subtask: {viewTask.subtask || "No Subtask"}</p>
-          <p>Due: {viewTask.due_date || "No Due Date"} {viewTask.time || ""}</p>
-          <p>Status: {viewTask.status}</p>
-          <p>Comment: {viewTask.comment || "No Comment"}</p>
+
+              {/* Kanban columns */}
+              <div className="d-flex gap-3 overflow-auto pb-2">
+                {Object.entries(tasksByStatus).map(([status, items]) => (
+                  <div
+                    className="flex-shrink-0"
+                    style={{ width: 300, maxWidth: "90vw" }}
+                    key={status}
+                  >
+                    <div
+                      className="text-white px-3 py-2 rounded-top fw-semibold"
+                      style={{ backgroundColor: statusColors[status] }}
+                    >
+                      {status}
+                    </div>
+
+                    <div className="bg-light p-2 rounded-bottom border border-light-subtle">
+                      {items.length === 0 ? (
+                        <p className="fst-italic text-muted small m-2">No tasks</p>
+                      ) : (
+                        items.map((task, idx) => {
+                          const borderColor = statusColors[status];
+                          return (
+                            <div
+                              key={`${task.id || idx}`}
+                              className="position-relative bg-white mb-3 p-3 rounded shadow-sm"
+                              style={{ borderLeft: `6px solid ${borderColor}` }}
+                            >
+                              <button
+                                onClick={() => setViewTask(task)}
+                                title="View Task"
+                                className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light p-1 border-0"
+                              >
+                                <img
+                                  src={viewTaskIcon}
+                                  alt="View Task"
+                                  style={{ width: 18 }}
+                                />
+                              </button>
+
+                              <strong className="fs-6">
+                                {task.methodology || "No Methodology"}
+                              </strong>
+
+                              <hr
+                                style={{
+                                  margin: "7px 0",
+                                  borderColor: "#5a0d0e",
+                                  borderWidth: 2,
+                                  opacity: 1,
+                                }}
+                              />
+
+                              <p className="mb-1">{task.task}</p>
+                              <p className="mb-1">{task.subtask || "No Subtask"}</p>
+
+                              <hr
+                                style={{
+                                  margin: "6px 0",
+                                  borderColor: "#5a0d0e",
+                                  borderWidth: 2,
+                                  opacity: 1,
+                                }}
+                              />
+
+                              <div className="d-flex align-items-center gap-2 small">
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: 10,
+                                    height: 10,
+                                    backgroundColor: "red",
+                                    borderRadius: "50%",
+                                  }}
+                                />
+                                <strong>
+                                  {task.due_date
+                                    ? new Date(task.due_date).toLocaleDateString()
+                                    : "No Due Date"}{" "}
+                                  {task.time ? task.time : ""}
+                                </strong>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setViewTask(null)}
+                className="btn btn-outline-secondary mb-3"
+              >
+                ← Back
+              </button>
+
+              <div className="bg-white rounded shadow-sm p-3 border">
+                <h4 className="mb-2">{viewTask.task}</h4>
+                <div className="row gy-2">
+                  <div className="col-12 col-md-6">
+                    <strong>Methodology:</strong> {viewTask.methodology || "None"}
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <strong>Phase:</strong> {viewTask.project_phase || "N/A"}
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <strong>Task Type:</strong> {viewTask.task_type || "N/A"}
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <strong>Subtask:</strong> {viewTask.subtask || "No Subtask"}
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <strong>Due:</strong> {viewTask.due_date || "No Due Date"}{" "}
+                    {viewTask.time || ""}
+                  </div>
+                  <div className="col-12 col-md-6">
+                    <strong>Status:</strong> {viewTask.status || "N/A"}
+                  </div>
+                  <div className="col-12">
+                    <strong>Comment:</strong> {viewTask.comment || "No Comment"}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default SoloModeTasksBoard;
+}

@@ -641,7 +641,7 @@ const ManagerAdviserTask = () => {
   };
  
   return (
-    <div className="page-wrapper">
+    <div className="min-h-screen flex flex-col bg-white">
       <style>{`
         /* --- General Styles --- */
         .table-scroll-area::-webkit-scrollbar {

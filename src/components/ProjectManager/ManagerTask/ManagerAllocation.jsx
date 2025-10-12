@@ -140,10 +140,10 @@ if (loading) {
 return <div className="page-wrapper">Loading...</div>;
 }
 
-return ( <div className="page-wrapper"> <h2 className="section-title"> <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
+return ( <div className="page-wrapper min-h-screen flex flex-col bg-white"> <h2 className="section-title"> <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
 Tasks Allocation </h2> <hr className="divider" />
 
-```
+
   <div className="allocation-container">
     <table className="allocation-table">
       <thead>
