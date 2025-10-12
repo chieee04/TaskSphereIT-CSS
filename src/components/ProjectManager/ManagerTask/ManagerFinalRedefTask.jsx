@@ -1,5 +1,6 @@
 // src/components/tasks/ManagerFinalDefense.jsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../supabaseClient";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
@@ -9,7 +10,9 @@ import {
   FaCalendarAlt,
   FaClock,
   FaTrash,
+  FaChevronLeft,
 } from "react-icons/fa";
+import Footer from "../../Footer";
 import { openCreateFinalRedefTask } from "../../../services/Manager/ManagerFinalRedefTask";
 
 const MySwal = withReactContent(Swal);
@@ -25,6 +28,8 @@ const REVISION_OPTIONS = Array.from({ length: 10 }, (_, i) => {
 const STATUS_OPTIONS = ["To Do", "In Progress", "To Review"];
 
 export default function ManagerFinalRedefTask() {
+  const navigate = useNavigate();
+
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,23 +46,25 @@ export default function ManagerFinalRedefTask() {
   };
 
   const fetchTasks = async () => {
-  try {
-    const { data, error } = await supabase
-      .from("manager_final_redef")
-      .select(`*, member:user_credentials!manager_final_redef_member_id_fkey(first_name, last_name)`)
-      .neq("status", "Completed") // 🚫 exclude Completed
-      .order("due_date", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("manager_final_redef")
+        .select(
+          `*, member:user_credentials!manager_final_redef_member_id_fkey(first_name, last_name)`
+        )
+        .neq("status", "Completed")
+        .order("due_date", { ascending: true });
 
-    if (error) throw error;
-    setTasks(data || []);
-    setFilteredTasks(data || []);
-  } catch (err) {
-    console.error("Error fetching tasks:", err.message);
-    MySwal.fire("Error", "Failed to fetch Final Defense tasks", "error");
-  } finally {
-    setLoading(false);
-  }
-};
+      if (error) throw error;
+      setTasks(data || []);
+      setFilteredTasks(data || []);
+    } catch (err) {
+      console.error("Error fetching tasks:", err.message);
+      MySwal.fire("Error", "Failed to fetch Final Re-Defense tasks", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -65,12 +72,11 @@ export default function ManagerFinalRedefTask() {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Search + Filter (lahat ng columns + nested member)
+  // search + filter
   useEffect(() => {
     let data = tasks;
-
     if (search) {
-      const lowerSearch = search.toLowerCase();
+      const lower = search.toLowerCase();
       data = data.filter((t) =>
         [
           t.task,
@@ -84,16 +90,10 @@ export default function ManagerFinalRedefTask() {
           t.time,
           t.member?.first_name,
           t.member?.last_name,
-        ].some((val) =>
-          val ? String(val).toLowerCase().includes(lowerSearch) : false
-        )
+        ].some((v) => (v ? String(v).toLowerCase().includes(lower) : false))
       );
     }
-
-    if (filter !== "All") {
-      data = data.filter((t) => t.status === filter);
-    }
-
+    if (filter !== "All") data = data.filter((t) => t.status === filter);
     setFilteredTasks(data);
   }, [search, filter, tasks]);
 
@@ -138,7 +138,6 @@ export default function ManagerFinalRedefTask() {
         .update({ revision: value })
         .eq("id", id);
       if (error) throw error;
-
       setTasks((prev) =>
         prev.map((t) => (t.id === id ? { ...t, revision: value } : t))
       );
@@ -148,25 +147,24 @@ export default function ManagerFinalRedefTask() {
   };
 
   const handleStatusChange = async (id, value) => {
-  try {
-    const { error } = await supabase
-      .from("manager_final_redef")
-      .update({ status: value })
-      .eq("id", id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from("manager_final_redef")
+        .update({ status: value })
+        .eq("id", id);
+      if (error) throw error;
 
-    if (value === "Completed") {
-      // ✅ remove from active table
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-    } else {
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, status: value } : t))
-      );
+      if (value === "Completed") {
+        setTasks((prev) => prev.filter((t) => t.id !== id));
+      } else {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, status: value } : t))
+        );
+      }
+    } catch (err) {
+      console.error("Error updating status:", err.message);
     }
-  } catch (err) {
-    console.error("Error updating status:", err.message);
-  }
-};
+  };
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -182,184 +180,223 @@ export default function ManagerFinalRedefTask() {
   };
 
   return (
-    <div className="p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-[#3B0304] font-semibold flex items-center gap-2">
-          Final Defense
-        </h2>
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header + Back */}
+      <div className="px-4 pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="section-title m-0 text-[#3B0304] font-semibold">
+            Final Re-Defense
+          </h2>
+        </div>
+        <hr className="divider" />
       </div>
 
-      {/* Create Task Button */}
-      <div className="mb-3">
-        <button
-          onClick={openCreateFinalRedefTask}
-          className="px-3 py-2 border border-[#3B0304] rounded bg-white text-[#3B0304] flex items-center gap-2 hover:bg-gray-100"
-        >
-          <FaPlus /> Create Task
-        </button>
-      </div>
+      {/* Main */}
+      <main className="px-4 pb-6 flex-1">
+        <style>{`
+          .section-title { display:flex; align-items:center; }
+          .divider {
+            height: 1.5px;
+            background-color: #3B0304;
+            width: calc(100% + 50px);
+            margin-left: -16px;
+            border-radius: 50px;
+            margin-bottom: 1.0rem;
+            border: none;
+          }
+          .primary-button {
+            font-size: .85rem!important; padding:6px 12px!important; border-radius:6px!important;
+            border:1.5px solid #3B0304!important; background:#fff!important; color:#3B0304!important;
+            font-weight:500!important; cursor:pointer!important; transition:background .2s!important;
+            display:inline-flex!important; align-items:center!important; gap:6px!important; white-space:nowrap;
+          }
+          .primary-button:hover { background:#f0f0f0!important; }
 
-      {/* Search + Delete + Filter */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center border rounded px-2 w-52 bg-white">
-          <FaSearch className="text-gray-400 mr-1" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="w-full text-sm p-1 outline-none"
-          />
+          .search-wrap {
+            border: 1px solid #B2B2B2; border-radius: 6px; background: #fff; padding: 4px 8px;
+            display:flex; align-items:center; gap:6px; width: 210px;
+          }
+          .search-input { outline:none; width:100%; font-size:.9rem; color:#111827; }
+          .filter-select {
+            border:1px solid #B2B2B2; border-radius:6px; padding:6px 8px; background:#fff; color:#111827; font-size:.9rem;
+          }
+
+          table thead th {
+            background:#f8f9fa; color:#3B0304; text-transform:uppercase; font-weight:600; font-size:.75rem;
+            padding:12px 8px; white-space:nowrap; text-align:center;
+          }
+          table tbody td {
+            padding:10px 8px; font-size:.875rem; color:#495057; border-top:1px solid #edf2f7; vertical-align:middle; text-align:center;
+          }
+          .badge-cell { display:inline-flex; align-items:center; gap:6px; }
+        `}</style>
+
+        {/* Create Task */}
+        <div className="mb-3">
+          <button onClick={openCreateFinalRedefTask} className="primary-button">
+            <FaPlus /> Create Task
+          </button>
         </div>
 
-        <div className="flex gap-2">
-          {selected.length > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              className="px-3 py-2 border border-[#3B0304] rounded bg-white text-[#3B0304] flex items-center gap-2 hover:bg-gray-100"
+        {/* Search + Delete + Filter */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="search-wrap">
+            <FaSearch className="text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="search-input"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {selected.length > 0 && (
+              <button onClick={handleBulkDelete} className="primary-button">
+                <FaTrash /> Delete
+              </button>
+            )}
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="filter-select"
             >
-              <FaTrash /> Delete
-            </button>
-          )}
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option>All</option>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-            <option>Missed</option>
-          </select>
+              <option>All</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+              <option>Missed</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="border rounded-lg shadow-sm overflow-x-auto">
-        <table className="w-full text-sm min-w-[1100px] text-center">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2">
-                <input
-                  type="checkbox"
-                  onChange={(e) =>
-                    setSelected(
-                      e.target.checked ? tasks.map((t) => t.id) : []
-                    )
-                  }
-                  checked={selected.length === tasks.length && tasks.length > 0}
-                />
-              </th>
-              <th className="p-2">No</th>
-              <th className="p-2">Assigned</th>
-              <th className="p-2">Tasks</th>
-              <th className="p-2">Subtasks</th>
-              <th className="p-2">Elements</th>
-              <th className="p-2 w-32 text-center">Due Date</th>
-              <th className="p-2 w-32 text-center">Time</th>
-              <th className="p-2">Revision</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">Methodology</th>
-              <th className="p-2">Project Phase</th>
-              <th className="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead>
               <tr>
-                <td colSpan="13" className="text-center p-4">
-                  Loading tasks...
-                </td>
+                <th>
+                  <input
+                    type="checkbox"
+                    onChange={(e) =>
+                      setSelected(e.target.checked ? tasks.map((t) => t.id) : [])
+                    }
+                    checked={selected.length === tasks.length && tasks.length > 0}
+                  />
+                </th>
+                <th>No</th>
+                <th>Assigned</th>
+                <th>Tasks</th>
+                <th>Subtasks</th>
+                <th>Elements</th>
+                <th>Due Date</th>
+                <th>Time</th>
+                <th>Revision</th>
+                <th>Status</th>
+                <th>Methodology</th>
+                <th>Project Phase</th>
+                <th>Action</th>
               </tr>
-            ) : filteredTasks.length === 0 ? (
-              <tr>
-                <td colSpan="13" className="text-center p-4">
-                  No Task
-                </td>
-              </tr>
-            ) : (
-              filteredTasks.map((task, index) => (
-                <tr key={task.id} className="border-t hover:bg-gray-50">
-                  <td className="p-2">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(task.id)}
-                      onChange={() => toggleSelect(task.id)}
-                    />
-                  </td>
-                  <td className="p-2">{index + 1}</td>
-                  <td className="p-2">
-                    {task.member?.first_name} {task.member?.last_name}
-                  </td>
-                  <td className="p-2">{task.task}</td>
-                  <td className="p-2">{task.subtask}</td>
-                  <td className="p-2">{task.element}</td>
-                  <td className="p-2 text-center w-32">
-                    <span className="inline-flex items-center gap-1">
-                      <FaCalendarAlt className="text-gray-600" />
-                      {task.due_date
-                        ? new Date(task.due_date).toLocaleDateString()
-                        : ""}
-                    </span>
-                  </td>
-                  <td className="p-2 text-center w-32">
-                    <span className="inline-flex items-center gap-1">
-                      <FaClock className="text-gray-600" />
-                      {task.time ? formatTime(task.time) : ""}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    <select
-                      value={task.revision || "1st Revision"}
-                      onChange={(e) =>
-                        handleRevisionChange(task.id, e.target.value)
-                      }
-                      className="border rounded px-2 py-1 text-sm"
-                    >
-                      {REVISION_OPTIONS.map((rev, i) => (
-                        <option key={i} value={rev}>
-                          {rev}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-2">
-  <select
-    value={task.status || "To Do"}
-    onChange={(e) => handleStatusChange(task.id, e.target.value)}
-    className="border rounded px-2 py-1 text-sm text-white"
-    style={{
-      backgroundColor: statusColors[task.status] || "#FABC3F",
-    }}
-  >
-    {STATUS_OPTIONS.map((s) => (
-      <option key={s} value={s}>
-        {s}
-      </option>
-    ))}
-    <option value="Missed">Missed</option>
-    <option value="Completed">Completed</option> {/* ✅ still selectable */}
-  </select>
-</td>
-                  <td className="p-2">{task.methodology}</td>
-                  <td className="p-2">{task.project_phase}</td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => MySwal.fire("Delete single task here")}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <FaTrash />
-                    </button>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="13" className="text-center p-4">
+                    Loading tasks...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : filteredTasks.length === 0 ? (
+                <tr>
+                  <td colSpan="13" className="text-center p-4">
+                    No Task
+                  </td>
+                </tr>
+              ) : (
+                filteredTasks.map((task, index) => (
+                  <tr key={task.id} className="hover:bg-gray-50">
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(task.id)}
+                        onChange={() => toggleSelect(task.id)}
+                      />
+                    </td>
+                    <td>{index + 1}</td>
+                    <td>
+                      {task.member?.first_name} {task.member?.last_name}
+                    </td>
+                    <td>{task.task}</td>
+                    <td>{task.subtask}</td>
+                    <td>{task.element}</td>
+                    <td>
+                      <span className="badge-cell justify-center">
+                        <FaCalendarAlt className="text-gray-600" />
+                        {task.due_date
+                          ? new Date(task.due_date).toLocaleDateString()
+                          : ""}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="badge-cell justify-center">
+                        <FaClock className="text-gray-600" />
+                        {task.time ? formatTime(task.time) : ""}
+                      </span>
+                    </td>
+                    <td>
+                      <select
+                        value={task.revision || "1st Revision"}
+                        onChange={(e) =>
+                          handleRevisionChange(task.id, e.target.value)
+                        }
+                        className="border rounded px-2 py-1 text-sm"
+                      >
+                        {REVISION_OPTIONS.map((rev, i) => (
+                          <option key={i} value={rev}>
+                            {rev}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        value={task.status || "To Do"}
+                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                        className="border rounded px-2 py-1 text-sm text-white"
+                        style={{
+                          backgroundColor:
+                            statusColors[task.status] || "#FABC3F",
+                        }}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                        <option value="Missed">Missed</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </td>
+                    <td>{task.methodology}</td>
+                    <td>{task.project_phase}</td>
+                    <td>
+                      <button
+                        onClick={() => MySwal.fire("Delete single task here")}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </main>
+
+
     </div>
   );
 }
-

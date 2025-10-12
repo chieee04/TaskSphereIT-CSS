@@ -1,24 +1,20 @@
-// src/components/CapstoneAdviser/AdviserTaskRecord.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import tasksIcon from "../../../assets/tasks-icon.png";
 import recordIcon from "../../../assets/records-icon.png";
 
 const ACCENT = "#5a0d0e";
 
 export default function AdviserTaskRecord() {
-  const navigate = useNavigate();
+  useLocation(); // not used, but fine if you need it later
 
-  // Explicit targets for the record screens (match your router paths)
   const items = [
     { title: "Oral Defense",  icon: recordIcon, to: "/Adviser/OralDefenseRecord" },
-    { title: "Final Defense", icon: recordIcon, to: "/Adviser/FinalDefenseRecord" }, // goes to AdviserFinalRecord.jsx
+    { title: "Final Defense", icon: recordIcon, to: "/Adviser/FinalDefenseRecord" },
   ];
 
-  const go = (to) => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-    navigate(to);
-  };
+  const scrollTop = () =>
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "instant" }));
 
   return (
     <div className="min-h-screen bg-white">
@@ -31,14 +27,13 @@ export default function AdviserTaskRecord() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {items.map(({ title, icon, to }) => (
-            <div
+            <Link
               key={title}
-              role="button"
-              tabIndex={0}
-              onClick={() => go(to)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && go(to)}
+              to={to}
+              onClick={scrollTop}
               className="flex items-center justify-center bg-white shadow-md rounded-md overflow-hidden hover:shadow-lg transition border border-gray-200 focus:outline-none focus:ring-2 cursor-pointer"
               style={{ ringColor: `${ACCENT}33` }}
+              aria-label={`Open ${title} records`}
             >
               <div style={{ background: ACCENT }} className="w-4 h-full" />
               <div className="flex flex-col items-center justify-center p-4 w-full h-32">
@@ -47,7 +42,7 @@ export default function AdviserTaskRecord() {
                   {title}
                 </h3>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

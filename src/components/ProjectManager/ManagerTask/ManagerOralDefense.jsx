@@ -798,7 +798,7 @@ const ManagerOralDefense = () => {
         }
       `}</style>
  
-            <div className="row">
+            <div className="row min-h-screen flex flex-col bg-white">
                 <div className="col-12">
                     {/* Header */}
                     <h2 className="section-title">

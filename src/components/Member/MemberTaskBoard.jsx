@@ -4,6 +4,7 @@ import boardIcon from "../../assets/tasks-board-icon.png";
 import searchIcon from "../../assets/search-icon.png";
 import viewTaskIcon from "../../assets/view-task-icon.png";
 import { supabase } from "../../supabaseClient";
+import Footer from "../Footer";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const statusColors = {
@@ -127,160 +128,148 @@ const MemberTaskBoard = () => {
   }, [searchTerm, allTasks]);
 
   return (
-    <div
-      className="container mt-4 adviser-board"
-      style={{ overflowX: "hidden" }}
-    >
-      {/* restore narrow column width and remove horizontal scroll by wrapping */}
+    // Page shell: full height, no horizontal scroll, footer at bottom
+    <div className="min-vh-100 d-flex flex-column" style={{ overflowX: "hidden" }}>
+      {/* Scoped styles to keep layout tidy & responsive */}
       <style>{`
-        .board-wrap{
-          display:grid;
+        .adviser-board * { min-width: 0; }
+        .board-wrap {
+          display: grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap:12px;
-          width:100%;
+          gap: 12px;
+          width: 100%;
         }
-        .board-col{ min-width:0; }
-        .board-col-header{ border-top-left-radius: .5rem; border-top-right-radius: .5rem; }
-        .board-col-body{ background:#f8f9fa; padding:8px; border-bottom-left-radius:.5rem; border-bottom-right-radius:.5rem; }
-        /* tighten card styles a bit so they fit cleanly at 280px */
-        .task-card p{ word-break: break-word; }
-        @media (max-width: 576px){
-          .board-wrap{ grid-template-columns: 1fr; }
+        .board-col { min-width: 0; }
+        .board-col-header { border-top-left-radius: .5rem; border-top-right-radius: .5rem; }
+        .board-col-body { background: #f8f9fa; padding: 8px; border-bottom-left-radius: .5rem; border-bottom-right-radius: .5rem; }
+        .task-card p { word-break: break-word; margin-bottom: .25rem; }
+        .task-card hr { margin: .35rem 0; }
+        @media (max-width: 576px) {
+          .board-wrap { grid-template-columns: 1fr; }
         }
       `}</style>
 
-      {!viewTask ? (
-        <>
-          <div className="d-flex align-items-center mb-3">
-            <img
-              src={boardIcon}
-              alt="Board Icon"
-              style={{ width: 24, marginRight: 10 }}
-            />
-            <h2 className="m-0 fs-5 fw-bold">Member Task Board</h2>
-          </div>
-          <hr className="mt-2 mb-4" />
-
-          {/* Search */}
-          <div className="mb-4">
-            <div
-              className="input-group"
-              style={{ maxWidth: 480, width: "100%" }}
-            >
-              <span className="input-group-text">
-                <img src={searchIcon} alt="Search" style={{ width: 18 }} />
-              </span>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search task"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+      {/* Main content */}
+      <div className="container py-4 adviser-board flex-grow-1">
+        {!viewTask ? (
+          <>
+            <div className="d-flex align-items-center mb-3">
+              <img
+                src={boardIcon}
+                alt="Board Icon"
+                style={{ width: 24, height: 24, objectFit: "contain", marginRight: 10 }}
               />
+              <h2 className="m-0 fs-5 fw-bold">Member Task Board</h2>
             </div>
-          </div>
+            <hr className="mt-2 mb-4" />
 
-          {/* Columns (wrap instead of horizontal scrolling) */}
-          <div className="board-wrap">
-            {Object.entries(tasksByStatus).map(([status, items]) => (
-              <div className="board-col" key={status}>
-                <div
-                  className="board-col-header text-white px-3 py-2 fs-6 fw-bold"
-                  style={{ backgroundColor: statusColors[status] }}
-                >
-                  {status}
-                </div>
-
-                <div className="board-col-body">
-                  {items.length === 0 ? (
-                    <p className="fst-italic text-muted small m-2">No tasks</p>
-                  ) : (
-                    items.map((task, index) => {
-                      const borderColor = statusColors[status];
-                      const isAdviser = task.source === "adviser";
-
-                      return (
-                        <div
-                          key={`${status}-${index}`}
-                          className="task-card position-relative bg-white mb-3 p-3 rounded shadow-sm w-100"
-                          style={{
-                            borderLeft: `6px solid ${borderColor}`,
-                            border: "none",
-                          }}
-                        >
-                          {/* View button */}
-                          <button
-                            onClick={() => setViewTask(task)}
-                            title="View Task"
-                            className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light p-1 border-0"
-                          >
-                            <img
-                              src={viewTaskIcon}
-                              alt="View Task"
-                              style={{ width: 18 }}
-                            />
-                          </button>
-
-                          <strong className="fs-6">
-                            {task.assigned_to || "No Member"}
-                          </strong>
-                          {isAdviser && (
-                            <span className="badge bg-primary ms-2">
-                              Adviser
-                            </span>
-                          )}
-
-                          <hr
-                            className="my-2"
-                            style={{ borderColor: "maroon", borderWidth: 2 }}
-                          />
-                          <p className="mb-1">{task.task}</p>
-                          <p className="mb-1">{task.subtask || "No Subtask"}</p>
-                          <hr
-                            className="my-1"
-                            style={{ borderColor: "maroon", borderWidth: 2 }}
-                          />
-
-                          <div className="d-flex align-items-center gap-2 small">
-                            <span
-                              style={{
-                                display: "inline-block",
-                                width: 12,
-                                height: 12,
-                                backgroundColor: "red",
-                                borderRadius: "50%",
-                              }}
-                            />
-                            <strong>
-                              {task.due_date
-                                ? new Date(task.due_date).toLocaleDateString()
-                                : "No Due Date"}{" "}
-                              {task.due_time || ""}
-                            </strong>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+            {/* Search */}
+            <div className="mb-4">
+              <div className="input-group" style={{ maxWidth: 480, width: "100%" }}>
+                <span className="input-group-text">
+                  <img src={searchIcon} alt="Search" style={{ width: 18, height: 18 }} />
+                </span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search task"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Columns (auto-wrap, no horizontal scroll) */}
+            <div className="board-wrap">
+              {Object.entries(tasksByStatus).map(([status, items]) => (
+                <div className="board-col" key={status}>
+                  <div
+                    className="board-col-header text-white px-3 py-2 fs-6 fw-bold"
+                    style={{ backgroundColor: statusColors[status] }}
+                  >
+                    {status}
+                  </div>
+
+                  <div className="board-col-body">
+                    {items.length === 0 ? (
+                      <p className="fst-italic text-muted small m-2">No tasks</p>
+                    ) : (
+                      items.map((task, index) => {
+                        const borderColor = statusColors[status];
+                        const isAdviser = task.source === "adviser";
+
+                        return (
+                          <div
+                            key={`${status}-${index}`}
+                            className="task-card position-relative bg-white mb-3 p-3 rounded shadow-sm w-100"
+                            style={{
+                              borderLeft: `6px solid ${borderColor}`,
+                              border: "none",
+                            }}
+                          >
+                            {/* View button */}
+                            <button
+                              onClick={() => setViewTask(task)}
+                              title="View Task"
+                              className="position-absolute top-0 end-0 m-2 btn btn-sm btn-light p-1 border-0"
+                              aria-label="View task"
+                            >
+                              <img
+                                src={viewTaskIcon}
+                                alt="View Task"
+                                style={{ width: 18, height: 18 }}
+                              />
+                            </button>
+
+                            <strong className="fs-6 text-truncate d-block">
+                              {task.assigned_to || "No Member"}
+                            </strong>
+                            {isAdviser && <span className="badge bg-primary ms-2">Adviser</span>}
+
+                            <hr style={{ borderColor: "maroon", borderWidth: 2 }} />
+                            <p className="mb-1 fw-semibold">{task.task}</p>
+                            <p className="mb-1 text-muted">{task.subtask || "No Subtask"}</p>
+                            <hr style={{ borderColor: "maroon", borderWidth: 2 }} />
+
+                            <div className="d-flex align-items-center gap-2 small">
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  width: 12,
+                                  height: 12,
+                                  backgroundColor: "red",
+                                  borderRadius: "50%",
+                                }}
+                              />
+                              <strong className="text-nowrap">
+                                {task.due_date
+                                  ? new Date(task.due_date).toLocaleDateString()
+                                  : "No Due Date"}{" "}
+                                {task.due_time || ""}
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div>
+            <button onClick={() => setViewTask(null)} className="btn btn-secondary mb-3">
+              ← Back
+            </button>
+            <h4 className="fw-bold">{viewTask.task}</h4>
+            <p>Assigned to: {viewTask.assigned_to || "No Member"}</p>
+            <p>Due: {viewTask.due_date || "No Due Date"} {viewTask.due_time || ""}</p>
+            <p>Status: {viewTask.status}</p>
           </div>
-        </>
-      ) : (
-        <div>
-          <button
-            onClick={() => setViewTask(null)}
-            className="btn btn-secondary mb-3"
-          >
-            ← Back
-          </button>
-          <h4>{viewTask.task}</h4>
-          <p>Assigned to: {viewTask.assigned_to || "No Member"}</p>
-          <p>Due: {viewTask.due_date || "No Due Date"}</p>
-          <p>Status: {viewTask.status}</p>
-        </div>
-      )}
+        )}
+      </div>
+
     </div>
   );
 };

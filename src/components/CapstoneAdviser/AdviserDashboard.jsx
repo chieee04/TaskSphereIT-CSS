@@ -1,4 +1,3 @@
-// src/components/CapstoneAdviser/AdviserDashboard.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Sidebar from "../Sidebar";
@@ -87,14 +86,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
             const chartOptions = {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: false,
-                },
-                tooltip: {
-                  enabled: false,
-                },
-              },
+              plugins: { legend: { display: false }, tooltip: { enabled: false } },
             };
 
             return (
@@ -107,9 +99,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
                   <div className="chart-container-large">
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="chart-percentage-center">
-                      <span className="percentage-num">
-                        {completionPercentage}%
-                      </span>
+                      <span className="percentage-num">{completionPercentage}%</span>
                     </div>
                   </div>
                 </div>
@@ -120,9 +110,7 @@ const AdviserTeamProgress = ({ teamsProgress }) => {
       ) : (
         <div className="no-teams-message">
           <i className="fas fa-users fa-3x text-muted mb-3"></i>
-          <p className="fst-italic text-muted">
-            No teams with tasks to display progress.
-          </p>
+          <p className="fst-italic text-muted">No teams with tasks to display progress.</p>
         </div>
       )}
     </div>
@@ -164,7 +152,7 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
   const userKey = useMemo(() => {
     if (!storedUser) return null;
     return (
-      storedUser.username || // <— matches your table rows (admin1, adviser, etc.)
+      storedUser.username ||
       storedUser.email ||
       storedUser.user_id ||
       storedUser.id ||
@@ -189,11 +177,10 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
           .maybeSingle();
 
         if (error) {
-          // network/rls/etc → be safe and show ToS
           setShowTos(true);
           return;
         }
-        setShowTos(!data); // show if not found
+        setShowTos(!data);
       } catch {
         setShowTos(true);
       }
@@ -201,11 +188,7 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     checkTos();
   }, [userKey, role]);
 
-  const handleTosAccept = () => {
-    // The modal performed the upsert. Here we simply hide it.
-    setShowTos(false);
-  };
-
+  const handleTosAccept = () => setShowTos(false);
   const handleTosDecline = () => {
     localStorage.removeItem("customUser");
     localStorage.removeItem("user_id");
@@ -409,8 +392,12 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
       case "OralDefenseRecord":
       case "Oral Defense Record":
         return <AdviserOralRecord />;
-      case "TitleDefenseRecord":
+
+      // 🔧 FIX: support the URL /Adviser/FinalDefenseRecord
+      case "FinalDefenseRecord":
+      case "Final Defense Record":
         return <AdviserFinalRecord />;
+
       case "Events":
         return <AdviserEvents setActivePage={setActivePage} />;
       case "ManucriptResults":
@@ -522,9 +509,7 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
                               </td>
                               <td>{formatTime(t.time) || "—"}</td>
                               <td>
-                                <span className="status-badge-modern">
-                                  {t.status}
-                                </span>
+                                <span className="status-badge-modern">{t.status}</span>
                               </td>
                             </tr>
                           ))}
@@ -555,463 +540,56 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
               </>
             )}
 
-            {/* CSS Styles - Matching Instructor Dashboard */}
+            {/* CSS Styles */}
             <style>{`
-              .adviser-dashboard-modern {
-                max-width: 1400px;
-                margin: 0 auto;
-                padding: 20px;
-                display: flex;
-                flex-direction: column;
-                gap: 30px;
-                background: #ffffff;
-              }
-              
-              .loading-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 60px;
-                gap: 20px;
-                background: #ffffff;
-              }
-              
-              .loading-container .spinner-border {
-                color: ${TASKSPHERE_PRIMARY};
-                width: 3rem;
-                height: 3rem;
-              }
-              
-              .dashboard-section-modern {
-                background: #ffffff;
-                padding: 0;
-                border-radius: 16px;
-                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-                overflow: hidden;
-                border: 1px solid #e8e8e8;
-              }
-              
-              .section-title-modern {
-                background: #ffffff;
-                margin: 0;
-                padding: 20px 25px;
-                font-size: 0.9rem;
-                font-weight: 700;
-                letter-spacing: 1px;
-                color: #333;
-                border-bottom: 1px solid #e8e8e8;
-              }
-              
-              /* Upcoming Activity Cards */
-              .upcoming-cards-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                gap: 20px;
-                padding: 25px;
-                background: #ffffff;
-              }
-              
-              .upcoming-card-modern {
-                background: #ffffff;
-                border: 2px solid #e8e8e8;
-                border-radius: 12px;
-                padding: 0;
-                overflow: hidden;
-                transition: all 0.3s ease;
-              }
-              
-              .upcoming-card-modern:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                transform: translateY(-2px);
-                border-color: ${TASKSPHERE_LIGHTER};
-              }
-              
-              .card-header-badge {
-                background: ${TASKSPHERE_PRIMARY};
-                color: white;
-                padding: 12px 16px;
-                font-size: 0.85rem;
-                font-weight: 600;
-              }
-              
-              .card-manager-info {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 16px;
-                border-bottom: 1px solid #f0f0f0;
-                background: #ffffff;
-              }
-              
-              .card-manager-info i {
-                color: ${TASKSPHERE_PRIMARY};
-                font-size: 1.1rem;
-              }
-              
-              .card-manager-info span {
-                font-weight: 600;
-                color: #333;
-                font-size: 0.95rem;
-              }
-              
-              .card-details {
-                padding: 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                background: #ffffff;
-              }
-              
-              .detail-row {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                color: #666;
-                font-size: 0.9rem;
-              }
-              
-              .detail-row i {
-                color: ${TASKSPHERE_PRIMARY};
-                width: 16px;
-              }
-              
-              /* Teams Progress */
-              .team-progress-container {
-                padding: 25px;
-                background: #ffffff;
-              }
-              
-              .progress-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-                gap: 25px;
-              }
-              
-              .progress-card-new {
-                background: white;
-                border-radius: 12px;
-                padding: 25px 20px;
-                text-align: center;
-                border: 2px solid #e8e8e8;
-                transition: all 0.3s ease;
-                min-height: 280px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-              }
-              
-              .progress-card-new:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                transform: translateY(-2px);
-                border-color: ${TASKSPHERE_PRIMARY};
-              }
-              
-              .team-member-info {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #f0f0f0;
-              }
-              
-              .team-member-info i {
-                color: ${TASKSPHERE_PRIMARY};
-                font-size: 1.2rem;
-              }
-              
-              .team-name {
-                font-weight: 600;
-                color: #333;
-                font-size: 0.95rem;
-              }
-              
-              .chart-wrapper {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                flex-grow: 1;
-              }
-              
-              .chart-container-large {
-                width: 160px;
-                height: 160px;
-                margin: auto;
-                position: relative;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              }
-              
-              .chart-percentage-center {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                text-align: center;
-                pointer-events: none;
-                width: 100%;
-              }
-              
-              .percentage-num {
-                display: block;
-                font-size: 1.8rem;
-                font-weight: 700;
-                color: ${TASKSPHERE_PRIMARY};
-                line-height: 1.2;
-              }
-              
-              /* Recent Activity Table */
-              .recent-table-modern {
-                padding: 25px;
-                overflow-x: auto;
-                background: #ffffff;
-              }
-              
-              .recent-table-modern table {
-                width: 100%;
-                border-collapse: collapse;
-                background: #ffffff;
-              }
-              
-              .recent-table-modern th,
-              .recent-table-modern td {
-                padding: 14px 16px;
-                text-align: left;
-                border-bottom: 1px solid #f0f0f0;
-                background: #ffffff;
-              }
-              
-              .recent-table-modern th {
-                background: #fafafa;
-                font-weight: 600;
-                color: #666;
-                font-size: 0.85rem;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-              }
-              
-              .recent-table-modern tbody tr {
-                transition: background-color 0.2s ease;
-                background: #ffffff;
-              }
-              
-              .recent-table-modern tbody tr:hover {
-                background-color: #fafafa;
-              }
-              
-              .status-badge-modern {
-                display: inline-block;
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                font-weight: 600;
-                border: 2px solid ${TASKSPHERE_LIGHTER};
-                color: ${TASKSPHERE_PRIMARY};
-                background: rgba(90, 13, 14, 0.05);
-              }
-              
-              /* Calendar */
-              .calendar-wrapper-modern {
-                padding: 25px;
-                background: #ffffff;
-              }
-              
-              .fc {
-                border: none;
-                background: #ffffff;
-              }
-              
-              .fc .fc-toolbar-title {
-                font-size: 1.3rem;
-                font-weight: 700;
-                color: #333;
-              }
-              
-              .fc .fc-button {
-                background-color: ${TASKSPHERE_PRIMARY} !important;
-                border-color: ${TASKSPHERE_PRIMARY} !important;
-                color: white !important;
-                text-transform: capitalize;
-                font-weight: 600;
-                padding: 8px 16px;
-                border-radius: 6px;
-              }
-              
-              .fc .fc-button:hover {
-                background-color: ${TASKSPHERE_LIGHT} !important;
-                border-color: ${TASKSPHERE_LIGHT} !important;
-              }
-              
-              .fc .fc-button:disabled {
-                background-color: #cccccc !important;
-                border-color: #cccccc !important;
-                opacity: 0.5;
-              }
-              
-              .fc .fc-button-active {
-                background-color: ${TASKSPHERE_LIGHT} !important;
-                border-color: ${TASKSPHERE_LIGHT} !important;
-              }
-              
-              .fc-theme-standard .fc-scrollgrid {
-                border: 1px solid #e8e8e8;
-                border-radius: 8px;
-                background: #ffffff;
-              }
-              
-              .fc-theme-standard td,
-              .fc-theme-standard th {
-                border-color: #f0f0f0;
-                background: #ffffff;
-              }
-              
-              .fc .fc-col-header-cell {
-                background: #fafafa;
-                font-weight: 600;
-                color: #666;
-                padding: 12px 8px;
-              }
-              
-              .fc .fc-daygrid-day-number {
-                color: #333;
-                font-weight: 600;
-                padding: 8px;
-              }
-              
-              .fc .fc-daygrid-day.fc-day-today {
-                background-color: rgba(90, 13, 14, 0.05) !important;
-              }
-              
-              .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-                background: ${TASKSPHERE_PRIMARY};
-                color: white;
-                border-radius: 50%;
-                width: 32px;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              }
-              
-              .fc .fc-event {
-                background-color: ${TASKSPHERE_PRIMARY};
-                border-color: ${TASKSPHERE_PRIMARY};
-                border-radius: 4px;
-                padding: 2px 4px;
-                font-size: 0.85rem;
-              }
-              
-              .fc .fc-event:hover {
-                background-color: ${TASKSPHERE_LIGHT};
-                border-color: ${TASKSPHERE_LIGHT};
-              }
-              
-              .fc .fc-daygrid-event-dot {
-                border-color: white;
-              }
-              
-              /* No Teams Message */
-              .no-teams-message {
-                text-align: center;
-                padding: 60px 20px;
-                color: #999;
-                background: #ffffff;
-              }
-              
-              .no-teams-message i {
-                color: rgba(90, 13, 14, 0.2);
-              }
-              
-              /* Responsive Design */
-              @media (max-width: 1024px) {
-                .upcoming-cards-grid {
-                  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                  gap: 15px;
-                }
-                
-                .progress-grid {
-                  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                  gap: 20px;
-                }
-
-                .chart-container-large {
-                  width: 140px;
-                  height: 140px;
-                }
-
-                .percentage-num {
-                  font-size: 1.6rem;
-                }
-              }
-              
-              @media (max-width: 768px) {
-                .adviser-dashboard-modern {
-                  padding: 15px;
-                  gap: 20px;
-                }
-                
-                .dashboard-section-modern {
-                  border-radius: 12px;
-                }
-                
-                .section-title-modern {
-                  padding: 15px 20px;
-                  font-size: 0.85rem;
-                }
-                
-                .upcoming-cards-grid {
-                  grid-template-columns: 1fr;
-                  padding: 20px;
-                }
-                
-                .team-progress-container {
-                  padding: 20px;
-                }
-                
-                .progress-grid {
-                  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-                  gap: 15px;
-                }
-
-                .progress-card-new {
-                  padding: 20px 15px;
-                  min-height: 260px;
-                }
-
-                .chart-container-large {
-                  width: 130px;
-                  height: 130px;
-                }
-
-                .percentage-num {
-                  font-size: 1.5rem;
-                }
-                
-                .recent-table-modern {
-                  padding: 20px;
-                }
-                
-                .recent-table-modern table {
-                  min-width: 600px;
-                }
-                
-                .calendar-wrapper-modern {
-                  padding: 20px;
-                }
-                
-                .fc .fc-toolbar {
-                  flex-direction: column;
-                  gap: 10px;
-                }
-                
-                .fc .fc-toolbar-chunk {
-                  display: flex;
-                  justify-content: center;
-                }
-              }
+              .adviser-dashboard-modern { max-width: 1400px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 30px; background: #ffffff; }
+              .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 20px; background: #ffffff; }
+              .loading-container .spinner-border { color: ${TASKSPHERE_PRIMARY}; width: 3rem; height: 3rem; }
+              .dashboard-section-modern { background: #ffffff; padding: 0; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e8e8e8; }
+              .section-title-modern { background: #ffffff; margin: 0; padding: 20px 25px; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; color: #333; border-bottom: 1px solid #e8e8e8; }
+              .upcoming-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 25px; background: #ffffff; }
+              .upcoming-card-modern { background: #ffffff; border: 2px solid #e8e8e8; border-radius: 12px; overflow: hidden; transition: all 0.3s; }
+              .upcoming-card-modern:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: ${TASKSPHERE_LIGHTER}; }
+              .card-header-badge { background: ${TASKSPHERE_PRIMARY}; color: white; padding: 12px 16px; font-size: 0.85rem; font-weight: 600; }
+              .card-manager-info { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid #f0f0f0; background: #ffffff; }
+              .card-manager-info i { color: ${TASKSPHERE_PRIMARY}; font-size: 1.1rem; }
+              .card-details { padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
+              .detail-row { display: flex; align-items: center; gap: 10px; color: #666; font-size: 0.9rem; }
+              .detail-row i { color: ${TASKSPHERE_PRIMARY}; width: 16px; }
+              .team-progress-container { padding: 25px; background: #ffffff; }
+              .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; }
+              .progress-card-new { background: white; border-radius: 12px; padding: 25px 20px; text-align: center; border: 2px solid #e8e8e8; transition: all 0.3s; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; }
+              .progress-card-new:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: ${TASKSPHERE_PRIMARY}; }
+              .team-member-info { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; }
+              .team-name { font-weight: 600; color: #333; font-size: 0.95rem; }
+              .chart-wrapper { display: flex; justify-content: center; align-items: center; flex-grow: 1; }
+              .chart-container-large { width: 160px; height: 160px; margin: auto; position: relative; display: flex; align-items: center; justify-content: center; }
+              .chart-percentage-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 100%; }
+              .percentage-num { display: block; font-size: 1.8rem; font-weight: 700; color: ${TASKSPHERE_PRIMARY}; line-height: 1.2; }
+              .recent-table-modern { padding: 25px; overflow-x: auto; background: #ffffff; }
+              .recent-table-modern table { width: 100%; border-collapse: collapse; background: #ffffff; }
+              .recent-table-modern th, .recent-table-modern td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; background: #ffffff; }
+              .recent-table-modern th { background: #fafafa; font-weight: 600; color: #666; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+              .recent-table-modern tbody tr:hover { background-color: #fafafa; }
+              .status-badge-modern { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 2px solid ${TASKSPHERE_LIGHTER}; color: ${TASKSPHERE_PRIMARY}; background: rgba(90, 13, 14, 0.05); }
+              .calendar-wrapper-modern { padding: 25px; background: #ffffff; }
+              .fc { border: none; background: #ffffff; }
+              .fc .fc-toolbar-title { font-size: 1.3rem; font-weight: 700; color: #333; }
+              .fc .fc-button { background-color: ${TASKSPHERE_PRIMARY} !important; border-color: ${TASKSPHERE_PRIMARY} !important; color: white !important; text-transform: capitalize; font-weight: 600; padding: 8px 16px; border-radius: 6px; }
+              .fc .fc-button:hover { background-color: ${TASKSPHERE_LIGHT} !important; border-color: ${TASKSPHERE_LIGHT} !important; }
+              .fc .fc-button:disabled { background-color: #cccccc !important; border-color: #cccccc !important; opacity: 0.5; }
+              .fc .fc-button-active { background-color: ${TASKSPHERE_LIGHT} !important; border-color: ${TASKSPHERE_LIGHT} !important; }
+              .fc-theme-standard .fc-scrollgrid { border: 1px solid #e8e8e8; border-radius: 8px; background: #ffffff; }
+              .fc-theme-standard td, .fc-theme-standard th { border-color: #f0f0f0; background: #ffffff; }
+              .fc .fc-col-header-cell { background: #fafafa; font-weight: 600; color: #666; padding: 12px 8px; }
+              .fc .fc-daygrid-day-number { color: #333; font-weight: 600; padding: 8px; }
+              .fc .fc-daygrid-day.fc-day-today { background-color: rgba(90, 13, 14, 0.05) !important; }
+              .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: ${TASKSPHERE_PRIMARY}; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+              .fc .fc-event { background-color: ${TASKSPHERE_PRIMARY}; border-color: ${TASKSPHERE_PRIMARY}; border-radius: 4px; padding: 2px 4px; font-size: 0.85rem; }
+              .fc .fc-event:hover { background-color: ${TASKSPHERE_LIGHT}; border-color: ${TASKSPHERE_LIGHT}; }
+              .fc .fc-daygrid-event-dot { border-color: white; }
+              .no-teams-message { text-align: center; padding: 60px 20px; color: #999; background: #ffffff; }
+              .no-teams-message i { color: rgba(90, 13, 14, 0.2); }
             `}</style>
           </div>
         );

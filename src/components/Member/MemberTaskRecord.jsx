@@ -617,7 +617,7 @@ export default function MemberTaskRecord() {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="min-h-screen flex flex-col bg-white pt-5">
       <h2 className="section-title">
         <FaTasks className="me-2" size={18} />
         Completed Tasks

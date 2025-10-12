@@ -39,7 +39,6 @@ const textStyle = {
 const Header = ({ isSoloMode, setIsSoloMode }) => {
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null);
-  const [showProfileCard, setShowProfileCard] = useState(false);
 
   useEffect(() => {
     const storedUser =
@@ -56,6 +55,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
     navigate("/");
   };
 
+  // Click -> go to Profile (no hover dropdown)
   const handleProfileClick = () => {
     const customUser = JSON.parse(localStorage.getItem("customUser"));
     const role = customUser?.user_roles;
@@ -164,6 +164,7 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
             <div style={{ ...sliderStyle }} />
           </div>
 
+          {/* Notifications (kept as button, no change) */}
           <button
             style={{
               background: "none",
@@ -171,108 +172,28 @@ const Header = ({ isSoloMode, setIsSoloMode }) => {
               cursor: "pointer",
               color: "black",
             }}
+            aria-label="Notifications"
+            title="Notifications"
           >
             <FaBell size={20} />
           </button>
 
-          {/* PROFILE */}
-          <div
-            style={{ position: "relative" }}
-            onMouseEnter={() => setShowProfileCard(true)}
-            onMouseLeave={() => setShowProfileCard(false)}
+          {/* PROFILE — no hover, no dropdown; click navigates */}
+          <button
+            onClick={handleProfileClick}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              color: "black",
+            }}
+            aria-label="Open Profile"
+            title={`${userName} — ${userRole}`}
           >
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                color: "black",
-              }}
-              onClick={handleProfileClick}
-            >
-              <FaUserCircle size={20} />
-            </button>
-
-            {showProfileCard && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 10px)",
-                  right: "-5px",
-                  width: "250px",
-                  backgroundColor: "white",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  padding: "15px",
-                  zIndex: 1000,
-                }}
-              >
-                <div
-                  style={{
-                    marginBottom: "10px",
-                    paddingBottom: "5px",
-                    borderBottom: "1px solid black",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      fontWeight: "bold",
-                      fontSize: "18px",
-                      color: "black",
-                    }}
-                  >
-                    Profile
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <FaUserCircle
-                    size={28}
-                    style={{ marginRight: "10px", color: "#6c757d" }}
-                  />
-                  <div style={{ lineHeight: "1.2" }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontWeight: "bold",
-                        fontSize: "16px",
-                      }}
-                    >
-                      {userName}
-                    </p>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "12px",
-                        color: "#6c757d",
-                      }}
-                    >
-                      {userRole}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSignOut}
-                  style={{
-                    marginTop: "10px",
-                    width: "100%",
-                    padding: "8px",
-                    backgroundColor: "#dc3545",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+            <FaUserCircle size={20} />
+          </button>
         </div>
       )}
     </header>
