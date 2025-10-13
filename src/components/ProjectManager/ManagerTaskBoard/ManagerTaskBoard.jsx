@@ -1,9 +1,10 @@
-// src/components/Manager/ManagerTaskBoard.jsx
 import React, { useState, useEffect } from "react";
 import boardIcon from "../../../assets/tasks-board-icon.png";
 import searchIcon from "../../../assets/search-icon.png";
 import viewTaskIcon from "../../../assets/view-task-icon.png";
 import { supabase } from "../../../supabaseClient";
+import ManagerTaskView from "./ManagerTaskBoardView";
+//import ManagerTaskView from "../../CapstoneAdviser/AdviserBoard/AdviserViewBoard";
 
 const statusColors = {
   "To Do": "#FABC3F",
@@ -12,7 +13,7 @@ const statusColors = {
   "Missed": "#D32F2F",
 };
 
-const ManagerTaskBoard = () => {
+export default function ManagerTaskBoard() {
   const [viewTask, setViewTask] = useState(null);
   const [allTasks, setAllTasks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,6 +24,7 @@ const ManagerTaskBoard = () => {
     "Missed": [],
   });
 
+  // ✅ Original backend logic (unchanged)
   useEffect(() => {
     const fetchTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
@@ -89,6 +91,7 @@ const ManagerTaskBoard = () => {
     fetchTasks();
   }, []);
 
+  // ✅ Original grouping
   const groupTasksByStatus = (tasks) => {
     const grouped = { "To Do": [], "In Progress": [], "To Review": [], "Missed": [] };
     tasks.forEach((task) => {
@@ -101,126 +104,119 @@ const ManagerTaskBoard = () => {
     setTasksByStatus(grouped);
   };
 
+  // ✅ Search
   useEffect(() => {
-    const filtered = allTasks.filter((t) => (t.task || "").toLowerCase().includes(searchTerm.toLowerCase()));
+    const filtered = allTasks.filter((t) =>
+      (t.task || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
     groupTasksByStatus(filtered);
   }, [searchTerm, allTasks]);
 
+  // ✅ UI
   return (
-    <div className="w-full px-3 py-4 overflow-x-hidden">
-      {/* Header */}
-      {!viewTask ? (
-        <>
-          <div className="flex items-center gap-3 mb-3">
-            <img src={boardIcon} alt="Board Icon" className="w-6 h-6" />
-            <h2 className="text-lg font-semibold">Manager Task Board</h2>
-          </div>
-
-          <div className="h-px bg-gray-200 mb-4" />
-
-          {/* Search (white) */}
-          <div className="mb-4">
-            <div
-              className="max-w-[720px] w-full flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm"
-              role="search"
-              aria-label="Search tasks"
-            >
-              <div className="px-3 flex items-center justify-center bg-white">
-                <img src={searchIcon} alt="Search" className="w-4 h-4 opacity-80" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search task"
-                className="flex-1 px-3 py-2 text-sm placeholder-gray-400 bg-white outline-none"
-                aria-label="Search tasks"
-              />
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-hidden">
+      <div className="flex-grow container mx-auto px-6 py-6">
+        {!viewTask ? (
+          <>
+            {/* Header */}
+            <div className="flex items-center mb-4">
+              <img src={boardIcon} alt="Board Icon" className="w-6 h-6 mr-2" />
+              <h2 className="text-lg font-bold text-gray-800">Manager Task Board</h2>
             </div>
-          </div>
+            <hr className="border-t-2 border-gray-300 mb-4" />
 
-          {/* Board grid (Tailwind responsive) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Object.entries(tasksByStatus).map(([status, items]) => (
-              <div key={status} className="flex flex-col min-w-0">
-                {/* Column header */}
-                <div
-                  className="text-white px-3 py-2 font-semibold rounded-t-md"
-                  style={{ backgroundColor: statusColors[status] || "#999" }}
-                >
-                  {status}
-                </div>
+            {/* Search */}
+            <div className="mb-6">
+              <div className="flex items-center bg-white border border-gray-300 rounded-lg shadow-sm w-full max-w-sm">
+                <span className="px-3">
+                  <img src={searchIcon} alt="Search" className="w-5 opacity-70" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search task..."
+                  className="w-full p-2 bg-white text-gray-800 placeholder-gray-400 rounded-r-lg focus:ring-2 focus:ring-maroon-600 focus:outline-none text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
 
-                {/* Column body */}
-                <div className="bg-white p-3 rounded-b-md shadow-sm flex flex-col gap-3 min-h-[80px]">
-                  {items.length === 0 ? (
-                    <p className="italic text-gray-400 text-sm m-0">No tasks</p>
-                  ) : (
-                    items.map((task, index) => {
-                      const borderColor = statusColors[status];
-                      const isAdviser = task.source === "adviser";
+            {/* Board Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Object.entries(tasksByStatus).map(([status, items]) => (
+                <div key={status} className="flex flex-col w-full">
+                  {/* Column Header */}
+                  <div
+                    className="text-white text-sm font-semibold px-4 py-2 rounded-t-md"
+                    style={{ backgroundColor: statusColors[status] || "#999" }}
+                  >
+                    {status}
+                  </div>
 
-                      return (
-                        <article
-                          key={`${status}-${index}`}
-                          className="relative bg-white rounded-md p-3 shadow-sm"
-                          style={{ borderLeft: `6px solid ${borderColor}`, borderRight: "1px solid rgba(0,0,0,0.04)" }}
-                        >
-                          {/* view button */}
-                          <button
-                            onClick={() => setViewTask(task)}
-                            title="View Task"
-                            className="absolute top-2 right-2 bg-gray-100 hover:bg-gray-200 rounded-full p-1"
-                            aria-label={`View ${task.task}`}
+                  {/* Column Body */}
+                  <div className="bg-white p-3 rounded-b-md shadow-md border border-gray-200 flex-grow">
+                    {items.length === 0 ? (
+                      <p className="italic text-gray-400 text-sm">No tasks</p>
+                    ) : (
+                      items.map((task, index) => {
+                        const borderColor = statusColors[status];
+                        const isAdviser = task.source === "adviser";
+                        return (
+                          <div
+                            key={index}
+                            className="relative bg-white mb-3 p-3 rounded-lg shadow-sm border-l-4"
+                            style={{ borderColor }}
                           >
-                            <img src={viewTaskIcon} alt="View" className="w-4 h-4" />
-                          </button>
+                            {/* View Button */}
+                            <button
+                              onClick={() => setViewTask(task)}
+                              title="View Task"
+                              className="absolute top-1 right-1 bg-gray-100 hover:bg-gray-200 rounded-full p-1"
+                            >
+                              <img src={viewTaskIcon} alt="View" className="w-4" />
+                            </button>
 
-                          <strong className="block text-sm font-medium break-words">{task.assigned_to || "No Member"}</strong>
-                          {isAdviser && <span className="inline-block ml-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded">Adviser</span>}
+                            <h3 className="font-semibold text-sm text-gray-800">
+                              {task.assigned_to}
+                              {isAdviser && (
+                                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-600 text-white rounded">
+                                  Adviser
+                                </span>
+                              )}
+                            </h3>
 
-                          <div className="my-2 border-t-2" style={{ borderColor: "rgba(128,0,0,0.12)" }} />
+                            <hr className="my-2 border-t-2 border-maroon-700" />
 
-                          <p className="text-sm text-gray-700 mb-1 break-words">{task.task}</p>
-                          <p className="text-sm text-gray-500 mb-2 break-words">{task.subtask || "No Subtask"}</p>
+                            <p className="text-sm text-gray-700 mb-1">{task.task}</p>
+                            <p className="text-sm text-gray-500 mb-2">
+                              {task.subtask || "No Subtask"}
+                            </p>
 
-                          <div className="my-1 border-t" style={{ borderColor: "rgba(128,0,0,0.06)" }} />
-
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <span className="inline-block w-3 h-3 rounded-full bg-red-500 flex-shrink-0" />
-                            <div className="text-sm">
-                              <strong className="text-gray-800">
-                                {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No Due Date"}
+                            <div className="flex items-center gap-2 text-xs text-gray-700 mt-1">
+                              <span
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: "red" }}
+                              ></span>
+                              <strong>
+                                {task.due_date
+                                  ? new Date(task.due_date).toLocaleDateString()
+                                  : "No Due Date"}
                               </strong>
                               <span className="text-gray-500 ml-1">{task.due_time || ""}</span>
                             </div>
                           </div>
-                        </article>
-                      );
-                    })
-                  )}
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="max-w-3xl">
-          <button
-            onClick={() => setViewTask(null)}
-            className="mb-3 inline-flex items-center gap-2 text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded"
-          >
-            ← Back
-          </button>
-
-          <h3 className="text-lg font-semibold mb-2 break-words">{viewTask.task}</h3>
-          <p className="text-sm text-gray-700 mb-1"><strong>Assigned to:</strong> {viewTask.assigned_to || "No Member"}</p>
-          <p className="text-sm text-gray-700 mb-1"><strong>Due:</strong> {viewTask.due_date || "No Due Date"} {viewTask.due_time || ""}</p>
-          <p className="text-sm text-gray-700"><strong>Status:</strong> {viewTask.status}</p>
-        </div>
-      )}
+              ))}
+            </div>
+          </>
+        ) : (
+          <ManagerTaskView task={viewTask} onBack={() => setViewTask(null)} />
+        )}
+      </div>
     </div>
   );
-};
-
-export default ManagerTaskBoard;
+}

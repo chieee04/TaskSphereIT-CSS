@@ -70,21 +70,23 @@ const AdviserNotification = () => {
       try {
         // 1) Who am I?
         const storedUser =
-          JSON.parse(localStorage.getItem("customUser")) ||
-          JSON.parse(localStorage.getItem("adminUser")) ||
-          null;
-        const userUuid = await resolveUserUuid(storedUser);
-        if (!userUuid) {
-          setRows([]);
-          setGroupByNoteId({});
-          return;
-        }
+  JSON.parse(localStorage.getItem("customUser")) ||
+  JSON.parse(localStorage.getItem("adminUser")) ||
+  null;
+const userId = storedUser?.user_id || storedUser?.id || null;
+
+if (!userId) {
+  console.warn("No user_id found in localStorage");
+  setRows([]);
+  setGroupByNoteId({});
+  return;
+}
 
         // 2) My notifications
         const { data: notes, error: nErr } = await supabase
           .from("user_notification")
           .select("*")
-          .eq("user_id", userUuid)
+          .eq("user_id", userId)
           .order("date", { ascending: false })
           .order("time", { ascending: false });
 
@@ -168,23 +170,83 @@ const AdviserNotification = () => {
   }, []);
 
   // ---------- actions ----------
-  const handleView = async (note) => {
-    await MySwal.fire({
-      title: `<div style="color:${ACCENT};font-size:1.2rem;font-weight:700;">${note.title}</div>`,
-      html: `
-        <div style="text-align:left;color:#333">
-          <div><b>Group:</b> ${groupByNoteId[note.id] || "—"}</div>
-          <div><b>Date:</b> ${fmt.date(note.date)}</div>
-          <div><b>Time:</b> ${fmt.time(note.time)}</div>
-          ${note.description ? `<div style="margin-top:6px"><b>Details:</b> ${note.description}</div>` : ""}
-        </div>
-      `,
-      confirmButtonText: "Close",
-      confirmButtonColor: ACCENT,
-      width: 420,
-    });
-  };
+const handleView = async (note) => {
+  const result = await MySwal.fire({
+    title: `<div style="color:#3B0304;font-size:1.3rem;font-weight:600;">${note.title}</div>`,
+    html: `
+      <p style="color:#333;font-size:0.95rem;">${note.description}</p>
+      <p style="font-size:0.8rem;color:#888;margin-top:10px;">${new Date(
+        note.date
+      ).toLocaleString()}</p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Confirm",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#3B0304",
+    cancelButtonColor: "#6c757d",
+    width: "400px",
+  });
 
+  if (result.isConfirmed) {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (!storedUser) return;
+
+    try {
+      // ✅ Step 1: Fetch current IT Instructor(s)
+      const { data: oldInstructors, error: fetchError } = await supabase
+        .from("user_credentials")
+        .select("id")
+        .eq("user_roles", 4);
+
+      if (fetchError) throw fetchError;
+
+      // ✅ Step 2: Delete each old IT Instructor
+      for (const old of oldInstructors) {
+        const { error: deleteError } = await supabase
+          .from("user_credentials")
+          .delete()
+          .eq("id", old.id);
+        if (deleteError) throw deleteError;
+      }
+
+      // ✅ Step 3: Promote current user to IT Instructor
+      const { error: updateError } = await supabase
+        .from("user_credentials")
+        .update({ user_roles: 4 })
+        .eq("id", storedUser.id);
+
+      if (updateError) throw updateError;
+
+      // ✅ Step 4: Success Message
+      await MySwal.fire({
+        icon: "success",
+        title: "Role Transferred!",
+        text: "You are now assigned as the new IT Instructor. You will be signed out automatically.",
+        confirmButtonColor: "#3B0304",
+      });
+
+      // ✅ Step 5: Auto Logout
+      localStorage.removeItem("customUser");
+      localStorage.removeItem("user_id");
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error updating roles:", error);
+      await MySwal.fire({
+        icon: "error",
+        title: "Something went wrong",
+        text: "Failed to transfer the role. Please try again.",
+        confirmButtonColor: "#3B0304",
+      });
+    }
+  } else if (result.dismiss === Swal.DismissReason.cancel) {
+    await MySwal.fire({
+      icon: "info",
+      title: "Cancelled",
+      text: "You cancelled viewing this notification.",
+      confirmButtonColor: "#3B0304",
+    });
+  }
+};
   const handleDelete = async (id) => {
     const confirm = await MySwal.fire({
       title: "Delete Notification?",
@@ -291,4 +353,4 @@ const AdviserNotification = () => {
   );
 };
 
-export default AdviserNotification;
+export default AdviserNotification; 

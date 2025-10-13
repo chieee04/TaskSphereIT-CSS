@@ -233,49 +233,78 @@ const Adviser = () => {
       },
 
       preConfirm: () => {
-        const role = (
-          document.querySelector("input[name='roleType']:checked")?.value ||
-          "adviser"
-        )
-          .toLowerCase()
-          .trim();
+  const role = (
+    document.querySelector("input[name='roleType']:checked")?.value || "adviser"
+  )
+    .toLowerCase()
+    .trim();
 
-        const user_id = document.getElementById("user_id")?.value?.trim() || "";
-        const password =
-          document.getElementById("password")?.value?.trim() || "";
-        const first_name =
-          document.getElementById("first_name")?.value?.trim() || "";
-        const last_name =
-          document.getElementById("last_name")?.value?.trim() || "";
-        const middle_name =
-          document.getElementById("middle_name")?.value?.trim() || "";
+  const user_id = document.getElementById("user_id")?.value?.trim() || "";
+  const password = document.getElementById("password")?.value?.trim() || "";
+  const first_name = document.getElementById("first_name")?.value?.trim() || "";
+  const last_name = document.getElementById("last_name")?.value?.trim() || "";
+  const middle_name =
+    document.getElementById("middle_name")?.value?.trim() || "";
 
-        // Name validations
-        if (!first_name || !last_name) {
-          MySwal.showValidationMessage(
-            "Please fill out First Name and Last Name."
-          );
-          return false;
-        }
-        if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage(
-            "Numbers in First Name or Last Name are not allowed."
-          );
-          return false;
-        }
+  // Name validations
+  if (!first_name || !last_name) {
+    MySwal.showValidationMessage(
+      "Please fill out First Name and Last Name."
+    );
+    return false;
+  }
 
-        // Adviser-only requirements
-        if (role === "adviser") {
-          if (!user_id || !password) {
-            MySwal.showValidationMessage(
-              "Adviser ID and Password are required for Advisers."
-            );
-            return false;
-          }
-        }
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage(
+      "Numbers in First Name or Last Name are not allowed."
+    );
+    return false;
+  }
 
-        return { role, user_id, password, first_name, last_name, middle_name };
-      },
+  // Adviser-only requirements
+  if (role === "adviser") {
+    if (!user_id || !password) {
+      MySwal.showValidationMessage(
+        "Adviser ID and Password are required for Advisers."
+      );
+      return false;
+    }
+
+    // ✅ Password validation rules
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
+
+    if (password.includes(" ")) {
+      MySwal.showValidationMessage("Password must not contain spaces.");
+      return false;
+    }
+
+    if (!passwordRegex.test(password)) {
+      MySwal.showValidationMessage(`
+        <div style="text-align: left; font-size: 0.9rem;">
+          <p><strong>Invalid Password Format</strong></p>
+          <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+            <li>Minimum length: 8 characters</li>
+            <li>At least one uppercase letter (A–Z)</li>
+            <li>At least one lowercase letter (a–z)</li>
+            <li>At least one number (0–9)</li>
+            <li>At least one special character (!@#$%^&*()_+)</li>
+            <li>No spaces allowed</li>
+          </ul>
+        </div>
+      `);
+
+      setTimeout(() => {
+        const passField = document.getElementById("password");
+        if (passField) passField.focus();
+      }, 200);
+
+      return false;
+    }
+  }
+
+  return { role, user_id, password, first_name, last_name, middle_name };
+},
     }).then((result) => {
       if (!result.isConfirmed) return;
 
@@ -587,14 +616,17 @@ const Adviser = () => {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
  
-          <!-- Password -->
-          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
-            <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${
-              row.password || ""
-            }" placeholder=""
-              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
-          </div>
+          <!-- Password (with Show/Hide toggle) -->
+<div style="display: flex; flex-direction: column; margin-bottom: 1rem; position: relative;">
+  <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
+  <input id="password" type="password" class="swal2-input" value="${
+    row.password || ""
+  }" placeholder=""
+    style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 2.5rem 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+  <button id="toggle-password" type="button"
+    style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; font-size: 1rem;">👁️</button>
+</div>
+
  
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
@@ -642,11 +674,23 @@ const Adviser = () => {
       customClass: { popup: "custom-swal-popup" },
       didOpen: () => {
         const popup = Swal.getPopup();
+const passInput = popup.querySelector("#password");
+const toggleBtn = popup.querySelector("#toggle-password");
 
+if (toggleBtn && passInput) {
+  let isHidden = true;
+  toggleBtn.textContent = "👁️"; // default hidden
+  toggleBtn.addEventListener("click", () => {
+    isHidden = !isHidden;
+    passInput.type = isHidden ? "password" : "text";
+    toggleBtn.textContent = isHidden ? "👁️" : "🙈";
+  });
+}
         const adviserIdInput = popup.querySelector("#user_id");
         adviserIdInput.setAttribute("maxlength", "9");
 
         const validationMessage = document.createElement("div");
+
         validationMessage.style.color = "red";
         validationMessage.style.fontSize = "0.8rem";
         validationMessage.style.marginTop = "0.4rem";
@@ -708,27 +752,62 @@ const Adviser = () => {
         });
       },
       preConfirm: () => {
-        const user_id = document.getElementById("user_id").value.trim();
-        const password = document.getElementById("password").value.trim();
-        const first_name = document.getElementById("first_name").value.trim();
-        const last_name = document.getElementById("last_name").value.trim();
-        const middle_name = document.getElementById("middle_name").value.trim();
+  const user_id = document.getElementById("user_id").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const first_name = document.getElementById("first_name").value.trim();
+  const last_name = document.getElementById("last_name").value.trim();
+  const middle_name = document.getElementById("middle_name").value.trim();
 
-        if (!user_id || !password || !first_name || !last_name) {
-          MySwal.showValidationMessage(
-            "Please fill out all required fields (Adviser ID, Password, First Name, Last Name)."
-          );
-          return false;
-        }
-        if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage(
-            "Numbers in First Name or Last Name are not allowed."
-          );
-          return false;
-        }
+  if (!user_id || !password || !first_name || !last_name) {
+    MySwal.showValidationMessage(
+      "Please fill out all required fields (Adviser ID, Password, First Name, Last Name)."
+    );
+    return false;
+  }
 
-        return { user_id, password, first_name, last_name, middle_name };
-      },
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage(
+      "Numbers in First Name or Last Name are not allowed."
+    );
+    return false;
+  }
+
+  // ✅ Password validation rules
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
+
+  if (password.includes(" ")) {
+    MySwal.showValidationMessage("Password must not contain spaces.");
+    return false;
+  }
+
+  if (!passwordRegex.test(password)) {
+    MySwal.showValidationMessage(`
+      <div style="text-align: left; font-size: 0.9rem;">
+        <p><strong>Invalid Password Format</strong></p>
+        <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+          <li>Minimum length: 8 characters</li>
+          <li>At least one uppercase letter (A–Z)</li>
+          <li>At least one lowercase letter (a–z)</li>
+          <li>At least one number (0–9)</li>
+          <li>At least one special character (!@#$%^&*()_+)</li>
+          <li>No spaces allowed</li>
+        </ul>
+      </div>
+    `);
+
+    // Focus on password field
+    setTimeout(() => {
+      const passField = document.getElementById("password");
+      if (passField) passField.focus();
+    }, 200);
+
+    return false;
+  }
+
+  return { user_id, password, first_name, last_name, middle_name };
+}
+,
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...importedData];

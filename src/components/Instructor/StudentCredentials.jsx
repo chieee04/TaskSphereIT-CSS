@@ -459,51 +459,72 @@ const StudentCredentials = () => {
         });
       },
       preConfirm: () => {
-        const user_id = document.getElementById("user_id").value;
-        const passwordInput = document.getElementById("password").value;
-        const first_name =
-          document.getElementById("first_name")?.value || row.first_name;
-        const last_name =
-          document.getElementById("last_name")?.value || row.last_name;
-        const middle_name =
-          document.getElementById("middle_name")?.value || row.middle_name;
+  const user_id = document.getElementById("user_id").value;
+  const passwordInput = document.getElementById("password").value.trim();
+  const first_name =
+    document.getElementById("first_name")?.value.trim() || row.first_name;
+  const last_name =
+    document.getElementById("last_name")?.value.trim() || row.last_name;
+  const middle_name =
+    document.getElementById("middle_name")?.value.trim() || row.middle_name;
 
-        // If masked and still "********" => allow save (password unchanged)
-        const keptMasked = maskedNow && passwordInput === INITIAL_MASK;
+  const keptMasked = maskedNow && passwordInput === INITIAL_MASK;
 
-        // If reset wasn't used and user typed a new password (unmasked), require non-empty
-        if (!resetUsed && !keptMasked && !passwordInput) {
-          MySwal.showValidationMessage("Password cannot be empty.");
-          return false;
-        }
-        if (!user_id || !first_name || !last_name) {
-          MySwal.showValidationMessage(
-            "Please fill out all required fields (User ID, First Name, Last Name)."
-          );
-          return false;
-        }
-        if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage(
-            "Numbers in First Name or Last Name are not allowed."
-          );
-          return false;
-        }
+  // Require password if changed
+  if (!resetUsed && !keptMasked && !passwordInput) {
+    MySwal.showValidationMessage("Password cannot be empty.");
+    return false;
+  }
 
-        // Determine if password changed by typing (not via Reset)
-        const passwordChangedByTyping =
-          !resetUsed && !keptMasked && passwordInput !== row.password;
+  if (!user_id || !first_name || !last_name) {
+    MySwal.showValidationMessage(
+      "Please fill out all required fields (User ID, First Name, Last Name)."
+    );
+    return false;
+  }
 
-        return {
-          user_id,
-          first_name,
-          last_name,
-          middle_name,
-          __resetUsed: resetUsed,
-          __resetPasswordValue: resetPasswordValue,
-          __passwordChangedByTyping: passwordChangedByTyping,
-          __typedPasswordValue: passwordInput,
-        };
-      },
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage(
+      "Numbers in First Name or Last Name are not allowed."
+    );
+    return false;
+  }
+
+  // ✅ Password Requirements (if changed manually or reset)
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
+
+  const passwordChangedByTyping =
+    !resetUsed && !keptMasked && passwordInput !== row.password;
+
+  if (passwordChangedByTyping && !passwordRegex.test(passwordInput)) {
+    MySwal.showValidationMessage(`
+      <div style="text-align: left; font-size: 0.9rem;">
+        <p><strong>Invalid Password Format</strong></p>
+        <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+          <li>Minimum length: 8 characters</li>
+          <li>At least one uppercase letter (A–Z)</li>
+          <li>At least one lowercase letter (a–z)</li>
+          <li>At least one number (0–9)</li>
+          <li>At least one special character (!@#$%^&*()_+)</li>
+          <li>No spaces allowed</li>
+        </ul>
+      </div>
+    `);
+    return false;
+  }
+
+  return {
+    user_id,
+    first_name,
+    last_name,
+    middle_name,
+    __resetUsed: resetUsed,
+    __resetPasswordValue: resetPasswordValue,
+    __passwordChangedByTyping: passwordChangedByTyping,
+    __typedPasswordValue: passwordInput,
+  };
+},
     }).then(async (result) => {
       if (result.isConfirmed) {
         const {
@@ -603,10 +624,12 @@ const StudentCredentials = () => {
           // Bulk reset: keep as masked after reset (hasChanged = 1).
           // If you want them shown again instead, set hasChanged = 0 here.
           const updates = credentials.map((student) => ({
-            id: student.id,
-            password: generateRandomPassword(),
-            hasChanged: 1,
-          }));
+  id: student.id,
+  user_roles: student.user_roles, // ✅ required field
+  year: student.year,             // ✅ include if your table enforces NOT NULL on year
+  password: generateRandomPassword(),
+  hasChanged: 1,
+}));
 
           const { error } = await supabase
             .from("user_credentials")

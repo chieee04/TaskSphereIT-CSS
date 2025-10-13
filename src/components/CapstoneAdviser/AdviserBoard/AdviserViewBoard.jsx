@@ -90,7 +90,8 @@ const AdviserViewBoard = ({ task, onBack }) => {
       const { data, error } = await supabase
         .from("task_comments")
         .insert({
-          task_id: task.id,
+          task_id: task.id, // kunyare combine para ma fetch ng maayos at sigurado : task_id: task.id || t.task_name || t.task || "Untitled Task",
+          
           user_id: currentUser.id,
           comment_text: newComment,
           attachment_url: attachmentUrl,
@@ -112,7 +113,7 @@ const AdviserViewBoard = ({ task, onBack }) => {
           user_id: data.user_id,
           user: `${data.profiles?.firstname ?? ""} ${data.profiles?.lastname ?? ""}`.trim(),
           text: data.comment_text,
-          timestamp: new Date(data.created_at).toLocaleString("en-US", {
+          timestamp: new Date(data.created_at).toLocaleString("en-US", { 
             month: "long",
             day: "numeric",
             year: "numeric",

@@ -96,10 +96,10 @@ const Enroll = () => {
     });
   };
 
-  const handleAddStudent = async () => {
-    MySwal.fire({
-      title: "",
-      html: `
+ const handleAddStudent = async () => {
+  MySwal.fire({
+    title: "",
+    html: `
       <div style="text-align: left; padding-bottom: 12px; border-bottom: 2px solid #3B0304; display: flex; align-items: center;">
         <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #3B0304; font-size: 1.1rem;">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3B0304" viewBox="0 0 16 16">
@@ -109,7 +109,7 @@ const Enroll = () => {
           Add Student
         </h5>
       </div>
-
+ 
       <div style="padding: 1.2rem 1.2rem;">
         <!-- Student ID -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
@@ -117,35 +117,41 @@ const Enroll = () => {
           <input id="user_id" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
-
-        <!-- Password (prefilled + disabled) -->
-        <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
-          <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-          <input id="password" class="swal2-input"
-              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
-        </div>
-
+ 
+        <!-- Password -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 1rem; position: relative;">
+  <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">
+    Password
+  </label>
+  <input id="password" type="password" class="swal2-input" placeholder=""
+    style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 2.5rem 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+  <button id="toggle-password" type="button"
+    style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer;">
+    👁️
+  </button>
+</div>
+ 
         <!-- Last Name -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="last_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Last Name</label>
           <input id="last_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
-
+ 
         <!-- First Name -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <label for="first_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">First Name</label>
           <input id="first_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
-
+ 
         <!-- Middle Initial -->
         <div style="display: flex; flex-direction: column; margin-bottom: 1.5rem;">
           <label for="middle_name" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Middle Initial</label>
           <input id="middle_name" class="swal2-input" placeholder=""
             style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
         </div>
-
+ 
         <!-- Buttons -->
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 0.5rem;">
           <button id="cancel-btn" class="swal2-cancel"
@@ -159,144 +165,171 @@ const Enroll = () => {
         </div>
       </div>
     `,
-      showConfirmButton: false,
-      showCancelButton: false,
-      width: "460px",
-      customClass: {
-        popup: "custom-swal-popup",
-      },
-      didOpen: () => {
-        const popup = Swal.getPopup();
+    showConfirmButton: false,
+    showCancelButton: false,
+    width: "460px",
+    customClass: {
+      popup: 'custom-swal-popup',
+    },
+    didOpen: () => {
+      const popup = Swal.getPopup();
+ const studentIdInput = popup.querySelector("#user_id");
+ const passInput = popup.querySelector("#password");
+const toggleBtn = popup.querySelector("#toggle-password");
 
-        // enforce numeric + max length on student id
-        const studentIdInput = popup.querySelector("#user_id");
-        studentIdInput.setAttribute("maxlength", "9");
+if (toggleBtn && passInput) {
+  let isHidden = true;
+  toggleBtn.textContent = "👁️"; // default: hidden
 
-        const validationMessage = document.createElement("div");
-        validationMessage.style.color = "red";
-        validationMessage.style.fontSize = "0.8rem";
-        validationMessage.style.marginTop = "0.4rem";
-        validationMessage.style.textAlign = "left";
-        validationMessage.style.display = "none";
-        studentIdInput.parentNode.appendChild(validationMessage);
+  toggleBtn.addEventListener("click", () => {
+    isHidden = !isHidden;
+    passInput.type = isHidden ? "password" : "text";
+    toggleBtn.textContent = isHidden ? "👁️" : "🙈";
+  });
+}
+studentIdInput.setAttribute("maxlength", "9");
 
-        studentIdInput.addEventListener("input", (e) => {
-          let value = e.target.value;
+// 🔹 Create inline validation message element
+const validationMessage = document.createElement("div");
+validationMessage.style.color = "red";
+validationMessage.style.fontSize = "0.8rem";
+validationMessage.style.marginTop = "0.4rem";
+validationMessage.style.textAlign = "left";
+validationMessage.style.display = "none";
+studentIdInput.parentNode.appendChild(validationMessage);
 
-          // Auto-remove non-numeric characters
-          const cleanedValue = value.replace(/[^0-9]/g, "");
-          if (value !== cleanedValue) {
-            e.target.value = cleanedValue;
-            validationMessage.textContent =
-              "Only numbers are allowed for Student ID.";
-            validationMessage.style.display = "block";
-          } else {
-            validationMessage.style.display = "none";
-          }
+studentIdInput.addEventListener("input", (e) => {
+  let value = e.target.value;
 
-          // Enforce max length of 9 digits
-          if (cleanedValue.length > 9) {
-            e.target.value = cleanedValue.slice(0, 9);
-            validationMessage.textContent =
-              "Student ID can only be 9 digits long.";
-            validationMessage.style.display = "block";
-          }
+  // Auto-remove non-numeric characters
+  const cleanedValue = value.replace(/[^0-9]/g, "");
+  if (value !== cleanedValue) {
+    e.target.value = cleanedValue;
+    validationMessage.textContent = "Only numbers are allowed for Student ID.";
+    validationMessage.style.display = "block";
+  } else {
+    validationMessage.style.display = "none";
+  }
+
+  // Enforce max length of 9 digits
+  if (cleanedValue.length > 9) {
+    e.target.value = cleanedValue.slice(0, 9);
+    validationMessage.textContent = "Student ID can only be 9 digits long.";
+    validationMessage.style.display = "block";
+  }
+});
+
+      // Cancel button functionality
+      popup.querySelector('#cancel-btn').onclick = () => {
+        Swal.close();
+      };
+ 
+      // Enroll button functionality
+      popup.querySelector('#enroll-btn').onclick = () => {
+        Swal.clickConfirm();
+      };
+ 
+      // Hover effects
+      popup.querySelector('#cancel-btn').addEventListener('mouseenter', (e) => {
+        e.target.style.backgroundColor = '#f8f8f8';
+      });
+      popup.querySelector('#cancel-btn').addEventListener('mouseleave', (e) => {
+        e.target.style.backgroundColor = '#fff';
+      });
+      popup.querySelector('#enroll-btn').addEventListener('mouseenter', (e) => {
+        e.target.style.backgroundColor = '#2a0203';
+        e.target.style.borderColor = '#2a0203';
+      });
+      popup.querySelector('#enroll-btn').addEventListener('mouseleave', (e) => {
+        e.target.style.backgroundColor = '#3B0304';
+        e.target.style.borderColor = '#3B0304';
+      });
+ 
+      // Add focus effects to inputs
+      const inputs = popup.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('focus', (e) => {
+          e.target.style.borderColor = '#3B0304';
+          e.target.style.boxShadow = '0 0 0 2px rgba(59, 3, 4, 0.1)';
         });
-
-        // 🔒 Ensure password is defaulted + locked even if DOM changes
-        const passInput = popup.querySelector("#password");
-        if (passInput) {
-          passInput.style.backgroundColor = "#f5f5f5";
-          passInput.style.color = "#666";
-        }
-
-        // Cancel button functionality
-        popup.querySelector("#cancel-btn").onclick = () => {
-          Swal.close();
-        };
-
-        // Enroll button functionality
-        popup.querySelector("#enroll-btn").onclick = () => {
-          Swal.clickConfirm();
-        };
-
-        // Hover effects
-        popup
-          .querySelector("#cancel-btn")
-          .addEventListener("mouseenter", (e) => {
-            e.target.style.backgroundColor = "#f8f8f8";
-          });
-        popup
-          .querySelector("#cancel-btn")
-          .addEventListener("mouseleave", (e) => {
-            e.target.style.backgroundColor = "#fff";
-          });
-        popup
-          .querySelector("#enroll-btn")
-          .addEventListener("mouseenter", (e) => {
-            e.target.style.backgroundColor = "#2a0203";
-            e.target.style.borderColor = "#2a0203";
-          });
-        popup
-          .querySelector("#enroll-btn")
-          .addEventListener("mouseleave", (e) => {
-            e.target.style.backgroundColor = "#3B0304";
-            e.target.style.borderColor = "#3B0304";
-          });
-
-        // Add focus effects to inputs
-        const inputs = popup.querySelectorAll("input");
-        inputs.forEach((input) => {
-          input.addEventListener("focus", (e) => {
-            e.target.style.borderColor = "#3B0304";
-            e.target.style.boxShadow = "0 0 0 2px rgba(59, 3, 4, 0.1)";
-          });
-          input.addEventListener("blur", (e) => {
-            e.target.style.borderColor = "#888";
-            e.target.style.boxShadow = "none";
-          });
+        input.addEventListener('blur', (e) => {
+          e.target.style.borderColor = '#888';
+          e.target.style.boxShadow = 'none';
         });
-      },
-      preConfirm: () => {
-        const user_id = document.getElementById("user_id").value;
-        const password = document.getElementById("password").value; // will be Pass_123
-        const first_name = document.getElementById("first_name").value;
-        const last_name = document.getElementById("last_name").value;
+      });
+    },
+preConfirm: () => {
+  const user_id = document.getElementById("user_id").value;
+  const password = document.getElementById("password").value;
+  const first_name = document.getElementById("first_name").value;
+  const last_name = document.getElementById("last_name").value;
 
-        if (!user_id || !password || !first_name || !last_name) {
-          MySwal.showValidationMessage(
-            "Please fill out all required fields (Student ID, Password, First Name, Last Name)."
-          );
-          return false;
-        }
+  if (!user_id || !password || !first_name || !last_name) {
+    MySwal.showValidationMessage(
+      'Please fill out all required fields (Student ID, Password, First Name, Last Name).'
+    );
+    return false;
+  }
 
-        // Number check
-        if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage(
-            "Numbers in First Name or Last Name are not allowed."
-          );
-          return false;
-        }
+  // ✅ Password validation pattern
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
 
-        return {
-          user_id,
-          password, // Pass_123
-          first_name,
-          last_name,
-          middle_name: document.getElementById("middle_name").value,
-        };
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const newStudent = {
-          id: uuidv4(),
-          ...result.value,
-        };
-        setImportedData((prev) => [...prev, newStudent]);
-        MySwal.fire("Added!", "New student added successfully.", "success");
-      }
-    });
+  if (password.includes(" ")) {
+    MySwal.showValidationMessage("Password must not contain spaces.");
+    return false;
+  }
+
+  // 🚫 Invalid password — show warning but keep form open
+  if (!passwordRegex.test(password)) {
+  MySwal.showValidationMessage(`
+    <div style="text-align: left; font-size: 0.9rem;">
+      <p><strong>Invalid Password Format</strong></p>
+      <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+        <li>Minimum length: 8 characters</li>
+        <li>At least one uppercase letter (A–Z)</li>
+        <li>At least one lowercase letter (a–z)</li>
+        <li>At least one number (0–9)</li>
+        <li>At least one special character (!@#$%^&*()_+)</li>
+        <li>No spaces allowed</li>
+      </ul>
+    </div>
+  `);
+
+  // 🔹 Refocus the password field
+  setTimeout(() => {
+    const passField = document.getElementById("password");
+    if (passField) passField.focus();
+  }, 200);
+
+  return false;
+}
+
+  // Name validation
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+    return false;
+  }
+
+  return {
+    user_id,
+    password,
+    first_name,
+    last_name,
+    middle_name: document.getElementById("middle_name").value,
   };
+},
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const newStudent = {
+        id: uuidv4(),
+        ...result.value,
+      };
+      setImportedData((prev) => [...prev, newStudent]);
+      MySwal.fire("Added!", "New student added successfully.", "success");
+    }
+  });
+};
 
   const handleDownload = () => {
     const wsData = [
@@ -563,12 +596,15 @@ const Enroll = () => {
               style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
           </div>
 
-          <!-- Password (editable in edit modal) -->
-          <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
-            <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
-            <input id="password" class="swal2-input" value="${row.password}" placeholder=""
-              style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
-          </div>
+        <!-- Password (editable in edit modal, with Show/Hide toggle) -->
+<div style="display: flex; flex-direction: column; margin-bottom: 1rem; position: relative;">
+  <label for="password" style="font-weight: 500; margin-bottom: 0.3rem; font-size: 0.85rem; color: #333; text-align: left;">Password</label>
+  <input id="password" type="password" class="swal2-input" value="${row.password}" placeholder=""
+    style="border-radius: 6px; border: 1.5px solid #888; padding: 0.5rem 2.5rem 0.5rem 0.75rem; font-size: 0.9rem; text-align: left; width: 100%; height: 38px; background-color: #fff; margin-left: 0;" />
+  <button id="toggle-password" type="button"
+    style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; font-size: 1rem;">👁️</button>
+</div>
+
 
           <!-- Last Name -->
           <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
@@ -613,6 +649,18 @@ const Enroll = () => {
       didOpen: () => {
         const popup = Swal.getPopup();
         const studentIdInput = popup.querySelector("#user_id");
+        const passInput = popup.querySelector("#password");
+const toggleBtn = popup.querySelector("#toggle-password");
+
+if (toggleBtn && passInput) {
+  let isHidden = true;
+  toggleBtn.textContent = "👁️"; // default hidden
+  toggleBtn.addEventListener("click", () => {
+    isHidden = !isHidden;
+    passInput.type = isHidden ? "password" : "text";
+    toggleBtn.textContent = isHidden ? "👁️" : "🙈";
+  });
+}
         studentIdInput.setAttribute("maxlength", "9");
 
         const validationMessage = document.createElement("div");
@@ -690,34 +738,69 @@ const Enroll = () => {
         });
       },
       preConfirm: () => {
-        const user_id = document.getElementById("user_id").value;
-        const password = document.getElementById("password").value;
-        const first_name = document.getElementById("first_name").value;
-        const last_name = document.getElementById("last_name").value;
+  const user_id = document.getElementById("user_id").value;
+  const password = document.getElementById("password").value;
+  const first_name = document.getElementById("first_name").value;
+  const last_name = document.getElementById("last_name").value;
 
-        if (!user_id || !password || !first_name || !last_name) {
-          MySwal.showValidationMessage(
-            "Please fill out all required fields (Student ID, Password, First Name, Last Name)."
-          );
-          return false;
-        }
+  if (!user_id || !password || !first_name || !last_name) {
+    MySwal.showValidationMessage(
+      "Please fill out all required fields (Student ID, Password, First Name, Last Name)."
+    );
+    return false;
+  }
 
-        // Number check
-        if (/\d/.test(first_name) || /\d/.test(last_name)) {
-          MySwal.showValidationMessage(
-            "Numbers in First Name or Last Name are not allowed."
-          );
-          return false;
-        }
+  // ✅ Password validation pattern
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/;
 
-        return {
-          user_id,
-          password,
-          first_name,
-          last_name,
-          middle_name: document.getElementById("middle_name").value,
-        };
-      },
+  if (password.includes(" ")) {
+    MySwal.showValidationMessage("Password must not contain spaces.");
+    return false;
+  }
+
+  // 🚫 Invalid password — show warning but keep form open
+  if (!passwordRegex.test(password)) {
+    MySwal.showValidationMessage(`
+      <div style="text-align: left; font-size: 0.9rem;">
+        <p><strong>Invalid Password Format</strong></p>
+        <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+          <li>Minimum length: 8 characters</li>
+          <li>At least one uppercase letter (A–Z)</li>
+          <li>At least one lowercase letter (a–z)</li>
+          <li>At least one number (0–9)</li>
+          <li>At least one special character (!@#$%^&*()_+)</li>
+          <li>No spaces allowed</li>
+        </ul>
+      </div>
+    `);
+
+    // 🔹 Refocus the password field
+    setTimeout(() => {
+      const passField = document.getElementById("password");
+      if (passField) passField.focus();
+    }, 200);
+
+    return false;
+  }
+
+  // Name validation
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage(
+      "Numbers in First Name or Last Name are not allowed."
+    );
+    return false;
+  }
+
+  return {
+    user_id,
+    password,
+    first_name,
+    last_name,
+    middle_name: document.getElementById("middle_name").value,
+  };
+},
+
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...importedData];

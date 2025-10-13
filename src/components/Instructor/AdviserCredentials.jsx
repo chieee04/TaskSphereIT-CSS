@@ -522,10 +522,12 @@ const AdviserCredentials = () => {
       if (!result.isConfirmed) return;
       try {
         const updates = credentials.map((row) => ({
-          id: row.id,
-          password: generateRandomPassword(),
-          hasChanged: 0,
-        }));
+  id: row.id,
+  password: generateRandomPassword(),
+  hasChanged: 0,
+  user_roles: row.user_roles, // 👈 include this line
+  year: row.year, // 👈 optional but safe if 'year' is required
+}))
 
         const { error } = await supabase
           .from("user_credentials")

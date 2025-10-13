@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { FaUserCircle, FaUserTie, FaUserPlus } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { supabase } from "../../supabaseClient";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 
 const RoleTransfer = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,8 @@ const RoleTransfer = () => {
 
   const [errors, setErrors] = useState({});
   const [currentInstructor, setCurrentInstructor] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   // ✅ Fetch current instructor (user_roles = 4)
   useEffect(() => {
@@ -55,91 +59,178 @@ const RoleTransfer = () => {
 
   // ✅ Handle submit with SweetAlert2 confirmation
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validateFields()) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Fields",
-        text: "Please fill out all fields before enrolling.",
-      });
-      return;
-    }
+  if (!validateFields()) {
+    Swal.fire({
+      icon: "error",
+      title: "Missing Fields",
+      text: "Please fill out all fields before enrolling.",
+    });
+    return;
+  }
 
-    const confirm = await Swal.fire({
-      title: "Confirm Role Transfer?",
-      text: "Are you sure you want to enroll this new instructor?",
+  // ✅ Password validation pattern
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+]).{8,}$/;
+
+  // Check password validity before confirm alert
+  if (!passwordRegex.test(formData.password)) {
+    await Swal.fire({
+      title: "Invalid Password Format",
+      html: `
+        <div style="text-align: left; font-size: 0.9rem;">
+          <p><strong>Password must include:</strong></p>
+          <ul style="margin-left: 1.2rem; margin-top: 0.5rem;">
+            <li>Minimum length: 8 characters</li>
+            <li>At least one uppercase letter (A–Z)</li>
+            <li>At least one lowercase letter (a–z)</li>
+            <li>At least one number (0–9)</li>
+            <li>At least one special character (!@#$%^&*()_+)</li>
+          </ul>
+        </div>
+      `,
       icon: "warning",
-      showCancelButton: true,
       confirmButtonColor: "#5a0d0e",
-      cancelButtonColor: "#6c757d",
-      confirmButtonText: "Yes, Enroll",
+      confirmButtonText: "OK",
     });
 
-    if (confirm.isConfirmed) {
-      // ✅ Step 1: Insert new instructor
-      const { data, error } = await supabase
-        .from("user_credentials")
-        .insert([
-          {
-            user_id: formData.idNo,
-            password: formData.password,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            middle_name: formData.middleName,
-            user_roles: 3, // Adviser / New Instructor
-            email: formData.email,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error inserting new instructor:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Enrollment Failed",
-          text: "An error occurred while enrolling the new instructor.",
-        });
-        return;
-      }
-
-      // ✅ Step 2: Add notification for this newly created instructor
-      try {
-        const { error: notifError } = await supabase.from("notification").insert([
-          {
-            user_id: data.id, // 👈 uuid of the newly created account
-            title: "You Have Been Assigned as the New Capstone Instructor",
-            description: "The current instructor has officially transferred the Capstone advising role to you. You are now designated as the new Capstone Instructor for the group.",
-            date: new Date().toISOString(), // timestamp
-          },
-        ]);
-
-        if (notifError) {
-          console.error("Error adding notification:", notifError);
-        } else {
-          console.log("✅ Notification successfully added!");
-        }
-      } catch (notifErr) {
-        console.error("Notification insert failed:", notifErr);
-      }
-
-      // ✅ Step 3: Success alert and reset form
-      Swal.fire({
-        icon: "success",
-        title: "Enrolled Successfully!",
-        text: "The new instructor has been added successfully.",
-      });
-
-      setFormData({
-        lastName: "",
-        firstName: "",
-        middleName: "",
-        idNo: "",
-        password: "",
-        email: "",
-      });
+    // 🔹 Keep the form and focus back on password field
+    const passField = document.querySelector('input[name="password"]');
+    if (passField) {
+      passField.focus();
+      passField.style.borderColor = "red";
+      setTimeout(() => (passField.style.borderColor = "#888"), 1500);
     }
+    return;
+  }
+
+  // ✅ Password is valid → proceed to confirmation
+  const confirm = await Swal.fire({
+    title: "Confirm Role Transfer?",
+    text: "Are you sure you want to enroll this new instructor?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#5a0d0e",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Yes, Enroll",
+  });
+
+  if (confirm.isConfirmed) {
+  // 🔹 Fetch current instructor year first
+  const { data: instructorData, error: yearError } = await supabase
+    .from("user_credentials")
+    .select("year")
+    .eq("user_roles", 4)
+    .single();
+
+  if (yearError) {
+    console.error("Error fetching instructor year:", yearError);
+    Swal.fire({
+      icon: "error",
+      title: "Failed to Fetch Year",
+      text: "Could not retrieve the current instructor's year.",
+    });
+    return;
+  }
+
+  const instructorYear = instructorData?.year || null;
+
+  // 🔹 Insert new instructor with same year
+  const { data, error } = await supabase
+    .from("user_credentials")
+    .insert([
+      {
+        user_id: formData.idNo,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_name: formData.middleName,
+        user_roles: 3,
+        email: formData.email,
+        year: instructorYear, // ✅ copy the same year
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error inserting new instructor:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Enrollment Failed",
+      text: "An error occurred while enrolling the new instructor.",
+    });
+    return;
+  }
+
+ // ✅ Insert notification
+try {
+  // Get current max id first
+  const { data: notifData, error: fetchError } = await supabase
+    .from("user_notification")
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (fetchError) console.error("Error fetching max id:", fetchError);
+
+  const nextId = notifData?.[0]?.id ? notifData[0].id + 1 : 1;
+
+  const now = new Date();
+  const formattedDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const formattedTime = now.toTimeString().split(" ")[0]; // HH:mm:ss
+
+  const { error: notifError } = await supabase
+    .from("user_notification")
+    .insert([
+      {
+        id: nextId,
+        user_id: data.user_id, // use user_id, not data.id
+        type: "The current instructor has officially assigned you as the new Capstone Instructor. You now have full access to manage capstone projects.",
+        date: formattedDate,
+        time: formattedTime,
+        title: "You Have Been Assigned as the New Capstone Instructor.",
+      },
+    ]);
+    
+
+if (notifError) {
+    console.error("Error adding notification:", notifError);
+    Swal.fire({
+      icon: "error",
+      title: "Notification Failed",
+      text: "The instructor was enrolled, but the notification could not be sent.",
+      confirmButtonColor: "#d33",
+    });
+  } else {
+    console.log("✅ Notification inserted successfully!");
+    await Swal.fire({
+      icon: "success",
+      title: "Enrollment Successful!",
+      text: "The new instructor has been enrolled and notified successfully.",
+      confirmButtonColor: "#3085d6",
+      confirmButtonText: "OK",
+    });
+  }
+} catch (notifErr) {
+  console.error("Notification insert failed:", notifErr);
+  Swal.fire({
+    icon: "error",
+    title: "Notification Error",
+    text: "Something went wrong while sending the notification.",
+    confirmButtonColor: "#d33",
+  });
+}
+  setFormData({
+    lastName: "",
+    firstName: "",
+    middleName: "",
+    idNo: "",
+    password: "",
+    email: "",
+  });
+}
   };
 
   return (
@@ -241,7 +332,7 @@ const RoleTransfer = () => {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Middle Name <span className="text-red-500">*</span>
+                      Middle Initial <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -288,18 +379,34 @@ const RoleTransfer = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Password <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-3 rounded-lg border-2 bg-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5a0d0e] focus:border-transparent ${
-                        errors.password 
-                          ? "border-red-500 bg-red-50" 
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                      placeholder="Enter password"
-                    />
+                    <div className="relative">
+  <input
+    type={showPassword ? "text" : "password"}
+    name="password"
+    value={formData.password}
+    onChange={handleChange}
+    className={`w-full px-4 py-3 pr-10 rounded-lg border-2 bg-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5a0d0e] focus:border-transparent ${
+      errors.password
+        ? "border-red-500 bg-red-50"
+        : "border-gray-300 hover:border-gray-400"
+    }`}
+    placeholder="Enter password"
+  />
+
+  {/* 👁️ Eye Toggle Button */}
+  <button
+    type="button"
+    onClick={() => setShowPassword((prev) => !prev)}
+    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-[#5a0d0e]"
+    tabIndex={-1}
+  >
+    {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+  </button>
+
+  {errors.password && (
+    <p className="mt-1 text-sm text-red-500">This field is required</p>
+  )}
+</div>
                     {errors.password && (
                       <p className="mt-1 text-sm text-red-500">This field is required</p>
                     )}

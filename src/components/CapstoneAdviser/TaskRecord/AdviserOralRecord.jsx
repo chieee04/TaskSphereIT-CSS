@@ -54,42 +54,74 @@ export default function AdviserOralRecord() {
     }
   };
 
-  const fetchCompletedTasks = async () => {
-    try {
-      const { data: oralDefTasks, error: oralDefError } = await supabase
-        .from("adviser_oral_def")
-        .select("*")
-        .eq("status", "Completed");
+const fetchCompletedTasks = async () => {
+  try {
+    // 1️⃣ Get existing tasks in adviser_oral_def (so we exclude them)
+    const { data: existingRecords, error: recordError } = await supabase
+      .from("adviser_oral_def")
+      .select("task");
 
-      if (oralDefError) throw oralDefError;
-      if (!oralDefTasks || oralDefTasks.length === 0) { setTasks([]); return; }
+    if (recordError) throw recordError;
 
-      const managerIds = [...new Set(oralDefTasks.map(task => task.manager_id).filter(Boolean))];
-      let teamMap = {};
+    const recordedTasks = existingRecords?.map(r => r.task).filter(Boolean) || [];
 
-      if (managerIds.length > 0) {
-        const { data: groupsData, error: groupsError } = await supabase
-          .from("groups")
-          .select("id, group_name, manager_id")
-          .in("manager_id", managerIds);
+    // 2️⃣ Fetch all Completed tasks from adviser_oral_task (not adviser_oral_defense ❌)
+    const query = supabase
+      .from("adviser_oral_def") // ✅ correct existing table name
+      .select("*")
+      .eq("status", "Completed");
 
-        if (!groupsError && groupsData) {
-          groupsData.forEach(group => { teamMap[group.manager_id] = group.group_name; });
-        }
-      }
-
-      const tasksWithTeamNames = oralDefTasks.map(task => ({
-        ...task,
-        team_name: teamMap[task.manager_id] || `Team ${task.manager_id?.substring(0, 8)}` || "Unknown Team",
-        date_completed: task.date_completed || task.date_created || new Date().toISOString().split('T')[0]
-      }));
-
-      setTasks(tasksWithTeamNames);
-    } catch (error) {
-      console.error("Error fetching completed tasks:", error);
-      Swal.fire({ title: 'Error!', text: 'Failed to load completed tasks', icon: 'error', confirmButtonColor: ACCENT });
+    if (recordedTasks.length > 0) {
+      query.not("task", "in", `(${recordedTasks.map(t => `'${t}'`).join(",")})`);
     }
-  };
+
+    const { data: completedTasks, error: completedError } = await query;
+    if (completedError) throw completedError;
+
+    if (!completedTasks || completedTasks.length === 0) {
+      setTasks([]);
+      return;
+    }
+
+    // Optional group name lookup
+    const managerIds = [...new Set(completedTasks.map(t => t.manager_id).filter(Boolean))];
+    let teamMap = {};
+if (managerIds.length > 0) {
+  const { data: groupsData, error: groupsError } = await supabase
+    .from("group") // ✅ correct table name
+    .select("id, group_name, manager_id")
+    .in("manager_id", managerIds);
+
+  if (!groupsError && groupsData) {
+    groupsData.forEach(group => {
+      teamMap[group.manager_id] = group.group_name;
+    });
+  }
+}
+
+    const tasksWithTeamNames = completedTasks.map(task => ({
+      ...task,
+      team_name:
+        teamMap[task.manager_id] ||
+        `Team ${task.manager_id?.substring(0, 8)}` ||
+        "Unknown Team",
+      date_completed:
+        task.date_completed ||
+        task.date_created ||
+        new Date().toISOString().split("T")[0],
+    }));
+
+    setTasks(tasksWithTeamNames);
+  } catch (error) {
+    console.error("Error fetching completed tasks:", error);
+    Swal.fire({
+      title: "Error!",
+      text: "Failed to load completed tasks",
+      icon: "error",
+      confirmButtonColor: ACCENT,
+    });
+  }
+};
 
   useEffect(() => { fetchCompletedTasks(); }, []);
 

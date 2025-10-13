@@ -6,7 +6,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import Swal from "sweetalert2";
 import { showChangePasswordModal } from "../services/profile";
 
-const BUCKET = "user-images"; // <- your working bucket
+const BUCKET = "user-images"; 
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
@@ -14,11 +14,99 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [availableYears, setAvailableYears] = useState([]);
+  // ✅ Fetch all available years (for dropdown)
+  useEffect(() => {
+    // fetch current user and profile
+    const fetchCurrentUser = async () => {
+      try {
+        const customUser = JSON.parse(localStorage.getItem("customUser"));
+        if (!customUser?.user_id) {
+          console.error("❌ Walang valid user sa localStorage");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch core profile (now also get hasChanged just in case you need it in UI later)
+        const { data, error } = await supabase
+          .from("user_credentials")
+          .select(
+            "user_id, first_name, last_name, middle_name, user_roles, password, email, hasChanged, year"
+          )
+          .eq("user_id", customUser.user_id)
+          .single();
+
+        if (error) throw error;
+        setUserData(data);
+        setFormData(data);
+        
+        // Fetch latest avatar (if any)
+        const { data: imgRow, error: imgErr } = await supabase
+          .from("user_images_url")
+          .select("id, imageUrl")
+          .eq("user_key", customUser.user_id)
+          .order("id", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!imgErr && imgRow?.imageUrl) {
+          setAvatarUrl(imgRow.imageUrl);
+        }
+      } catch (err) {
+        console.error("❌ Error fetching user:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // fetch unique available years from user_credentials
+    const fetchAvailableYears = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_credentials")
+          .select("year");
+
+        if (error) {
+          console.error("Error fetching years:", error);
+          setAvailableYears([]);
+          return;
+        }
+
+        const uniqueYears = [
+          ...new Set(
+            data.map((item) => (item?.year ? item.year : null)).filter(Boolean)
+          ),
+        ].sort((a, b) => {
+          // Sort descending by the string like "2025-2026" or "2025"
+          // If format is "2025-2026", compare by first 4 digits
+          const aKey = a.split("-")[0];
+          const bKey = b.split("-")[0];
+          return parseInt(bKey, 10) - parseInt(aKey, 10);
+        });
+
+        setAvailableYears(uniqueYears);
+      } catch (err) {
+        console.error("❌ Error fetching available years:", err);
+        setAvailableYears([]);
+      }
+    };
+
+    // call both
+    fetchCurrentUser();
+    fetchAvailableYears();
+  }, []);
+  useEffect(() => {
+  if (userData?.year && availableYears.length > 0) {
+    setFormData((prev) => ({ ...prev, year: userData.year }));
+  } else if (userData && !userData.year) {
+    // Ensure empty if null
+    setFormData((prev) => ({ ...prev, year: "" }));
+  }
+}, [userData, availableYears]);
 
   // Image selection/preview (local only; no upload until Save)
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-
   // Latest avatar url from DB (user_images_url)
   const [avatarUrl, setAvatarUrl] = useState("");
 
@@ -699,48 +787,127 @@ const Profile = () => {
 
         <div className="profile-content">
           <div className="profile-main-section">
-            {/* Profile Picture Section */}
-            <div className="profile-picture-section">
-              <div className="profile-picture">
-                {previewUrl ? (
-                  <img src={previewUrl} alt="Selected profile" />
-                ) : avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" />
-                ) : (
-                  <FaUserCircle className="profile-picture-icon" />
-                )}
-              </div>
+  {/* Profile Picture + Academic Year */}
+  <div>
+    {/* Profile Picture Section */}
+    <div className="profile-picture-section">
+      <div className="profile-picture">
+        {previewUrl ? (
+          <img src={previewUrl} alt="Selected profile" />
+        ) : avatarUrl ? (
+          <img src={avatarUrl} alt="Profile" />
+        ) : (
+          <FaUserCircle className="profile-picture-icon" />
+        )}
+      </div>
 
-              <div className="profile-role">
-                {roleMap[userData.user_roles] || "Unknown Role"}
-              </div>
-              <div className="profile-name">
-                {userData.first_name} {userData.last_name}
-              </div>
+      <div className="profile-role">
+        {roleMap[userData.user_roles] || "Unknown Role"}
+      </div>
+      <div className="profile-name">
+        {userData.first_name} {userData.last_name}
+      </div>
 
-              {/* Hidden file input */}
-              <input
-                id="profile-image-input"
-                type="file"
-                accept="image/png, image/jpeg, image/jpg"
-                style={{ display: "none" }}
-                onChange={handleImagePick}
-              />
+      {/* Hidden file input */}
+      <input
+        id="profile-image-input"
+        type="file"
+        accept="image/png, image/jpeg, image/jpg"
+        style={{ display: "none" }}
+        onChange={handleImagePick}
+      />
 
-              {/* Upload button only in edit mode */}
-              {isEditing && (
-                <>
-                  <button
-                    className="btn-upload"
-                    type="button"
-                    onClick={triggerFileDialog}
-                  >
-                    Upload Image
-                  </button>
-                  <div className="upload-hint">PNG/JPG only • Max 5MB</div>
-                </>
-              )}
-            </div>
+      {/* Upload button only in edit mode */}
+      {isEditing && (
+        <>
+          <button
+            className="btn-upload"
+            type="button"
+            onClick={triggerFileDialog}
+          >
+            Upload Image
+          </button>
+          <div className="upload-hint">PNG/JPG only • Max 5MB</div>
+        </>
+      )}
+    </div>
+
+    {/* ✅ Academic Year Section (only for IT Instructor) */}
+    {roleMap[userData.user_roles] === "IT Instructor" && (
+  <div
+    style={{
+      backgroundColor: "#f8f9fa",
+      border: "1px solid #d1d1d1",
+      borderRadius: "8px",
+      padding: "15px",
+      marginTop: "20px",
+      textAlign: "center",
+    }}
+  >
+    <h5
+      style={{
+        color: "#5a0d0e",
+        fontWeight: "700",
+        marginBottom: "10px",
+      }}
+    >
+      Academic Year
+    </h5>
+
+    <select
+      className="form-control"
+      style={{
+        border: "2px solid #5a0d0e",
+        borderRadius: "6px",
+        fontWeight: "600",
+        color: "#5a0d0e",
+        textAlign: "center",
+        backgroundColor: "#fff",
+      }}
+      value={formData.year || ""}
+      onChange={async (e) => {
+        const selectedYear = e.target.value;
+        setFormData((prev) => ({ ...prev, year: selectedYear }));
+
+        try {
+          // ✅ Update immediately in Supabase
+          const { error } = await supabase
+            .from("user_credentials")
+            .update({ year: selectedYear })
+            .eq("user_id", userData.user_id);
+          if (error) throw error;
+
+          Swal.fire({
+            icon: "success",
+            title: "Academic Year Updated",
+            text: `Set to ${selectedYear}`,
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        } catch (err) {
+          console.error("Error updating year:", err);
+          Swal.fire({
+            icon: "error",
+            title: "Update Failed",
+            text: "Could not update Academic Year.",
+          });
+        }
+      }}
+    >
+      {availableYears.length === 0 ? (
+        <option value="">No academic years available</option>
+      ) : (
+        availableYears.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))
+      )}
+    </select>
+  </div>
+)}
+  </div>
+
 
             {/* Profile Details Section */}
             <div className="profile-details">

@@ -47,54 +47,97 @@ const Signin = () => {
   }, [location, navigate]);
 
   const handleSignIn = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data: user, error } = await supabase
-        .from("user_credentials")
-        .select("*")
-        .eq("user_id", userID)
-        .eq("password", password)
-        .single();
+  e.preventDefault();
+  setLoading(true);
+  try {
+    // Step 1: Fetch user credentials
+    const { data: user, error } = await supabase
+      .from("user_credentials")
+      .select("*")
+      .eq("user_id", userID)
+      .eq("password", password)
+      .single();
 
-      if (error || !user) {
-        Swal.fire({ icon: "error", title: "Login failed", text: "Invalid credentials. Please try again." });
+    if (error || !user) {
+      Swal.fire({
+        icon: "error",
+        title: "Login failed",
+        text: "Invalid credentials. Please try again.",
+      });
+      return;
+    }
+
+    // Step 2: Get active instructor's year
+    const { data: instructorYearData, error: instructorError } = await supabase
+      .from("user_credentials")
+      .select("year")
+      .eq("user_roles", 4)
+      .not("year", "is", null)
+      .limit(1);
+
+    const activeInstructorYear = instructorYearData?.[0]?.year || null;
+
+    // Step 3: Apply year-based login restriction
+    if (user.user_roles !== 4) {
+      if (!activeInstructorYear) {
+        Swal.fire({
+          icon: "error",
+          title: "Login Restricted",
+          text: "System year is not yet set by the instructor. Please try again later.",
+        });
         return;
       }
-
-      login(user);
-      localStorage.setItem("customUser", JSON.stringify(user));
-      localStorage.setItem("user_id", user.user_id);
-      setIsLoggedIn(true);
-
-      const roleRoutes = {
-        1: { path: "/Manager", label: "Manager" },
-        2: { path: "/Member", label: "Member" },
-        3: { path: "/Adviser", label: "Adviser" },
-        4: { path: "/Instructor", label: "Admin" },
-      };
-
-      const target = roleRoutes[user.user_roles];
-      if (target) {
+      if (user.year !== activeInstructorYear) {
         Swal.fire({
-          icon: "success",
-          title: "Login successful",
-          text: `Welcome ${target.label}`,
-          timer: 1500,
-          showConfirmButton: false,
+          icon: "error",
+          title: "Access Denied",
+          text: `You are not allowed to log in. Active academic year is ${activeInstructorYear}.`,
         });
-        navigate(target.path);
-      } else {
-        Swal.fire({ icon: "warning", title: "Unknown role", text: "Please contact the administrator." });
+        return;
       }
-    } catch (err) {
-      Swal.fire({ icon: "error", title: "Server Error", text: "Something went wrong. Please try again later." });
-      console.error("❌ SignIn Error:", err.message);
-    } finally {
-      setLoading(false);
     }
-  };
 
+    // Step 4: Proceed with login if all checks passed
+    login(user);
+    localStorage.setItem("customUser", JSON.stringify(user));
+    localStorage.setItem("user_id", user.user_id);
+    setIsLoggedIn(true);
+
+    const roleRoutes = {
+      1: { path: "/Manager", label: "Manager" },
+      2: { path: "/Member", label: "Member" },
+      3: { path: "/Adviser", label: "Adviser" },
+      4: { path: "/Instructor", label: "Admin" },
+    };
+
+    const target = roleRoutes[user.user_roles];
+    if (target) {
+      Swal.fire({
+        icon: "success",
+        title: "Login successful",
+        text: `Welcome ${target.label}`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      navigate(target.path);
+    } else {
+      Swal.fire({
+        icon: "warning",
+        title: "Unknown role",
+        text: "Please contact the administrator.",
+      });
+    }
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "Server Error",
+      text: "Something went wrong. Please try again later.",
+    });
+    console.error("❌ SignIn Error:", err.message);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     const storedUser = localStorage.getItem("customUser");
     if (storedUser) {

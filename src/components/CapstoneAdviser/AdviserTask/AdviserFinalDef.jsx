@@ -1,23 +1,52 @@
-// src/components/CapstoneAdviser/AdviserFinalDef.jsx
 import React, { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import {
-  FaCalendarAlt, FaClock, FaChevronDown, FaChevronLeft, FaChevronRight,
-  FaEdit, FaEllipsisV, FaEye, FaFilter, FaPlus, FaSearch, FaTasks, FaTrash
+  FaCalendarAlt,
+  FaClock,
+  FaChevronDown,
+  FaChevronLeft,
+  FaChevronRight,
+  FaEdit,
+  FaEllipsisV,
+  FaEye,
+  FaFilter,
+  FaPlus,
+  FaSearch,
+  FaTasks,
+  FaTrash,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { fetchTasksFromDB } from "../../../services/Adviser/AdviserFinalTask";
+import { fetchTasksFromDB, handleCreateTask } from "../../../services/Adviser/AdviserFinalTask";
 
 const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed", "Missed"];
 const FILTER_OPTIONS = ["All", "To Do", "In Progress", "To Review", "Missed"];
-const REVISION_OPTIONS = ["No Revision", ...Array.from({ length: 10 }, (_, i) => {
-  const n = i + 1; return n === 1 ? "1st Revision" : n === 2 ? "2nd Revision" : n === 3 ? "3rd Revision" : `${n}th Revision`;
-})];
+const REVISION_OPTIONS = [
+  "No Revision",
+  ...Array.from({ length: 10 }, (_, i) => {
+    const n = i + 1;
+    return n === 1
+      ? "1st Revision"
+      : n === 2
+      ? "2nd Revision"
+      : n === 3
+      ? "3rd Revision"
+      : `${n}th Revision`;
+  }),
+];
 const METHODOLOGY_OPTIONS = ["Agile", "Extreme Programming", "Prototyping", "Scrum", "Waterfall"];
 const PHASE_OPTIONS = ["Planning", "Design", "Development", "Testing", "Deployment"];
 const ACCENT = "#5a0d0e";
 
-const color = (s) => ({ "To Do": "#FABC3F", "In Progress": "#809D3C", "To Review": "#578FCA", "Completed": "#AA60C8", "Missed": "#D60606" }[s] || "#ccc");
+const color = (s) =>
+  (
+    {
+      "To Do": "#FABC3F",
+      "In Progress": "#809D3C",
+      "To Review": "#578FCA",
+      "Completed": "#AA60C8",
+      "Missed": "#D60606",
+    }[s] || "#ccc"
+  );
 const clean = (v) => (v || "").replace(/^\d+\.\s*/, "");
 const revCount = (txt) => (!txt || txt === "No Revision" ? 0 : parseInt(txt, 10) || 0);
 const nextRev = (txt) => {
@@ -50,7 +79,9 @@ export default function AdviserFinalDef() {
   const [view, setView] = useState(0);
   const kebabRefs = useRef({});
 
-  useEffect(() => { fetchTasksFromDB(setTasks); }, []);
+  useEffect(() => {
+    fetchTasksFromDB(setTasks);
+  }, []);
 
   const filtered = (tasks || [])
     .filter((t) => t.group_name && t.group_name.trim() !== "")
@@ -60,16 +91,26 @@ export default function AdviserFinalDef() {
 
   const allSelected = filtered.length > 0 && selected.length === filtered.length;
 
-  const setTask = (id, up) => setTasks((p) => p.map((t) => (t.id === id ? up(t) : t)));
+  const setTask = (id, up) =>
+    setTasks((p) => p.map((t) => (t.id === id ? up(t) : t)));
   const missed = (t) => t.status === "Missed";
 
   const onStatus = async (id, s) => {
     const t = tasks.find((x) => x.id === id);
     if (!t || missed(t)) return;
     if (s === "Completed") {
-      const ok = await Swal.fire({ icon: "question", title: "Mark as Completed?", showCancelButton: true, confirmButtonColor: ACCENT });
+      const ok = await Swal.fire({
+        icon: "question",
+        title: "Mark as Completed?",
+        showCancelButton: true,
+        confirmButtonColor: ACCENT,
+      });
       if (!ok.isConfirmed) return;
-      setTask(id, (cur) => ({ ...cur, status: "Completed", date_completed: new Date().toISOString().slice(0, 10) }));
+      setTask(id, (cur) => ({
+        ...cur,
+        status: "Completed",
+        date_completed: new Date().toISOString().slice(0, 10),
+      }));
       return;
     }
     setTask(id, (cur) => ({ ...cur, status: s }));
@@ -82,7 +123,11 @@ export default function AdviserFinalDef() {
     if (missed(t)) {
       const next = nextRev(t.revision_no);
       const capped = revCount(next) >= 10;
-      setTask(id, (cur) => ({ ...cur, revision_no: next, status: capped ? "Missed" : "To Do" }));
+      setTask(id, (cur) => ({
+        ...cur,
+        revision_no: next,
+        status: capped ? "Missed" : "To Do",
+      }));
       Swal.fire({
         icon: "success",
         title: capped ? "Revision maxed (10)" : "Revision +1 & Status reset",
@@ -99,19 +144,39 @@ export default function AdviserFinalDef() {
         <div style="text-align:left">
           <label style="font-weight:600">Revision No.</label>
           <select id="u-rev" class="swal2-input" style="width:100%;margin:4px 0 10px;">
-            ${REVISION_OPTIONS.map((o) => `<option value="${o}" ${o === (t.revision_no || "No Revision") ? "selected" : ""}>${o}</option>`).join("")}
+            ${REVISION_OPTIONS.map(
+              (o) =>
+                `<option value="${o}" ${
+                  o === (t.revision_no || "No Revision") ? "selected" : ""
+                }>${o}</option>`
+            ).join("")}
           </select>
           <label style="font-weight:600">Status</label>
           <select id="u-stat" class="swal2-input" style="width:100%;margin:4px 0 10px;">
-            ${STATUS_OPTIONS.map((s) => `<option value="${s}" ${s === (t.status || "To Do") ? "selected" : ""}>${s}</option>`).join("")}
+            ${STATUS_OPTIONS.map(
+              (s) =>
+                `<option value="${s}" ${
+                  s === (t.status || "To Do") ? "selected" : ""
+                }>${s}</option>`
+            ).join("")}
           </select>
           <label style="font-weight:600">Methodology</label>
           <select id="u-meth" class="swal2-input" style="width:100%;margin:4px 0 10px;">
-            ${METHODOLOGY_OPTIONS.map((m) => `<option value="${m}" ${m === (t.methodology || "Agile") ? "selected" : ""}>${m}</option>`).join("")}
+            ${METHODOLOGY_OPTIONS.map(
+              (m) =>
+                `<option value="${m}" ${
+                  m === (t.methodology || "Agile") ? "selected" : ""
+                }>${m}</option>`
+            ).join("")}
           </select>
           <label style="font-weight:600">Project Phase</label>
           <select id="u-phase" class="swal2-input" style="width:100%;">
-            ${PHASE_OPTIONS.map((p) => `<option value="${p}" ${p === (t.project_phase || "Planning") ? "selected" : ""}>${p}</option>`).join("")}
+            ${PHASE_OPTIONS.map(
+              (p) =>
+                `<option value="${p}" ${
+                  p === (t.project_phase || "Planning") ? "selected" : ""
+                }>${p}</option>`
+            ).join("")}
           </select>
         </div>
       `,
@@ -129,15 +194,24 @@ export default function AdviserFinalDef() {
       const v = res.value;
       const capped = revCount(v.revision_no) >= 10 && v.status !== "Completed";
       setTask(id, (cur) => ({ ...cur, ...v, status: capped ? "Missed" : v.status }));
-      Swal.fire({ icon: "success", title: capped ? "Revision maxed (10): set to Missed" : "Saved", confirmButtonColor: ACCENT });
+      Swal.fire({
+        icon: "success",
+        title: capped ? "Revision maxed (10): set to Missed" : "Saved",
+        confirmButtonColor: ACCENT,
+      });
     });
 
     setOpenMenu(null);
   };
 
   const menuPos = (id) => {
-    const el = kebabRefs.current[id]; if (!el) return { top: 0, left: 0 };
-    const r = el.getBoundingClientRect(); return { top: r.bottom + window.scrollY, left: r.right + window.scrollX - 140 };
+    const el = kebabRefs.current[id];
+    if (!el) return { top: 0, left: 0 };
+    const r = el.getBoundingClientRect();
+    return {
+      top: r.bottom + window.scrollY,
+      left: r.right + window.scrollX - 140,
+    };
   };
 
   return (
@@ -147,20 +221,12 @@ export default function AdviserFinalDef() {
         .divider{height:1.5px;background:${ACCENT};width:100%;border-radius:50px;margin-bottom:1.5rem;border:none}
         .primary-button{font-size:.85rem;padding:6px 12px;border-radius:6px;border:1.5px solid ${ACCENT};background:#fff;color:${ACCENT};font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px}
         .primary-button:hover{background:#f0f0f0}
-        .tasks-table{width:100%;border-collapse:collapse}
-        .tasks-table th{background:#f8f9fa;font-weight:600;color:${ACCENT};text-transform:uppercase;font-size:.75rem;padding:12px 6px;border-bottom:1px solid #dee2e6}
-        .tasks-table td{padding:8px 6px;font-size:.875rem;border-bottom:1px solid #dee2e6;vertical-align:middle}
-        .kebab-menu{position:fixed;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:9999;min-width:140px;padding:6px 0}
-        .kebab-menu-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;background:none;border:none;width:100%;text-align:left}
-        .kebab-menu-item:hover{background:#f8f9fa}
       `}</style>
 
-      {/* Content */}
       <div className="flex-1">
         <div className="container-fluid px-4 py-3">
           <div className="row">
             <div className="col-12">
-              {/* Back on the LEFT, title to the right of it */}
               <div className="d-flex align-items-center gap-2 mb-2">
                 <button
                   type="button"
@@ -178,14 +244,21 @@ export default function AdviserFinalDef() {
             </div>
 
             <div className="col-12">
-              {/* Top bar */}
               <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
                 <div className="d-flex align-items-center gap-2">
                   <div className="position-relative">
-                    <FaSearch className="position-absolute" style={{ left: 10, top: 10, color: "#aaa" }} />
+                    <FaSearch
+                      className="position-absolute"
+                      style={{ left: 10, top: 10, color: "#aaa" }}
+                    />
                     <input
                       className="form-control bg-white"
-                      style={{ paddingLeft: 32, width: 240, backgroundColor: "#FFFFFF", borderColor: "#B2B2B2" }}
+                      style={{
+                        paddingLeft: 32,
+                        width: 240,
+                        backgroundColor: "#FFFFFF",
+                        borderColor: "#B2B2B2",
+                      }}
                       placeholder="Search task type..."
                       value={searchTerm}
                       onChange={(e) => setSearch(e.target.value)}
@@ -193,47 +266,65 @@ export default function AdviserFinalDef() {
                   </div>
 
                   <div className="position-relative">
-                    <button className="primary-button"><FaFilter /> Filter: {filter}</button>
+                    <button className="primary-button">
+                      <FaFilter /> Filter: {filter}
+                    </button>
                     <select
                       className="position-absolute w-100 h-100"
                       style={{ left: 0, top: 0, opacity: 0, cursor: "pointer" }}
                       value={filter}
                       onChange={(e) => setFilter(e.target.value)}
                     >
-                      {FILTER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                      {FILTER_OPTIONS.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div className="d-flex align-items-center gap-2">
                   {selectMode && (
-                    <button className="primary-button" onClick={() => { setSelectMode(false); setSelected([]); }}>
+                    <button
+                      className="primary-button"
+                      onClick={() => {
+                        setSelectMode(false);
+                        setSelected([]);
+                      }}
+                    >
                       Cancel
                     </button>
                   )}
                   <button
                     className="primary-button"
                     onClick={() => {
-                      if (!selectMode) { setSelectMode(true); return; }
+                      if (!selectMode) {
+                        setSelectMode(true);
+                        return;
+                      }
                       if (!selected.length) return;
                       Swal.fire({
-                        icon: "warning", title: "Delete selected?", text: `${selected.length} task(s)`,
-                        showCancelButton: true, confirmButtonColor: "#D60606"
-                      }).then((ok) => { if (ok.isConfirmed) setTasks((p) => p.filter((t) => !selected.includes(t.id))); });
+                        icon: "warning",
+                        title: "Delete selected?",
+                        text: `${selected.length} task(s)`,
+                        showCancelButton: true,
+                        confirmButtonColor: "#D60606",
+                      }).then((ok) => {
+                        if (ok.isConfirmed)
+                          setTasks((p) =>
+                            p.filter((t) => !selected.includes(t.id))
+                          );
+                      });
                     }}
                     disabled={selectMode && !selected.length}
                   >
                     <FaTrash /> {selectMode ? "Delete Selected" : "Delete"}
                   </button>
+                  {/* ✅ FIXED: Real Create Task Modal */}
                   <button
                     className="primary-button"
-                    onClick={() =>
-                      Swal.fire(
-                        "Tip",
-                        "Use Oral screen’s Create modal to generate tasks per methodology/teams. (Same rules apply.)",
-                        "info"
-                      )
-                    }
+                    onClick={() => handleCreateTask(setTasks)}
                   >
                     <FaPlus /> Create Task
                   </button>

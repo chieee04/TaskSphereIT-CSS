@@ -6,19 +6,11 @@ import "../Style/Member/MemberTask.css";
 
 const MemberTask = () => {
   const navigate = useNavigate();
-
   const [tasks, setTasks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All"); // All | To Do | In Progress | To Review
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const STATUS_OPTIONS = ["To Do", "In Progress", "To Review"];
-  const REVISION_OPTIONS = Array.from({ length: 10 }, (_, i) => {
-    const num = i + 1;
-    if (num === 1) return "1st Revision";
-    if (num === 2) return "2nd Revision";
-    if (num === 3) return "3rd Revision";
-    return `${num}th Revision`;
-  });
 
   const fetchTasks = async () => {
     const storedUser = localStorage.getItem("customUser");
@@ -49,7 +41,7 @@ const MemberTask = () => {
       "manager_oral_task",
     ];
 
-    let all = [];
+    let allTasks = [];
     for (const table of taskTables) {
       const { data } = await supabase
         .from(table)
@@ -59,7 +51,7 @@ const MemberTask = () => {
         .neq("status", "Completed");
 
       if (data) {
-        all.push(
+        allTasks.push(
           ...data.map((t) => ({
             id: t.id,
             table,
@@ -77,14 +69,15 @@ const MemberTask = () => {
       }
     }
 
-    all.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    allTasks.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
 
+    // ✅ Auto-update missed tasks
     const now = new Date();
     const currentDate = now.toISOString().split("T")[0];
     const currentTime = now.toTimeString().split(" ")[0].slice(0, 5);
 
-    const updated = await Promise.all(
-      all.map(async (task) => {
+    const updatedTasks = await Promise.all(
+      allTasks.map(async (task) => {
         if (
           task.status !== "Completed" &&
           (task.due_date < currentDate ||
@@ -101,7 +94,7 @@ const MemberTask = () => {
       })
     );
 
-    setTasks(updated);
+    setTasks(updatedTasks);
   };
 
   useEffect(() => {
@@ -134,13 +127,15 @@ const MemberTask = () => {
     if (!error) {
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === taskId && t.table === table ? { ...t, status: newStatus } : t
+          t.id === taskId && t.table === table
+            ? { ...t, status: newStatus }
+            : t
         )
       );
     }
   };
 
-  // --- Derived list with search + status filtering ---
+  // Filter logic
   const filteredTasks = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     return tasks.filter((t) => {
@@ -172,7 +167,7 @@ const MemberTask = () => {
       <div className="member-task-page">
         <h2 className="member-task-title">📋 My Tasks</h2>
 
-        {/* Toolbar: search (left) + filter (right) */}
+        {/* Toolbar */}
         <div className="table-toolbar">
           <input
             className="toolbar-input"
@@ -181,14 +176,13 @@ const MemberTask = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-
           <select
             className="toolbar-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="All">All</option>
-            {["To Do", "In Progress", "To Review"].map((s) => (
+            {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -196,7 +190,7 @@ const MemberTask = () => {
           </select>
         </div>
 
-        {/* Outer: vertical scroll; Inner .hscroll: horizontal scroll */}
+        {/* Table */}
         <div
           className="table-scroll-container"
           style={{ height: "calc(100vh - 220px)" }}
@@ -216,9 +210,10 @@ const MemberTask = () => {
                   <th>Methodology</th>
                   <th>Project Phase</th>
                   <th>From Table</th>
-                  <th>Action</th> {/* NEW */}
+                  <th>Action</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredTasks.length > 0 ? (
                   filteredTasks.map((t, index) => (
@@ -244,17 +239,17 @@ const MemberTask = () => {
                         >
                           {Array.from({ length: 10 }, (_, i) => {
                             const num = i + 1;
-                            const label =
+                            const suffix =
                               num === 1
-                                ? "1st Revision"
+                                ? "st"
                                 : num === 2
-                                ? "2nd Revision"
+                                ? "nd"
                                 : num === 3
-                                ? "3rd Revision"
-                                : `${num}th Revision`;
+                                ? "rd"
+                                : "th";
                             return (
                               <option key={num} value={num}>
-                                {label}
+                                {`${num}${suffix} Revision`}
                               </option>
                             );
                           })}
@@ -272,7 +267,7 @@ const MemberTask = () => {
                               handleStatusChange(t.id, e.target.value, t.table)
                             }
                           >
-                            {["To Do", "In Progress", "To Review"].map((s) => (
+                            {STATUS_OPTIONS.map((s) => (
                               <option key={s} value={s}>
                                 {s}
                               </option>
@@ -287,7 +282,7 @@ const MemberTask = () => {
                         <button
                           className="action-btn"
                           title="View task"
-                          onClick={() => navigate("/Member/TasksBoard")} // ✅ correct route
+                          onClick={() => navigate("/Member/TasksBoard")}
                         >
                           👁️ View
                         </button>
@@ -296,10 +291,7 @@ const MemberTask = () => {
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan="12"
-                      style={{ textAlign: "center", padding: "2rem" }}
-                    >
+                    <td colSpan="12" style={{ textAlign: "center", padding: "2rem" }}>
                       No matching tasks.
                     </td>
                   </tr>
